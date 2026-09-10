@@ -10,21 +10,28 @@ export default function JaugeParite({ filles, garcons, total }) {
   }, [pourcentage]);
 
   return (
-    <div className="bg-gray-50 p-4 rounded-card border border-gray-100">
-      <div className="flex justify-between text-[11px] font-bold uppercase mb-2">
-        <span className="text-akwa-rose">👧 Filles ({pourcentage}%)</span>
-        <span className="text-akwa-bleu">👦 Garçons ({100 - pourcentage}%)</span>
+    <div className="bg-ivoire-beige/70 rounded-xl p-3 shadow-sm">
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-label-sm text-ivoire-texte flex items-center gap-1">
+          <span className="material-symbols-outlined text-[15px] text-ivoire-orange">pie_chart</span>
+          Parité Filles / Garçons
+        </span>
+        <span className="text-[10px] text-ivoire-gris">IPG: {(garcons / Math.max(filles, 1)).toFixed(2)}</span>
       </div>
-      <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden flex">
-        <div
-          className="bg-akwa-rose h-full transition-all duration-700 ease-out"
-          style={{ width: `${width}%` }}
-        />
-        <div className="bg-akwa-bleu h-full flex-1" />
+      <div className="w-full h-3 bg-ivoire-blanc rounded-full overflow-hidden flex p-0.5 shadow-inner">
+        <div className="h-full bg-ivoire-orange rounded-l-full transition-all duration-700 ease-out" style={{ width: `${width}%` }} />
+        <div className="h-full bg-ivoire-vert rounded-r-full flex-1" />
       </div>
-      <p className="text-[10px] text-gray-400 mt-1.5 text-center">
-        Indice de Parité : {(filles / Math.max(garcons, 1)).toFixed(2)} (1.0 = parité parfaite)
-      </p>
+      <div className="flex justify-between items-center mt-1.5 text-label-sm">
+        <span className="text-ivoire-orange font-bold flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-ivoire-orange" />
+          Filles {pourcentage}%
+        </span>
+        <span className="text-ivoire-vert font-bold flex items-center gap-1">
+          Garçons {100 - pourcentage}%
+          <span className="w-2 h-2 rounded-full bg-ivoire-vert" />
+        </span>
+      </div>
     </div>
   );
 }

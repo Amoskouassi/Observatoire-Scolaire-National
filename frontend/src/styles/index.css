@@ -5,96 +5,118 @@
 @layer base {
   html {
     @apply antialiased;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    background-color: #F4EFE6;
   }
 
   body {
-    @apply bg-akwa-beige text-akwa-texte;
+    @apply bg-surface text-ivoire-texte;
+    overscroll-behavior: none;
+    min-height: max(884px, 100dvh);
   }
 
   * {
-    @apply selection:bg-akwa-orange/20 selection:text-akwa-texte;
+    @apply selection:bg-primary-fixed/40 selection:text-ivoire-texte;
   }
+
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-akwa-orange hover:bg-akwa-orangeDark text-white text-xs font-black
-           py-3 px-6 rounded-button uppercase tracking-wider transition-all duration-200
-           shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer;
+    @apply bg-ivoire-orange hover:bg-ivoire-orange-dark text-white text-label-md font-bold
+           py-3 px-4 rounded-xl transition-all duration-200
+           active:scale-[0.98] cursor-pointer;
+    box-shadow: 0 4px 18px rgba(232, 97, 26, 0.35);
   }
 
   .btn-secondary {
-    @apply bg-akwa-vert hover:bg-akwa-vertClair text-white text-xs font-black
-           py-3 px-6 rounded-button uppercase tracking-wider transition-all duration-200
-           shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer;
+    @apply bg-ivoire-vert hover:bg-secondary text-white text-label-md font-bold
+           py-3 px-4 rounded-xl transition-all duration-200
+           active:scale-[0.98] cursor-pointer;
+    box-shadow: 0 4px 16px rgba(11, 122, 62, 0.25);
   }
 
   .btn-ghost {
-    @apply bg-transparent hover:bg-gray-100 text-akwa-texte text-xs font-bold
-           py-2 px-4 rounded-button transition-colors duration-200 cursor-pointer;
+    @apply bg-transparent hover:bg-ivoire-beige text-ivoire-texte text-label-md font-semibold
+           py-2.5 px-3 rounded-lg transition-colors duration-200 cursor-pointer;
   }
 
   .card {
-    @apply bg-white p-4 rounded-card border border-akwa-frontiere shadow-card;
-  }
-
-  .badge {
-    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-badge
-           text-[10px] font-black uppercase;
-  }
-
-  .badge-orange {
-    @apply badge bg-akwa-orange/10 text-akwa-orange border border-akwa-orange/30;
-  }
-
-  .badge-vert {
-    @apply badge bg-akwa-vert/10 text-akwa-vert border border-akwa-vert/30;
-  }
-
-  .badge-gris {
-    @apply badge bg-gray-100 text-akwa-gris border border-gray-200;
-  }
-
-  .badge-rouge {
-    @apply badge bg-red-50 text-akwa-rouge border border-red-200;
+    @bg-ivoire-blanc rounded-xl p-4 shadow-card;
   }
 
   .kpi-card {
-    @apply bg-gray-50 p-3 rounded-card border border-gray-100;
+    @apply bg-ivoire-blanc p-3.5 rounded-xl shadow-card flex flex-col justify-between relative overflow-hidden;
   }
 
-  .sidebar-transition {
-    @apply transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)];
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-sm font-bold;
   }
 
-  .filter-panel {
-    @apply bg-white rounded-card border border-akwa-frontiere shadow-card p-4;
+  .badge-orange {
+    @apply badge bg-ivoire-orange/10 text-ivoire-orange;
   }
 
-  .filter-checkbox {
-    @apply w-4 h-4 rounded border-akwa-frontiere text-akwa-orange
-           focus:ring-akwa-orange/30 cursor-pointer;
+  .badge-vert {
+    @apply badge bg-ivoire-vert/10 text-ivoire-vert;
   }
 
-  .filter-select {
-    @apply w-full bg-gray-50 border border-akwa-frontiere rounded-button p-2
-           text-sm font-medium text-akwa-texte outline-none
-           focus:border-akwa-orange focus:ring-2 focus:ring-akwa-orange/20
-           transition-colors duration-200;
+  .badge-gris {
+    @apply badge bg-surface-container-high text-ivoire-texte;
+  }
+
+  .badge-rouge {
+    @apply badge bg-error/10 text-error;
+  }
+
+  .filter-chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-label-sm
+           font-bold shadow-sm shrink-0 transition-transform active:scale-95 cursor-pointer;
+  }
+
+  .filter-chip-active {
+    @apply filter-chip bg-ivoire-vert text-white;
+  }
+
+  .filter-chip-inactive {
+    @apply filter-chip bg-ivoire-blanc text-ivoire-texte;
+  }
+
+  .bottom-sheet {
+    @apply bg-ivoire-blanc rounded-t-3xl shadow-sheet px-4 pt-3 pb-8 relative z-20;
+  }
+
+  .bottom-sheet-handle {
+    @apply w-12 h-1.5 bg-ivoire-frontiere/80 rounded-full mx-auto mb-3;
+  }
+
+  .toast {
+    @apply fixed bottom-24 inset-x-4 max-w-sm mx-auto p-3.5 rounded-xl
+           bg-ivoire-nuit text-white shadow-2xl flex items-center justify-between gap-3
+           transform transition-all duration-300 pointer-events-none z-50;
+  }
+
+  .toast-hidden {
+    @apply translate-y-28 opacity-0 pointer-events-none;
+  }
+
+  .toast-visible {
+    @apply translate-y-0 opacity-100;
   }
 }
 
 /* MapLibre overrides */
 .maplibregl-canvas {
-  background-color: #F4EFE6 !important;
+  background-color: #0D1B2A !important;
 }
 
 .maplibregl-ctrl-group {
   border-radius: 8px !important;
   overflow: hidden;
-  border: 1px solid #CBD5E1 !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  background: rgba(13,27,42,0.85) !important;
+  backdrop-filter: blur(8px) !important;
 }
 
 .maplibregl-ctrl-group button {
@@ -102,25 +124,13 @@
   height: 32px !important;
 }
 
-/* Scrollbar custom */
-::-webkit-scrollbar {
-  width: 6px;
+.maplibregl-ctrl-group button + button {
+  border-top: 1px solid rgba(255,255,255,0.1) !important;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* Scrollbar hidden */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
-::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
-}
-
-/* Skeleton loader */
-.skeleton {
-  @apply bg-gray-200 rounded animate-pulse;
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

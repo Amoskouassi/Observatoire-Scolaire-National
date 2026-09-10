@@ -15,7 +15,6 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const { token, user } = await api.login(email, password);
       login(user, token, user.role);
@@ -28,50 +27,33 @@ export default function Login() {
   };
 
   return (
-    <div className="h-full flex items-center justify-center bg-akwa-beige">
-      <div className="card w-full max-w-md mx-4">
+    <div className="h-full flex items-center justify-center bg-surface px-4">
+      <div className="kpi-card w-full max-w-md">
         <div className="text-center mb-6">
           <span className="text-4xl">🇨🇮</span>
-          <h1 className="text-lg font-black text-akwa-texte mt-2">Connexion</h1>
-          <p className="text-xs text-gray-500">Accédez à votre espace</p>
+          <h1 className="text-headline-sm text-ivoire-nuit mt-2 font-black">Connexion</h1>
+          <p className="text-body-sm text-ivoire-gris">Accédez à votre espace</p>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-xs p-3 rounded-button">
-              {error}
-            </div>
+            <div className="bg-error/10 border border-error/20 text-error text-body-sm p-3 rounded-lg">{error}</div>
           )}
-
           <div>
-            <label className="text-[11px] font-bold text-gray-500 uppercase block mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="filter-select"
-              required
-            />
+            <label className="text-label-sm text-ivoire-gris uppercase block mb-1">Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                   className="w-full bg-surface-container-high/60 border border-ivoire-frontiere rounded-lg p-2.5 text-body-sm focus:border-ivoire-orange focus:ring-2 focus:ring-ivoire-orange/20 outline-none transition-colors" required />
           </div>
-
           <div>
-            <label className="text-[11px] font-bold text-gray-500 uppercase block mb-1">Mot de passe</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="filter-select"
-              required
-            />
+            <label className="text-label-sm text-ivoire-gris uppercase block mb-1">Mot de passe</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                   className="w-full bg-surface-container-high/60 border border-ivoire-frontiere rounded-lg p-2.5 text-body-sm focus:border-ivoire-orange focus:ring-2 focus:ring-ivoire-orange/20 outline-none transition-colors" required />
           </div>
-
           <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading ? 'Connexion...' : '🔑 Connexion'}
+            {loading ? 'Connexion...' : 'Connexion'}
           </button>
         </form>
-
-        <p className="text-center text-xs text-gray-500 mt-4">
-          Pas encore de compte ? <a href="/register" className="text-akwa-orange hover:underline">S'inscrire</a>
+        <p className="text-center text-body-sm text-ivoire-gris mt-4">
+          Pas encore de compte ? <a href="/register" className="text-ivoire-orange hover:underline font-bold">S'inscrire</a>
         </p>
       </div>
     </div>

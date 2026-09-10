@@ -1,74 +1,40 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function Header() {
-  const { user, role, logout } = useAuthStore();
-  const location = useLocation();
+  const { user, role } = useAuthStore();
 
   return (
-    <header className="bg-white border-b border-akwa-frontiere px-4 py-3 shadow-sm flex justify-between items-center z-50">
-      <Link to="/" className="flex items-center gap-3 no-underline">
-        <span className="text-2xl">🇨🇮</span>
-        <div>
-          <h1 className="text-sm font-black tracking-widest uppercase text-akwa-texte">
-            Observatoire Scolaire National
-          </h1>
-          <p className="text-[11px] text-gray-500 font-semibold" id="breadcrumb">
-            République de Côte d'Ivoire
-          </p>
-        </div>
-      </Link>
-
-      <nav className="hidden md:flex items-center gap-1">
-        <NavLink to="/explorer" active={location.pathname.startsWith('/explorer')}>
-          🗺️ Explorer
-        </NavLink>
-        {role && ['mairie', 'institution', 'admin'].includes(role) && (
-          <NavLink to="/espace-decideur" active={location.pathname.startsWith('/espace-decideur')}>
-            📊 Décideur
-          </NavLink>
-        )}
-        {role && ['institution', 'admin'].includes(role) && (
-          <NavLink to="/espace-institutions" active={location.pathname.startsWith('/espace-institutions')}>
-            🌍 Institutions
-          </NavLink>
-        )}
-        <NavLink to="/tarifs" active={location.pathname === '/tarifs'}>
-          💼 Tarifs
-        </NavLink>
-      </nav>
-
-      <div className="flex items-center gap-3">
-        {user ? (
-          <div className="flex items-center gap-2">
-            <span className="badge-orange hidden sm:inline-flex">
-              {role === 'admin' ? '👑 Admin' : role === 'mairie' ? '🏛️ Mairie' : role === 'institution' ? '🌍 Institution' : '📱 Enquêteur'}
+    <header className="fixed top-0 w-full z-50 pt-safe bg-ivoire-blanc/90 backdrop-blur-xl shadow-card">
+      <div className="h-16 px-4 flex items-center justify-between gap-2">
+        <Link to="/" className="flex items-center gap-2.5 no-underline">
+          <span className="text-2xl">🇨🇮</span>
+          <div className="flex flex-col">
+            <span className="text-[10px] text-label-sm uppercase tracking-wider text-ivoire-orange font-bold leading-none">
+              BI Éducative CI
             </span>
-            <button onClick={logout} className="btn-ghost text-[11px]">
-              Déconnexion
-            </button>
+            <h1 className="text-xs font-bold text-ivoire-nuit tracking-tight truncate max-w-[130px]">
+              Observatoire National
+            </h1>
           </div>
-        ) : (
-          <Link to="/login" className="btn-primary text-[11px] py-2 px-4 no-underline">
-            Connexion
-          </Link>
-        )}
+        </Link>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ivoire-blanc shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-ivoire-vert animate-pulse-dot" />
+            <span className="text-[11px] font-bold text-ivoire-vert">En ligne</span>
+          </div>
+          {user ? (
+            <div className="w-8 h-8 rounded-full bg-ivoire-orange flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-white text-[18px]">person</span>
+            </div>
+          ) : (
+            <Link to="/login" className="w-8 h-8 rounded-full bg-ivoire-gris/20 flex items-center justify-center shrink-0 no-underline">
+              <span className="material-symbols-outlined text-ivoire-gris text-[18px]">person_outline</span>
+            </Link>
+          )}
+        </div>
       </div>
     </header>
-  );
-}
-
-function NavLink({ to, active, children }) {
-  return (
-    <Link
-      to={to}
-      className={`px-3 py-1.5 text-xs font-bold rounded-button transition-colors no-underline ${
-        active
-          ? 'bg-akwa-orange/10 text-akwa-orange'
-          : 'text-akwa-gris hover:bg-gray-100 hover:text-akwa-texte'
-      }`}
-    >
-      {children}
-    </Link>
   );
 }
