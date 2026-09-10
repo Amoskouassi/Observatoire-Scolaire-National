@@ -41,7 +41,6 @@ export default function Explorer() {
       container: mapRef.current,
       style: {
         version: 8,
-        glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
         sources: {},
         layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#F4EFE6' } }],
       },
@@ -78,7 +77,7 @@ export default function Explorer() {
         });
         map.addLayer({
           id: 'districts-labels', type: 'symbol', source: 'districts',
-          layout: { 'text-field': ['get', 'name'], 'text-size': 14, 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'], 'text-max-width': 10, 'text-allow-overlap': true },
+          layout: { 'text-field': ['get', 'name'], 'text-size': 14, 'text-max-width': 10, 'text-allow-overlap': true },
           paint: { 'text-color': '#1E293B', 'text-halo-color': '#FAF8F3', 'text-halo-width': 2.5 },
         });
       }
@@ -96,7 +95,7 @@ export default function Explorer() {
         map.addLayer({ id: 'regions-outline', type: 'line', source: 'regions', paint: { 'line-color': '#CBD5E1', 'line-width': 1.5 }, layout: { visibility: 'none' } });
         map.addLayer({
           id: 'regions-labels', type: 'symbol', source: 'regions',
-          layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'], 'text-max-width': 10, 'text-allow-overlap': true, 'visibility': 'none' },
+          layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-max-width': 10, 'text-allow-overlap': true, 'visibility': 'none' },
           paint: { 'text-color': '#1E293B', 'text-halo-color': '#FAF8F3', 'text-halo-width': 2 },
         });
       }
@@ -114,7 +113,7 @@ export default function Explorer() {
         map.addLayer({ id: 'depts-outline', type: 'line', source: 'depts', paint: { 'line-color': '#CBD5E1', 'line-width': 1 }, layout: { visibility: 'none' } });
         map.addLayer({
           id: 'depts-labels', type: 'symbol', source: 'depts',
-          layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'], 'text-max-width': 10, 'text-allow-overlap': true, 'visibility': 'none' },
+          layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-max-width': 10, 'text-allow-overlap': true, 'visibility': 'none' },
           paint: { 'text-color': '#1E293B', 'text-halo-color': '#FAF8F3', 'text-halo-width': 2 },
         });
       }
