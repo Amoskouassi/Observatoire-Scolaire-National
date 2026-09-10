@@ -23,6 +23,43 @@ const GEOJSON_PATHS = {
   depts: '/depts.geojson',
 };
 
+function getCentroid(geometry) {
+  if (!geometry) return null;
+  let coords;
+  if (geometry.type === 'Polygon') {
+    coords = geometry.coordinates[0];
+  } else if (geometry.type === 'MultiPolygon') {
+    coords = geometry.coordinates[0][0];
+  } else {
+    return null;
+  }
+  let lng = 0, lat = 0;
+  for (const c of coords) { lng += c[0]; lat += c[1]; }
+  return [lng / coords.length, lat / coords.length];
+}
+
+function createLabelMarker(name, status, zoomThreshold) {
+  const el = document.createElement('div');
+  el.className = 'district-label-marker';
+  el.textContent = name;
+  el.dataset.zoomThreshold = zoomThreshold;
+  el.style.cssText = `
+    background: ${COLORS[status] || COLORS.pending};
+    color: white;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: Inter, system-ui, sans-serif;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    line-height: 1.4;
+    text-align: center;
+  `;
+  return el;
+}
+
 export default function Explorer() {
   const mapRef = useRef(null);
   const mapInst = useRef(null);
@@ -32,7 +69,8 @@ export default function Explorer() {
   const [selected, setSelected] = useState(null);
   const [currentLevel, setCurrentLevel] = useState('district');
   const [zones, setZones] = useState([]);
-  const [hoveredZone, setHoveredZone] = useState(null);
+
+  const markersRef = useRef({ districts: [], regions: [], depts: [] });
 
   useEffect(() => {
     if (mapInst.current) return;
@@ -61,6 +99,7 @@ export default function Explorer() {
         fetch(GEOJSON_PATHS.depts).then(r => r.json()).catch(() => null),
       ]);
 
+      // Districts fill + outline
       if (districtsData) {
         map.addSource('districts', { type: 'geojson', data: districtsData });
         map.addLayer({
@@ -69,19 +108,24 @@ export default function Explorer() {
             'fill-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, COLORS.pending],
             'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.45, 0.25],
           },
-          layout: { visibility: 'visible' },
         });
         map.addLayer({
           id: 'districts-outline', type: 'line', source: 'districts',
           paint: { 'line-color': '#CBD5E1', 'line-width': 2 },
         });
-        map.addLayer({
-          id: 'districts-labels', type: 'symbol', source: 'districts',
-          layout: { 'text-field': ['get', 'name'], 'text-size': 14, 'text-max-width': 10, 'text-allow-overlap': true },
-          paint: { 'text-color': '#1E293B', 'text-halo-color': '#FAF8F3', 'text-halo-width': 2.5 },
-        });
+        // HTML markers for labels
+        for (const f of districtsData.features) {
+          const centroid = getCentroid(f.geometry);
+          if (!centroid) continue;
+          const el = createLabelMarker(f.properties.name, f.properties.status, 7);
+          const marker = new maplibregl.Marker({ element: el })
+            .setLngLat(centroid)
+            .addTo(map);
+          markersRef.current.districts.push(marker);
+        }
       }
 
+      // Regions fill + outline
       if (regionsData) {
         map.addSource('regions', { type: 'geojson', data: regionsData });
         map.addLayer({
@@ -93,13 +137,19 @@ export default function Explorer() {
           layout: { visibility: 'none' },
         });
         map.addLayer({ id: 'regions-outline', type: 'line', source: 'regions', paint: { 'line-color': '#CBD5E1', 'line-width': 1.5 }, layout: { visibility: 'none' } });
-        map.addLayer({
-          id: 'regions-labels', type: 'symbol', source: 'regions',
-          layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-max-width': 10, 'text-allow-overlap': true, 'visibility': 'none' },
-          paint: { 'text-color': '#1E293B', 'text-halo-color': '#FAF8F3', 'text-halo-width': 2 },
-        });
+        for (const f of regionsData.features) {
+          const centroid = getCentroid(f.geometry);
+          if (!centroid) continue;
+          const el = createLabelMarker(f.properties.name, f.properties.status, 9);
+          const marker = new maplibregl.Marker({ element: el })
+            .setLngLat(centroid)
+            .addTo(map);
+          el.style.display = 'none';
+          markersRef.current.regions.push(marker);
+        }
       }
 
+      // Depts fill + outline
       if (deptsData) {
         map.addSource('depts', { type: 'geojson', data: deptsData });
         map.addLayer({
@@ -111,13 +161,19 @@ export default function Explorer() {
           layout: { visibility: 'none' },
         });
         map.addLayer({ id: 'depts-outline', type: 'line', source: 'depts', paint: { 'line-color': '#CBD5E1', 'line-width': 1 }, layout: { visibility: 'none' } });
-        map.addLayer({
-          id: 'depts-labels', type: 'symbol', source: 'depts',
-          layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-max-width': 10, 'text-allow-overlap': true, 'visibility': 'none' },
-          paint: { 'text-color': '#1E293B', 'text-halo-color': '#FAF8F3', 'text-halo-width': 2 },
-        });
+        for (const f of deptsData.features) {
+          const centroid = getCentroid(f.geometry);
+          if (!centroid) continue;
+          const el = createLabelMarker(f.properties.name, f.properties.status, 11);
+          const marker = new maplibregl.Marker({ element: el })
+            .setLngLat(centroid)
+            .addTo(map);
+          el.style.display = 'none';
+          markersRef.current.depts.push(marker);
+        }
       }
 
+      // Schools source
       map.addSource('ecoles', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({
         id: 'ecoles-points', type: 'circle', source: 'ecoles',
@@ -136,7 +192,6 @@ export default function Explorer() {
           map.getCanvas().style.cursor = '';
           if (hId !== null && hSrc) map.setFeatureState({ source: hSrc, id: hId }, { hover: false });
           hId = null; hSrc = null;
-          setHoveredZone(null);
         });
         map.on('mousemove', lid, (e) => {
           if (hId !== null && hSrc) map.setFeatureState({ source: hSrc, id: hId }, { hover: false });
@@ -144,7 +199,6 @@ export default function Explorer() {
           if (f) {
             hId = f.id; hSrc = lid.replace('-fill', '');
             map.setFeatureState({ source: hSrc, id: hId }, { hover: true });
-            setHoveredZone(f.properties?.name);
           }
         });
       }
@@ -173,33 +227,59 @@ export default function Explorer() {
         }
       });
 
-      // Zoom visibility
+      // Zoom-based visibility
       const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
+
+      const updateLabels = () => {
+        const z = map.getZoom();
+        const show = (markers, threshold) => markers.forEach(m => {
+          m.getElement().style.display = z < threshold ? '' : 'none';
+        });
+        const hide = (markers) => markers.forEach(m => {
+          m.getElement().style.display = 'none';
+        });
+
+        if (z < 7) {
+          show(markersRef.current.districts, 7);
+          hide(markersRef.current.regions);
+          hide(markersRef.current.depts);
+        } else if (z < 9) {
+          hide(markersRef.current.districts);
+          show(markersRef.current.regions, 9);
+          hide(markersRef.current.depts);
+        } else {
+          hide(markersRef.current.districts);
+          hide(markersRef.current.regions);
+          show(markersRef.current.depts, 99);
+        }
+      };
 
       const updateLayers = () => {
         const z = map.getZoom();
         if (z < 7) {
-          setVis(['districts-fill', 'districts-outline', 'districts-labels'], 'visible');
-          setVis(['regions-fill', 'regions-outline', 'regions-labels'], 'none');
-          setVis(['depts-fill', 'depts-outline', 'depts-labels'], 'none');
+          setVis(['districts-fill', 'districts-outline'], 'visible');
+          setVis(['regions-fill', 'regions-outline'], 'none');
+          setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('district');
           setZones(districtsData?.features?.map(f => f.properties) || []);
         } else if (z < 9) {
-          setVis(['districts-fill', 'districts-outline', 'districts-labels'], 'none');
-          setVis(['regions-fill', 'regions-outline', 'regions-labels'], 'visible');
-          setVis(['depts-fill', 'depts-outline', 'depts-labels'], 'none');
+          setVis(['districts-fill', 'districts-outline'], 'none');
+          setVis(['regions-fill', 'regions-outline'], 'visible');
+          setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('r\u00e9gion');
           setZones(regionsData?.features?.map(f => f.properties) || []);
         } else {
-          setVis(['districts-fill', 'districts-outline', 'districts-labels'], 'none');
-          setVis(['regions-fill', 'regions-outline', 'regions-labels'], 'none');
-          setVis(['depts-fill', 'depts-outline', 'depts-labels'], 'visible');
+          setVis(['districts-fill', 'districts-outline'], 'none');
+          setVis(['regions-fill', 'regions-outline'], 'none');
+          setVis(['depts-fill', 'depts-outline'], 'visible');
           setCurrentLevel('d\u00e9partement');
           setZones(deptsData?.features?.map(f => f.properties) || []);
         }
+        updateLabels();
       };
 
       map.on('zoomend', updateLayers);
+      map.on('move', updateLabels);
       updateLayers();
 
       loadSchools();
@@ -243,7 +323,6 @@ export default function Explorer() {
         </div>
       )}
 
-      {/* MAP — left */}
       <div className="relative flex-1 min-h-[50vh] lg:min-h-0">
         <div className="absolute top-3 left-4 right-4 z-20">
           <div className="flex items-center gap-2">
@@ -282,9 +361,7 @@ export default function Explorer() {
         <div ref={mapRef} className="absolute inset-0" />
       </div>
 
-      {/* STATS — right */}
       <div className="w-full lg:w-[380px] xl:w-[420px] bg-[#FAF8F3] border-l border-[#CBD5E1]/40 flex flex-col overflow-hidden">
-        {/* Header */}
         <div className="px-5 pt-5 pb-3 border-b border-[#CBD5E1]/30">
           <p className="text-[11px] uppercase tracking-wider text-[#6B7280] font-bold">Cote d'Ivoire</p>
           <h2 className="font-bold text-[#1E293B] text-lg">
@@ -293,12 +370,11 @@ export default function Explorer() {
           {selected && (
             <button onClick={() => setSelected(null)}
               className="text-[11px] text-[#E8611A] font-bold mt-1 hover:underline">
-              &larr; Retour \u00e0 la vue {levelLabel[currentLevel]}
+              &larr; Retour
             </button>
           )}
         </div>
 
-        {/* KPIs */}
         <div className="px-5 py-3 grid grid-cols-3 gap-2 border-b border-[#CBD5E1]/30">
           <StatCard icon="school" label="\u00c9coles" value={selected ? (selected.schools || 0) : totalSchools} />
           <StatCard icon="groups" label="\u00c9l\u00e8ves" value={selected ? (selected.students || 0) : totalStudents} format="k" />
@@ -309,7 +385,6 @@ export default function Explorer() {
           } suffix="%" />
         </div>
 
-        {/* Girls/Boys bar */}
         {(selected ? selected.girls > 0 : totalGirls > 0) && (
           <div className="px-5 py-3 border-b border-[#CBD5E1]/30">
             <div className="w-full h-3 bg-white rounded-full overflow-hidden flex p-0.5">
@@ -324,7 +399,6 @@ export default function Explorer() {
           </div>
         )}
 
-        {/* Zone list */}
         <div className="flex-1 overflow-y-auto px-5 py-3">
           {selected ? (
             <ZoneDetail zone={selected} />
