@@ -17,11 +17,11 @@
     "seed:demo": "node scripts/seed-demo-data.js",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "prepare": "husky"
+    "prepare": "echo 'husky skipped on CI'"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/VOTRE_USER/observatoire-scolaire-national.git"
+    "url": "https://github.com/Amoskouassi/Observatoire-Scolaire-National.git"
   },
   "keywords": [
     "education",
