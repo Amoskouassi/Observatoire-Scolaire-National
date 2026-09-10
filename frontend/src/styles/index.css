@@ -3,134 +3,38 @@
 @tailwind utilities;
 
 @layer base {
-  html {
-    @apply antialiased;
-    background-color: #F4EFE6;
-  }
-
-  body {
-    @apply bg-surface text-ivoire-texte;
-    overscroll-behavior: none;
-    min-height: max(884px, 100dvh);
-  }
-
-  * {
-    @apply selection:bg-primary-fixed/40 selection:text-ivoire-texte;
-  }
-
-  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
-  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+  html { @apply antialiased; background-color: #F4EFE6; }
+  body { @apply bg-[#F4EFE6] text-[#1E293B]; font-family: 'Inter', system-ui, sans-serif; overscroll-behavior: none; min-height: 100dvh; }
+  * { @apply selection:bg-[#E8611A]/20 selection:text-[#1E293B]; }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-ivoire-orange hover:bg-ivoire-orange-dark text-white text-label-md font-bold
-           py-3 px-4 rounded-xl transition-all duration-200
-           active:scale-[0.98] cursor-pointer;
-    box-shadow: 0 4px 18px rgba(232, 97, 26, 0.35);
+    @apply bg-[#E8611A] hover:bg-[#C94E0F] text-white py-3 px-4 rounded-xl font-bold text-sm transition-all active:scale-[0.98] cursor-pointer;
+    box-shadow: 0 4px 18px rgba(232,97,26,0.35);
   }
-
   .btn-secondary {
-    @apply bg-ivoire-vert hover:bg-secondary text-white text-label-md font-bold
-           py-3 px-4 rounded-xl transition-all duration-200
-           active:scale-[0.98] cursor-pointer;
-    box-shadow: 0 4px 16px rgba(11, 122, 62, 0.25);
+    @apply bg-[#0B7A3E] hover:bg-[#096832] text-white py-3 px-4 rounded-xl font-bold text-sm transition-all active:scale-[0.98] cursor-pointer;
+    box-shadow: 0 4px 16px rgba(11,122,62,0.25);
   }
-
   .btn-ghost {
-    @apply bg-transparent hover:bg-ivoire-beige text-ivoire-texte text-label-md font-semibold
-           py-2.5 px-3 rounded-lg transition-colors duration-200 cursor-pointer;
+    @apply bg-transparent hover:bg-[#F4EFE6] text-[#1E293B] py-2.5 px-3 rounded-lg font-semibold text-sm transition-colors cursor-pointer;
   }
-
-  .card {
-    @bg-ivoire-blanc rounded-xl p-4 shadow-card;
-  }
-
-  .kpi-card {
-    @apply bg-ivoire-blanc p-3.5 rounded-xl shadow-card flex flex-col justify-between relative overflow-hidden;
-  }
-
-  .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-sm font-bold;
-  }
-
-  .badge-orange {
-    @apply badge bg-ivoire-orange/10 text-ivoire-orange;
-  }
-
-  .badge-vert {
-    @apply badge bg-ivoire-vert/10 text-ivoire-vert;
-  }
-
-  .badge-gris {
-    @apply badge bg-surface-container-high text-ivoire-texte;
-  }
-
-  .badge-rouge {
-    @apply badge bg-error/10 text-error;
-  }
-
-  .filter-chip {
-    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-label-sm
-           font-bold shadow-sm shrink-0 transition-transform active:scale-95 cursor-pointer;
-  }
-
-  .filter-chip-active {
-    @apply filter-chip bg-ivoire-vert text-white;
-  }
-
-  .filter-chip-inactive {
-    @apply filter-chip bg-ivoire-blanc text-ivoire-texte;
-  }
-
-  .bottom-sheet {
-    @apply bg-ivoire-blanc rounded-t-3xl shadow-sheet px-4 pt-3 pb-8 relative z-20;
-  }
-
-  .bottom-sheet-handle {
-    @apply w-12 h-1.5 bg-ivoire-frontiere/80 rounded-full mx-auto mb-3;
-  }
-
-  .toast {
-    @apply fixed bottom-24 inset-x-4 max-w-sm mx-auto p-3.5 rounded-xl
-           bg-ivoire-nuit text-white shadow-2xl flex items-center justify-between gap-3
-           transform transition-all duration-300 pointer-events-none z-50;
-  }
-
-  .toast-hidden {
-    @apply translate-y-28 opacity-0 pointer-events-none;
-  }
-
-  .toast-visible {
-    @apply translate-y-0 opacity-100;
-  }
+  .card { @apply bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]; }
+  .kpi-card { @apply bg-[#FAF8F3] p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] flex flex-col justify-between relative overflow-hidden; }
+  .badge { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold; }
+  .badge-orange { @apply badge bg-[#E8611A]/10 text-[#E8611A]; }
+  .badge-vert { @apply badge bg-[#0B7A3E]/10 text-[#0B7A3E]; }
+  .badge-gris { @apply badge bg-[#dee8ff] text-[#1E293B]; }
+  .badge-rouge { @apply badge bg-[#ffdad6] text-[#ba1a1a]; }
+  .filter-chip { @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm shrink-0 transition-transform active:scale-95 cursor-pointer; }
+  .filter-chip-active { @apply filter-chip bg-[#0B7A3E] text-white; }
+  .filter-chip-inactive { @apply filter-chip bg-[#FAF8F3] text-[#1E293B]; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-/* MapLibre overrides */
-.maplibregl-canvas {
-  background-color: #0D1B2A !important;
-}
-
-.maplibregl-ctrl-group {
-  border-radius: 8px !important;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.1) !important;
-  background: rgba(13,27,42,0.85) !important;
-  backdrop-filter: blur(8px) !important;
-}
-
-.maplibregl-ctrl-group button {
-  width: 32px !important;
-  height: 32px !important;
-}
-
-.maplibregl-ctrl-group button + button {
-  border-top: 1px solid rgba(255,255,255,0.1) !important;
-}
-
-/* Scrollbar hidden */
-.scrollbar-none::-webkit-scrollbar { display: none; }
-.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
-
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.maplibregl-canvas { background-color: #0D1B2A !important; }
+.maplibregl-ctrl-group { border-radius: 8px !important; overflow: hidden; border: 1px solid rgba(255,255,255,0.1) !important; background: rgba(13,27,42,0.85) !important; backdrop-filter: blur(8px) !important; }
+.maplibregl-ctrl-group button { width: 32px !important; height: 32px !important; }
+.maplibregl-ctrl-group button + button { border-top: 1px solid rgba(255,255,255,0.1) !important; }

@@ -1,435 +1,251 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapStore } from '../../stores/mapStore';
-import { PMTILES_URLS } from '../../services/config';
 import { api } from '../../services/api';
-import BottomSheet from '../../components/BottomSheet/BottomSheet';
-import LoadingScreen from '../../components/LoadingScreen/LoadingScreen';
 
-const STATUS_COLORS = {
-  collected: '#E8611A',
-  waiting: '#0B7A3E',
-  pending: '#CBD5E1',
-};
+const COLORS = { collected: '#E8611A', waiting: '#0B7A3E', pending: '#CBD5E1' };
 
 export default function Explorer() {
   const mapRef = useRef(null);
-  const mapInstance = useRef(null);
-  const schoolsLoaded = useRef(false);
-  const loadingRef = useRef(null);
-
+  const mapInst = useRef(null);
+  const loaded = useRef(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const {
-    bottomSheetOpen, openBottomSheet,
-    filters, schoolsData, setSchoolsData, setSchoolsLoading,
-    setCurrentFeature, currentFeature,
-  } = useMapStore();
+  const { openBottomSheet, bottomSheetOpen, filters, schoolsData, setSchoolsData } = useMapStore();
 
   useEffect(() => {
-    if (mapInstance.current) return;
-
+    if (mapInst.current) return;
     const map = new maplibregl.Map({
       container: mapRef.current,
-      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-      center: [-5.5, 7.5],
-      zoom: 6.3,
-      minZoom: 5,
-      maxZoom: 18,
-      attributionControl: false,
-      maxBounds: [[-8.5, 4.0], [-2.5, 11.0]],
+      style: { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#F4EFE6' } }] },
+      center: [-5.5, 7.5], zoom: 6.3, minZoom: 5, maxZoom: 18,
+      attributionControl: false, maxBounds: [[-8.5, 4], [-2.5, 11]],
     });
-
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
-    map.addControl(new maplibregl.AttributionControl({ compact: true, attribution: '© CartoDB' }), 'bottom-right');
-
-    map.on('load', () => {
-      addAdminLayers(map);
-      addSchoolsLayer(map);
-      loadSchools();
-    });
-
-    map.on('click', (e) => handleMapClick(e, map));
-    mapInstance.current = map;
-
+    map.on('load', () => { addLayers(map); loadSchools(); setTimeout(() => setLoading(false), 1200); });
+    map.on('click', (e) => handleClick(e, map));
+    mapInst.current = map;
     return () => map.remove();
   }, []);
 
   const loadSchools = useCallback(async () => {
-    if (schoolsLoaded.current) return;
-    setSchoolsLoading(true);
+    if (loaded.current) return;
     try {
       const data = await api.getSchools();
       setSchoolsData(data);
-      schoolsLoaded.current = true;
-    } catch (err) {
-      console.error('Erreur chargement écoles:', err);
-    } finally {
-      setSchoolsLoading(false);
-    }
-  }, [setSchoolsData, setSchoolsLoading]);
+      loaded.current = true;
+    } catch (e) { console.error(e); }
+  }, [setSchoolsData]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (loadingRef.current) {
-        loadingRef.current.style.opacity = '0';
-        setTimeout(() => {
-          if (loadingRef.current) loadingRef.current.style.display = 'none';
-        }, 500);
-      }
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  function addAdminLayers(map) {
-    const levels = [
-      { id: 'districts', source: 'districts', minZoom: 5, maxZoom: 9, color: '#CBD5E1', width: 1.5 },
-      { id: 'regions', source: 'regions', minZoom: 8.5, maxZoom: 10, color: '#94A3B8', width: 1.5 },
-      { id: 'depts', source: 'depts', minZoom: 10, maxZoom: 11.5, color: '#CBD5E1', width: 1.2 },
-      { id: 'communes', source: 'communes', minZoom: 11, maxZoom: 13, color: '#CBD5E1', width: 1 },
-    ];
-
-    levels.forEach(({ id, source, minZoom, maxZoom, color, width }) => {
-      if (!map.getSource(source)) {
-        map.addSource(source, {
-          type: 'vector',
-          url: `pmtiles://${PMTILES_URLS[id]}`,
-        });
-      }
-
-      map.addLayer({
-        id: `fill-${id}`,
-        type: 'fill',
-        source,
-        'source-layer': `admin_${id}`,
-        minzoom: minZoom,
-        maxzoom: maxZoom,
-        paint: {
-          'fill-color': [
-            'case',
-            ['==', ['get', 'collect_status'], 'collected'], STATUS_COLORS.collected,
-            ['==', ['get', 'collect_status'], 'waiting'], STATUS_COLORS.waiting,
-            STATUS_COLORS.pending,
-          ],
-          'fill-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false], 0.35,
-            0.25,
-          ],
-        },
-      });
-
-      map.addLayer({
-        id: `outline-${id}`,
-        type: 'line',
-        source,
-        'source-layer': `admin_${id}`,
-        minzoom: minZoom,
-        maxzoom: maxZoom,
-        paint: { 'line-color': color, 'line-width': width, 'line-opacity': 0.8 },
-      });
-
-      map.on('mouseenter', `fill-${id}`, () => { map.getCanvas().style.cursor = 'pointer'; });
-      map.on('mouseleave', `fill-${id}`, () => { map.getCanvas().style.cursor = ''; });
-
-      let hoveredId = null;
-      map.on('mousemove', `fill-${id}`, (e) => {
-        if (hoveredId !== null) {
-          map.setFeatureState({ source, sourceLayer: `admin_${id}`, id: hoveredId }, { hover: false });
-        }
-        hoveredId = e.features?.[0]?.id;
-        if (hoveredId !== null) {
-          map.setFeatureState({ source, sourceLayer: `admin_${id}`, id: hoveredId }, { hover: true });
-        }
-      });
-
-      map.on('click', `fill-${id}`, (e) => {
-        if (e.features?.length) {
-          const feature = e.features[0];
-          const zoomMap = { districts: 8, regions: 9, depts: 10.5, communes: 12 };
-          map.easeTo({
-            center: e.lngLat,
-            zoom: zoomMap[id] || 10,
-            duration: 1500,
-            essential: true,
-          });
-          openBottomSheet({
-            type: 'admin-zone',
-            name: feature.properties?.name || feature.properties?.ADM1_EN || 'Zone',
-            level: id,
-            status: feature.properties?.collect_status || 'pending',
-            data: {
-              schools: feature.properties?.ecoles_total || 0,
-              students: feature.properties?.eleves_total || 0,
-              girls: feature.properties?.total_filles || 0,
-              boys: feature.properties?.total_garcons || 0,
-            },
-          });
-        }
-      });
-    });
-  }
-
-  function addSchoolsLayer(map) {
-    map.addSource('ecoles', {
+  function addLayers(map) {
+    // Fallback: grilles de districts si PMTiles indisponibles
+    map.addSource('grid', {
       type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
+      data: generateFallbackGrid(),
+    });
+    map.addLayer({
+      id: 'grid-fill', type: 'fill', source: 'grid',
+      paint: { 'fill-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, COLORS.pending], 'fill-opacity': 0.2 },
+    });
+    map.addLayer({
+      id: 'grid-outline', type: 'line', source: 'grid',
+      paint: { 'line-color': '#CBD5E1', 'line-width': 1 },
     });
 
+    // Écoles
+    map.addSource('ecoles', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     map.addLayer({
-      id: 'ecoles-points',
-      type: 'circle',
-      source: 'ecoles',
+      id: 'ecoles-points', type: 'circle', source: 'ecoles',
       paint: {
-        'circle-radius': [
-          'step', ['get', 'eleves_total'],
-          6, 100, 8, 500, 12, 1000, 16,
-        ],
-        'circle-color': '#E8611A',
-        'circle-stroke-width': 1.5,
-        'circle-stroke-color': '#FAF8F3',
-        'circle-opacity': 0.85,
+        'circle-radius': ['step', ['get', 'eleves_total'], 5, 100, 7, 500, 10, 1000, 14],
+        'circle-color': '#E8611A', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#FAF8F3', 'circle-opacity': 0.85,
       },
     });
-
     map.on('mouseenter', 'ecoles-points', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'ecoles-points', () => { map.getCanvas().style.cursor = ''; });
   }
 
-  function handleMapClick(e, map) {
-    const schoolFeatures = map.queryRenderedFeatures(e.point, { layers: ['ecoles-points'] });
-    if (schoolFeatures?.length) {
-      const schoolId = schoolFeatures[0].properties?.id;
-      if (schoolId) {
-        navigate(`/ecole/${schoolId}`);
-        return;
-      }
-    }
+  function generateFallbackGrid() {
+    const zones = [
+      { name: 'Savanes', center: [-5.6, 9.5], status: 'collected', schools: 1428, students: 312000 },
+      { name: 'Lacs', center: [-5.0, 7.0], status: 'collected', schools: 980, students: 210000 },
+      { name: 'Abidjan', center: [-4.0, 5.3], status: 'collected', schools: 2145, students: 840200 },
+      { name: 'Comoé', center: [-3.5, 6.5], status: 'waiting', schools: 650, students: 130000 },
+      { name: 'Zanzan', center: [-3.0, 8.0], status: 'waiting', schools: 870, students: 164000 },
+      { name: 'Vallée du Bandama', center: [-5.0, 8.5], status: 'waiting', schools: 1105, students: 248900 },
+      { name: 'Sassandra-Marahoué', center: [-6.0, 7.0], status: 'waiting', schools: 1040, students: 215000 },
+      { name: 'Bas-Sassandra', center: [-7.0, 5.5], status: 'pending', schools: 920, students: 195400 },
+      { name: 'Montagnes', center: [-7.5, 7.5], status: 'pending', schools: 980, students: 189000 },
+      { name: 'Woroba', center: [-6.5, 8.0], status: 'pending', schools: 560, students: 110000 },
+      { name: 'Ségou', center: [-6.0, 9.0], status: 'pending', schools: 430, students: 95000 },
+      { name: 'Bafing', center: [-7.5, 8.5], status: 'pending', schools: 280, students: 52000 },
+    ];
+    return {
+      type: 'FeatureCollection',
+      features: zones.map((z) => ({
+        type: 'Feature',
+        properties: { name: z.name, status: z.status, schools: z.schools, students: z.students },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [generateBox(z.center, 0.8)],
+        },
+      })),
+    };
+  }
 
-    const adminLevels = ['fill-communes', 'fill-depts', 'fill-regions', 'fill-districts'];
-    const adminFeature = map.queryRenderedFeatures(e.point, { layers: adminLevels })?.[0];
-    if (adminFeature) {
-      const levelName = adminFeature.layer.id.replace('fill-', '');
-      const zoomMap = { districts: 8, regions: 9, depts: 10.5, communes: 12 };
-      map.easeTo({
-        center: e.lngLat,
-        zoom: zoomMap[levelName] || 10,
-        duration: 1500,
-        essential: true,
-      });
-      openBottomSheet({
-        type: 'admin-zone',
-        name: adminFeature.properties?.name || adminFeature.properties?.ADM1_EN || 'Zone',
-        level: levelName,
-        status: adminFeature.properties?.collect_status || 'pending',
-      });
+  function generateBox([cx, cy], size) {
+    const s = size / 2;
+    return [[cx - s, cy - s], [cx + s, cy - s], [cx + s, cy + s], [cx - s, cy + s], [cx - s, cy - s]];
+  }
+
+  function handleClick(e, map) {
+    const schoolFeat = map.queryRenderedFeatures(e.point, { layers: ['ecoles-points'] });
+    if (schoolFeat?.length) {
+      navigate(`/ecole/${schoolFeat[0].properties?.id}`);
+      return;
+    }
+    const zoneFeat = map.queryRenderedFeatures(e.point, { layers: ['grid-fill'] });
+    if (zoneFeat?.length) {
+      const p = zoneFeat[0].properties;
+      map.easeTo({ center: e.lngLat, zoom: 8, duration: 1500 });
+      openBottomSheet({ type: 'admin-zone', name: p.name, level: 'district', status: p.status, data: { schools: p.schools, students: p.students } });
     }
   }
 
   useEffect(() => {
-    if (!mapInstance.current?.getLayer('ecoles-points') || !schoolsData) return;
-
+    if (!mapInst.current?.getLayer('ecoles-points') || !schoolsData) return;
     const filtered = schoolsData.features.filter((f) => {
       const p = f.properties;
       if (filters.collect_status.length && !filters.collect_status.includes(p.collect_status)) return false;
       if (filters.milieu.length && !filters.milieu.includes(p.milieu_implantation)) return false;
-      if (filters.statut.length && !filters.statut.includes(p.statut)) return false;
-      if (filters.niveau.length && !filters.niveau.includes(p.niveau_enseignement)) return false;
-      if (filters.sans_toilettes && p.toilettes_filles_fonctionnelles > 0) return false;
-      if (filters.sans_eau && p.eau_potable) return false;
-      if (filters.sans_electricite && p.electricite) return false;
       if (filters.manque_bancs && (!p.besoin_bancs || p.besoin_bancs <= 0)) return false;
       return true;
     });
-
-    mapInstance.current.getSource('ecoles')?.setData({
-      type: 'FeatureCollection',
-      features: filtered,
-    });
+    mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filtered });
   }, [filters, schoolsData]);
 
-  return (
-    <div className="h-full flex flex-col relative">
-      {loadingRef && <div ref={loadingRef} className="absolute inset-0 z-50 bg-surface transition-opacity duration-500"><LoadingScreen /></div>}
+  const sheetContent = useMapStore((s) => s.bottomSheetContent);
 
-      {/* Barre de recherche */}
+  return (
+    <div className="h-full relative">
+      {loading && (
+        <div className="absolute inset-0 z-50 bg-[#F4EFE6] flex flex-col items-center justify-center gap-5">
+          <div className="w-16 h-16 rounded-full border-4 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" />
+          <p className="text-xs text-[#6B7280]">Chargement de la carte...</p>
+        </div>
+      )}
+
+      {/* Search */}
       <div className="absolute top-3 left-4 right-4 z-20">
         <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center bg-ivoire-blanc rounded-xl px-3.5 py-2.5 shadow-md transition-all">
-            <span className="material-symbols-outlined text-ivoire-orange text-[20px] shrink-0 mr-2">search</span>
-            <input
-              className="w-full bg-transparent text-ivoire-texte text-body-sm placeholder:text-ivoire-gris focus:outline-none"
-              placeholder="Rechercher (Korhogo, Cocody, San-Pédro)..."
-              type="search"
-            />
-            <span className="hidden sm:inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-ivoire-beige text-ivoire-gris text-label-sm text-[10px]">/</span>
+          <div className="flex-1 flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-2.5 shadow-md">
+            <span className="material-symbols-outlined text-[#E8611A] text-[20px] shrink-0 mr-2">search</span>
+            <input className="w-full bg-transparent text-[#1E293B] text-sm placeholder:text-[#6B7280] focus:outline-none"
+              placeholder="Rechercher (Korhogo, Cocody, San-Pédro)..." type="search" />
           </div>
-          <button className="w-11 h-11 rounded-xl bg-ivoire-blanc flex items-center justify-center text-ivoire-texte shadow-md hover:bg-ivoire-beige transition-colors shrink-0">
-            <span className="material-symbols-outlined text-[20px]">tune</span>
+          <button className="w-11 h-11 rounded-xl bg-[#FAF8F3] flex items-center justify-center shadow-md shrink-0">
+            <span className="material-symbols-outlined text-[20px] text-[#1E293B]">tune</span>
           </button>
         </div>
-
-        {/* Filtres rapides */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2">
-          <button className="px-3 py-1 rounded-full bg-ivoire-orange text-white text-label-sm uppercase tracking-wide text-[10px] shrink-0 shadow-sm font-bold">
-            Tous les Districts
-          </button>
-          <button className="px-3 py-1 rounded-full bg-ivoire-blanc text-ivoire-texte text-label-sm text-[11px] shrink-0 shadow-sm flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-ivoire-orange" /> Savanes
-          </button>
-          <button className="px-3 py-1 rounded-full bg-ivoire-blanc text-ivoire-texte text-label-sm text-[11px] shrink-0 shadow-sm flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-ivoire-vert" /> Abidjan
-          </button>
-          <button className="px-3 py-1 rounded-full bg-ivoire-blanc text-ivoire-texte text-label-sm text-[11px] shrink-0 shadow-sm flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-ivoire-gris" /> Montagnes
-          </button>
+          <button className="px-3 py-1 rounded-full bg-[#E8611A] text-white text-xs font-bold shrink-0 shadow-sm">Tous les Districts</button>
+          <button className="px-3 py-1 rounded-full bg-[#FAF8F3] text-[#1E293B] text-xs shrink-0 shadow-sm flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#E8611A]" /> Savanes</button>
+          <button className="px-3 py-1 rounded-full bg-[#FAF8F3] text-[#1E293B] text-xs shrink-0 shadow-sm flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#0B7A3E]" /> Abidjan</button>
+          <button className="px-3 py-1 rounded-full bg-[#FAF8F3] text-[#1E293B] text-xs shrink-0 shadow-sm flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#6B7280]" /> Montagnes</button>
         </div>
       </div>
 
       {/* Légende */}
-      <div className="absolute bottom-2 left-3 right-3 z-20 flex items-center justify-between px-3 py-1.5 rounded-lg bg-ivoire-nuit/90 backdrop-blur text-ivoire-blanc text-label-sm text-[10px] shadow-md pointer-events-none">
+      <div className="absolute bottom-2 left-3 right-3 z-20 flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#0D1B2A]/90 backdrop-blur text-white text-[10px] font-bold shadow-md pointer-events-none">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-ivoire-orange" /><span>Collecté</span></div>
-          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-ivoire-vert" /><span>En cours</span></div>
-          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-ivoire-gris" /><span>En attente</span></div>
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#E8611A]" /> Collecté</span>
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#0B7A3E]" /> En cours</span>
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#6B7280]" /> En attente</span>
         </div>
-        <span className="text-[9px] text-ivoire-orange font-bold uppercase tracking-wider">SIG v2.4</span>
+        <span className="text-[#E8611A] uppercase tracking-wider">SIG v2.4</span>
       </div>
 
-      {/* Carte MapLibre */}
-      <div ref={mapRef} className="absolute inset-0" style={{ top: 0, bottom: 0 }} />
+      {/* Map */}
+      <div ref={mapRef} className="absolute inset-0" />
 
       {/* Bottom Sheet */}
       {bottomSheetOpen && (
-        <BottomSheet>
-          <SheetContent />
-        </BottomSheet>
+        <div className="absolute bottom-0 left-0 right-0 z-30 bg-[#FAF8F3] rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 pt-3 pb-8 animate-slide-up">
+          <div className="w-12 h-1.5 bg-[#CBD5E1]/80 rounded-full mx-auto mb-3" />
+          <BottomSheetInner content={sheetContent} />
+        </div>
       )}
     </div>
   );
 }
 
-function SheetContent() {
-  const { currentFeature, bottomSheetContent: content } = useMapStore();
-
+function BottomSheetInner({ content }) {
   if (!content) {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="flex flex-col min-w-0">
-              <span className="text-[11px] uppercase tracking-wider text-ivoire-gris leading-none">Côte d'Ivoire</span>
-              <h2 className="font-bold text-ivoire-texte truncate text-headline-sm">Vue Nationale</h2>
-            </div>
-          </div>
-          <span className="px-2.5 py-1 rounded-full bg-ivoire-vert/10 text-ivoire-vert text-label-sm text-[10px] uppercase font-bold">En ligne</span>
+        <div>
+          <span className="text-[11px] uppercase tracking-wider text-[#6B7280]">Côte d'Ivoire</span>
+          <h2 className="font-bold text-[#1E293B] text-lg">Vue Nationale</h2>
         </div>
-
         <div className="grid grid-cols-3 gap-2">
-          <KPIBox icon="school" label="Districts" value="34" color="ivoire-orange" />
-          <KPIBox icon="groups" label="Écoles" value="~15k" color="ivoire-vert" />
-          <KPIBox icon="chair" label="Élèves" value="3.2M" color="ivoire-texte" />
+          <MiniKPI icon="map" label="Districts" value="34" />
+          <MiniKPI icon="school" label="Écoles" value="~15k" />
+          <MiniKPI icon="groups" label="Élèves" value="3.2M" />
         </div>
-
-        <div className="bg-ivoire-beige/70 rounded-xl p-3 shadow-sm">
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="text-label-sm text-ivoire-texte flex items-center gap-1">
-              <span className="material-symbols-outlined text-[15px] text-ivoire-orange">info</span>
-              Comment utiliser la carte
-            </span>
-          </div>
-          <p className="text-body-sm text-ivoire-gris text-[12px]">
-            Cliquez sur une zone <span className="text-ivoire-orange font-bold">orange</span> (collectée) pour voir les statistiques.
-            Naviguez en cascade : District → Région → Département → Commune → École.
-          </p>
+        <div className="bg-[#F4EFE6] rounded-xl p-3 text-xs text-[#6B7280]">
+          Cliquez sur une zone <span className="text-[#E8611A] font-bold">orange</span> pour voir les stats. Naviguez en cascade.
         </div>
       </div>
     );
   }
 
-  const { type, data, status, name, level } = content;
+  const { name, status, data, level } = content;
+  const st = status === 'collected' ? 'Collecté' : status === 'waiting' ? 'En attente' : 'Non programmé';
+  const stColor = status === 'collected' ? '#E8611A' : status === 'waiting' ? '#0B7A3E' : '#6B7280';
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Badge statut */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <button className="w-7 h-7 rounded-full bg-ivoire-beige flex items-center justify-center text-ivoire-texte shrink-0 shadow-sm">
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-          </button>
-          <div className="flex flex-col min-w-0">
-            <span className="text-[11px] uppercase tracking-wider text-ivoire-gris leading-none truncate">
-              Côte d'Ivoire › {level}
-            </span>
-            <h2 className="font-bold text-ivoire-texte truncate text-headline-sm">{name}</h2>
-          </div>
+        <div>
+          <span className="text-[11px] uppercase tracking-wider text-[#6B7280]">Côte d'Ivoire › {level}</span>
+          <h2 className="font-bold text-[#1E293B] text-lg">{name}</h2>
         </div>
-        <span className={`px-2.5 py-1 rounded-full text-label-sm text-[10px] uppercase font-bold shrink-0 ${
-          status === 'collected' ? 'bg-ivoire-orange/10 text-ivoire-orange' :
-          status === 'waiting' ? 'bg-ivoire-vert/10 text-ivoire-vert' :
-          'bg-surface-container-high text-ivoire-gris'
-        }`}>
-          {status === 'collected' ? 'Collecté' : status === 'waiting' ? 'En attente' : 'Non programmé'}
-        </span>
+        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: `${stColor}15`, color: stColor }}>{st}</span>
       </div>
-
-      {/* KPIs */}
       <div className="grid grid-cols-3 gap-2">
-        <KPIBox icon="school" label="Écoles" value={data?.schools || '—'} color="ivoire-orange" />
-        <KPIBox icon="groups" label="Élèves" value={data?.students ? `${Math.round(data.students / 1000)}k` : '—'} color="ivoire-vert" />
-        <KPIBox icon="chair" label="Parité" value={data?.girls && data?.boys ? `${Math.round(data.girls / (data.girls + data.boys) * 100)}%` : '—'} color="ivoire-texte" />
+        <MiniKPI icon="school" label="Écoles" value={data?.schools || '—'} />
+        <MiniKPI icon="groups" label="Élèves" value={data?.students ? `${Math.round(data.students / 1000)}k` : '—'} />
+        <MiniKPI icon="pie_chart" label="Parité" value={data?.girls ? `${Math.round(data.girls / (data.girls + data.boys) * 100)}%` : '—'} />
       </div>
-
-      {/* Jauge parité */}
-      {data?.girls > 0 && data?.boys > 0 && (
-        <div className="bg-ivoire-beige/70 rounded-xl p-3 shadow-sm">
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="text-label-sm text-ivoire-texte flex items-center gap-1">
-              <span className="material-symbols-outlined text-[15px] text-ivoire-orange">pie_chart</span>
-              Parité de Genre
-            </span>
-            <span className="text-[10px] text-ivoire-gris">IPG: {(data.boys / Math.max(data.girls, 1)).toFixed(2)}</span>
+      {data?.girls > 0 && (
+        <div className="bg-[#F4EFE6] rounded-xl p-3">
+          <div className="flex justify-between text-xs mb-1.5">
+            <span className="font-bold text-[#1E293B]">Parité de Genre</span>
+            <span className="text-[#6B7280]">IPG: {(data.boys / data.girls).toFixed(2)}</span>
           </div>
-          <div className="w-full h-3 bg-ivoire-blanc rounded-full overflow-hidden flex p-0.5 shadow-inner">
-            <div className="h-full bg-ivoire-orange rounded-l-full transition-all duration-500"
-                 style={{ width: `${Math.round(data.girls / (data.girls + data.boys) * 100)}%` }} />
-            <div className="h-full bg-ivoire-vert rounded-r-full transition-all duration-500" />
+          <div className="w-full h-3 bg-white rounded-full overflow-hidden flex p-0.5">
+            <div className="h-full bg-[#E8611A] rounded-l-full" style={{ width: `${Math.round(data.girls / (data.girls + data.boys) * 100)}%` }} />
+            <div className="h-full bg-[#0B7A3E] rounded-r-full flex-1" />
           </div>
-          <div className="flex justify-between items-center mt-1.5 text-label-sm">
-            <span className="text-ivoire-orange font-bold flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-ivoire-orange" />
-              Filles {Math.round(data.girls / (data.girls + data.boys) * 100)}%
-            </span>
-            <span className="text-ivoire-vert font-bold flex items-center gap-1">
-              Garçons {100 - Math.round(data.girls / (data.girls + data.boys) * 100)}%
-              <span className="w-2 h-2 rounded-full bg-ivoire-vert" />
-            </span>
+          <div className="flex justify-between text-xs mt-1.5 font-bold">
+            <span className="text-[#E8611A]">Filles {Math.round(data.girls / (data.girls + data.boys) * 100)}%</span>
+            <span className="text-[#0B7A3E]">Garçons {100 - Math.round(data.girls / (data.girls + data.boys) * 100)}%</span>
           </div>
         </div>
-      )}
-
-      {/* CTA */}
-      {status === 'collected' && (
-        <button className="btn-primary w-full flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">travel_explore</span>
-          Explorer les écoles de {name}
-        </button>
       )}
     </div>
   );
 }
 
-function KPIBox({ icon, label, value, color }) {
+function MiniKPI({ icon, label, value }) {
   return (
-    <div className="bg-ivoire-beige p-2.5 rounded-xl flex flex-col justify-between shadow-sm">
-      <div className="flex items-center gap-1 text-ivoire-gris text-label-sm text-[10px]">
-        <span className={`material-symbols-outlined text-[13px] text-${color}`}>{icon}</span>
-        <span>{label}</span>
-      </div>
-      <div className="mt-1">
-        <span className="font-bold text-ivoire-texte tabular-nums text-headline-sm">{value}</span>
-      </div>
+    <div className="bg-[#F4EFE6] p-2.5 rounded-xl flex flex-col shadow-sm">
+      <span className="flex items-center gap-1 text-[10px] text-[#6B7280] font-bold">
+        <span className="material-symbols-outlined text-[13px] text-[#E8611A]">{icon}</span> {label}
+      </span>
+      <span className="font-bold text-[#1E293B] text-lg mt-1">{value}</span>
     </div>
   );
 }
