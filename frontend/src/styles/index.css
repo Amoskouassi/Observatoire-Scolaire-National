@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  body {
+    @apply bg-akwa-beige text-akwa-texte;
+  }
+
+  * {
+    @apply selection:bg-akwa-orange/20 selection:text-akwa-texte;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-akwa-orange hover:bg-akwa-orangeDark text-white text-xs font-black
+           py-3 px-6 rounded-button uppercase tracking-wider transition-all duration-200
+           shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer;
+  }
+
+  .btn-secondary {
+    @apply bg-akwa-vert hover:bg-akwa-vertClair text-white text-xs font-black
+           py-3 px-6 rounded-button uppercase tracking-wider transition-all duration-200
+           shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent hover:bg-gray-100 text-akwa-texte text-xs font-bold
+           py-2 px-4 rounded-button transition-colors duration-200 cursor-pointer;
+  }
+
+  .card {
+    @apply bg-white p-4 rounded-card border border-akwa-frontiere shadow-card;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-badge
+           text-[10px] font-black uppercase;
+  }
+
+  .badge-orange {
+    @apply badge bg-akwa-orange/10 text-akwa-orange border border-akwa-orange/30;
+  }
+
+  .badge-vert {
+    @apply badge bg-akwa-vert/10 text-akwa-vert border border-akwa-vert/30;
+  }
+
+  .badge-gris {
+    @apply badge bg-gray-100 text-akwa-gris border border-gray-200;
+  }
+
+  .badge-rouge {
+    @apply badge bg-red-50 text-akwa-rouge border border-red-200;
+  }
+
+  .kpi-card {
+    @apply bg-gray-50 p-3 rounded-card border border-gray-100;
+  }
+
+  .sidebar-transition {
+    @apply transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)];
+  }
+
+  .filter-panel {
+    @apply bg-white rounded-card border border-akwa-frontiere shadow-card p-4;
+  }
+
+  .filter-checkbox {
+    @apply w-4 h-4 rounded border-akwa-frontiere text-akwa-orange
+           focus:ring-akwa-orange/30 cursor-pointer;
+  }
+
+  .filter-select {
+    @apply w-full bg-gray-50 border border-akwa-frontiere rounded-button p-2
+           text-sm font-medium text-akwa-texte outline-none
+           focus:border-akwa-orange focus:ring-2 focus:ring-akwa-orange/20
+           transition-colors duration-200;
+  }
+}
+
+/* MapLibre overrides */
+.maplibregl-canvas {
+  background-color: #F4EFE6 !important;
+}
+
+.maplibregl-ctrl-group {
+  border-radius: 8px !important;
+  overflow: hidden;
+  border: 1px solid #CBD5E1 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+}
+
+.maplibregl-ctrl-group button {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+/* Scrollbar custom */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Skeleton loader */
+.skeleton {
+  @apply bg-gray-200 rounded animate-pulse;
+}

@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+.cache/
+
+# PMTiles (trop gros pour Git, héberger sur CDN)
+public/tiles/*.pmtiles
+
+# Photos uploads (données terrain, pas en repo)
+uploads/photos/*
+
+# GeoJSON raw data (fichiers volumineux)
+data/raw/*.geojson
+data/raw/*.shp
+data/raw/*.shx
+data/raw/*.dbf
+data/raw/*.prj
+
+# Supabase local
+.supabase/

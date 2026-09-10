@@ -1,0 +1,49 @@
+{
+  "name": "observatoire-scolaire-national",
+  "version": "1.0.0",
+  "description": "Plateforme nationale de Business Intelligence éducative pour la Côte d'Ivoire",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "lint": "eslint . --ext .js,.jsx",
+    "lint:fix": "eslint . --ext .js,.jsx --fix",
+    "typecheck": "cd frontend && npm run typecheck && cd ../backend && npm run typecheck",
+    "merge:admin": "node scripts/merge-admin.js",
+    "build:tiles": "bash scripts/build-tiles.sh",
+    "seed:demo": "node scripts/seed-demo-data.js",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VOTRE_USER/observatoire-scolaire-national.git"
+  },
+  "keywords": [
+    "education",
+    "cote-divoire",
+    "cartographie",
+    "business-intelligence",
+    "edtech"
+  ],
+  "author": "Observatoire Scolaire National",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "husky": "^9.0.11",
+    "vitest": "^1.6.0"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
+}
