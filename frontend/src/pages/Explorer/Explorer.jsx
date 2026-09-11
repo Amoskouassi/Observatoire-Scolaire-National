@@ -315,12 +315,21 @@ export default function Explorer() {
           // Restore full data
           if (allRegionsRef.current) map.getSource('regions')?.setData(allRegionsRef.current);
           if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
+          if (districtsData) map.getSource('districts')?.setData(districtsData);
         } else if (z < 9) {
           setVis(['districts-fill'], 'none');
           setVis(['districts-outline'], 'visible');
           setVis(['regions-fill', 'regions-outline'], 'visible');
           setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('r\u00e9gion');
+          // Filter district outline to selected district only
+          if (selDist && districtsData) {
+            const filtered = {
+              type: 'FeatureCollection',
+              features: districtsData.features.filter(f => f.properties.name === selDist),
+            };
+            map.getSource('districts')?.setData(filtered);
+          }
           // Replace regions source with only selected district's regions
           if (selDist && allRegionsRef.current) {
             const filtered = {
@@ -335,10 +344,20 @@ export default function Explorer() {
           // Restore full depts data
           if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
         } else {
-          setVis(['districts-fill', 'districts-outline'], 'none');
-          setVis(['regions-fill', 'regions-outline'], 'none');
+          setVis(['districts-fill'], 'none');
+          setVis(['districts-outline'], 'visible');
+          setVis(['regions-fill'], 'none');
+          setVis(['regions-outline'], 'visible');
           setVis(['depts-fill', 'depts-outline'], 'visible');
           setCurrentLevel('d\u00e9partement');
+          // Filter district outline to selected district only
+          if (selDist && districtsData) {
+            const filtered = {
+              type: 'FeatureCollection',
+              features: districtsData.features.filter(f => f.properties.name === selDist),
+            };
+            map.getSource('districts')?.setData(filtered);
+          }
           // Replace depts source with only selected region's depts
           if (selReg && allDeptsRef.current) {
             const filtered = {
