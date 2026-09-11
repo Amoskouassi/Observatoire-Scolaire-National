@@ -164,8 +164,43 @@ CREATE TABLE IF NOT EXISTS public.collectes (
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
 
+  district TEXT,
+  region TEXT,
+  departement TEXT,
+  sous_prefecture TEXT,
+  localite TEXT,
+  milieu TEXT CHECK (milieu IN ('urbain', 'rural')),
+  voie_acces TEXT CHECK (voie_acces IN ('goudron', 'piste_praticable', 'piste_saisonniere')),
+  nom_ecole TEXT,
+  statut_juridique TEXT CHECK (statut_juridique IN ('public', 'prive_laic', 'prive_confessionnel', 'communaute')),
+  niveau_enseignement TEXT CHECK (niveau_enseignement IN ('primaire', 'secondaire', 'superieur')),
+  annee_creation INTEGER,
+  annee_scolaire TEXT,
+
+  salles_fonctionnelles INTEGER,
+  inventaire_classes JSONB NOT NULL DEFAULT '[]'::jsonb,
+
+  nb_enseignants_presents INTEGER,
+  deficit_enseignants BOOLEAN DEFAULT false,
+  nb_enseignants_manquants INTEGER,
+  classes_jumelees BOOLEAN,
+  matieres_penurie JSONB,
+
+  materiaux_batiment TEXT CHECK (materiaux_batiment IN ('parpaing_ciment', 'brique_terre', 'bois', 'boue_banco', 'paillote')),
+  presence_cloture BOOLEAN,
+  securite_routiere BOOLEAN,
+
+  nb_latrines INTEGER,
+  eau_potable BOOLEAN,
+  source_eau_village TEXT CHECK (source_eau_village IN ('sodeci', 'forage_village', 'aucun')),
+  localite_raccordee_elec BOOLEAN,
+  ecole_electrifiee BOOLEAN,
+  source_energie TEXT CHECK (source_energie IN ('reseau_cie', 'panneaux_solaires', 'groupe_electrogene')),
+  poteau_100m BOOLEAN,
+  cantine_fonctionnelle BOOLEAN,
+  source_cantine TEXT CHECK (source_cantine IN ('unicef_pam', 'parents', 'collectivite')),
+
   photos JSONB DEFAULT '[]'::jsonb,
-  inventaire_classes JSONB NOT NULL,
   commentaires TEXT,
 
   status TEXT DEFAULT 'submitted'
