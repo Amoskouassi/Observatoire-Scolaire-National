@@ -293,10 +293,15 @@ export default function Explorer() {
             if (isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
               const padLng = (maxLng - minLng) * 0.02;
               const padLat = (maxLat - minLat) * 0.02;
-              map.fitBounds(
-                [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                { padding: 40, duration: 800, maxZoom: z < 7 ? 11 : z < 9 ? 13 : z < 11 ? 15 : 16 }
-              );
+                map.fitBounds(
+                  [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
+                  { padding: 40, duration: 600 }
+                );
+                const targetZ = z < 7 ? 11 : z < 9 ? 13 : z < 11 ? 15 : 16;
+                setTimeout(() => {
+                  map.setZoom(targetZ);
+                  updateLayers();
+                }, 650);
             }
           }
 
@@ -487,7 +492,15 @@ export default function Explorer() {
     selectedRegionRef.current = null;
     selectedDeptRef.current = null;
     if (mapInst.current) {
-      mapInst.current.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 1200 });
+      const map = mapInst.current;
+      // Reset all source data to unfiltered
+      if (allRegionsRef.current) map.getSource('regions')?.setData(allRegionsRef.current);
+      if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
+      if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
+      map.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 1200 });
+      setTimeout(() => {
+        if (updateLayersRef.current) updateLayersRef.current();
+      }, 1250);
     }
   };
 
@@ -645,8 +658,13 @@ export default function Explorer() {
                         const targetZoom = currentLevel === 'district' ? 11 : currentLevel === 'r\u00e9gion' ? 13 : 15;
                         zmap.fitBounds(
                           [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                          { padding: 40, duration: 800, maxZoom: targetZoom }
+                          { padding: 40, duration: 600 }
                         );
+                        // Force zoom to target after animation
+                        setTimeout(() => {
+                          zmap.setZoom(targetZoom);
+                          if (updateLayersRef.current) updateLayersRef.current();
+                        }, 650);
                       }
                     }
                   }
