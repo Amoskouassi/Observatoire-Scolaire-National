@@ -278,14 +278,14 @@ export default function Explorer() {
 
   const syncLabels = useCallback((map, level) => {
     const labels = labelsRef.current;
-    const hide = (obj) => Object.values(obj).forEach(m => m.getElement().style.display = 'none');
-    hide(labels.districts);
-    hide(labels.regions);
-    hide(labels.depts);
-    hide(labels.sp);
+    const hideAll = (obj) => Object.values(obj).forEach(arr => arr.forEach(m => m.getElement().style.display = 'none'));
+    hideAll(labels.districts);
+    hideAll(labels.regions);
+    hideAll(labels.depts);
+    hideAll(labels.sp);
 
     if (level === 'district') {
-      Object.values(labels.districts).forEach(m => m.getElement().style.display = '');
+      Object.values(labels.districts).forEach(arr => arr.forEach(m => m.getElement().style.display = ''));
     } else if (level === 'region') {
       const selD = selDistRef.current;
       Object.entries(labels.regions).forEach(([dist, markers]) => {
