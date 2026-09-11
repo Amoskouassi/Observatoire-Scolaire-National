@@ -87,11 +87,12 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      email_confirm: false,
-      user_metadata: { nom, prenom, role },
+      options: {
+        data: { nom, prenom, role },
+      },
     });
 
     if (authError) {
@@ -168,22 +169,14 @@ router.post('/verify-code', validateRequest(verifyCodeSchema), async (req, res, 
       .update({ used: true })
       .eq('id', record.id);
 
-    const { data: authUser } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-
-    if (authUser?.user) {
-      await supabaseAdmin.auth.admin.updateUserById(authUser.user.id, {
-        email_confirm: true,
-      });
-    }
-
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('role, nom, prenom, organisation')
-      .eq('id', authUser?.user?.id)
+      .select('id, role, nom, prenom, organisation')
+      .eq('email', email)
       .single();
 
     const token = jwt.sign(
-      { userId: authUser?.user?.id, role: profile?.role || 'enqueteur' },
+      { userId: profile?.id, role: profile?.role || 'enqueteur' },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn }
     );
@@ -191,7 +184,7 @@ router.post('/verify-code', validateRequest(verifyCodeSchema), async (req, res, 
     res.json({
       token,
       user: {
-        id: authUser?.user?.id,
+        id: profile?.id,
         email,
         nom: profile?.nom,
         prenom: profile?.prenom,
@@ -249,7 +242,7 @@ router.post('/login', validateRequest(loginSchema), async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -258,15 +251,7 @@ router.post('/login', validateRequest(loginSchema), async (req, res, next) => {
       return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
     }
 
-    if (!data.user.email_confirmed_at) {
-      return res.status(403).json({
-        error: 'Email non confirmé. Vérifiez votre boîte mail.',
-        needsVerification: true,
-        email,
-      });
-    }
-
-    const { data: profile } = await supabaseAdmin
+    const { data: profile } = await supabase
       .from('profiles')
       .select('role, nom, prenom, organisation')
       .eq('id', data.user.id)
@@ -327,13 +312,13 @@ router.post('/google-callback', async (req, res, next) => {
       return res.status(400).json({ error: 'access_token requis' });
     }
 
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(access_token);
+    const { data: { user }, error } = await supabase.auth.getUser(access_token);
 
     if (error || !user) {
       return res.status(401).json({ error: 'Token Google invalide' });
     }
 
-    const { data: existingProfile } = await supabaseAdmin
+    const { data: existingProfile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
@@ -343,7 +328,7 @@ router.post('/google-callback', async (req, res, next) => {
       const nom = user.user_metadata?.full_name?.split(' ').slice(-1).join(' ') || '';
       const prenom = user.user_metadata?.full_name?.split(' ').slice(0, -1).join(' ') || user.email;
 
-      const { error: profileError } = await supabaseAdmin
+      const { error: profileError } = await supabase
         .from('profiles')
         .insert({
           id: user.id,
