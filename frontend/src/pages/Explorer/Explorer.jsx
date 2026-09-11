@@ -622,25 +622,25 @@ export default function Explorer() {
       <div className="w-full lg:w-[380px] xl:w-[420px] bg-[#FAF8F3] border-l border-[#CBD5E1]/30 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-5 pt-5 pb-4 border-b border-[#CBD5E1]/20">
-          <div className="flex items-center gap-2 text-[10px] text-[#94A3B8] font-semibold uppercase tracking-wider mb-1">
-            <span className="material-symbols-outlined text-[12px]">location_on</span>
-            <span className={currentLevel === 'district' ? 'text-[#E8611A]' : ''}>C\u00f4te d'Ivoire</span>
+          <div className="flex items-center gap-1.5 text-[11px] text-[#94A3B8] font-semibold mb-2 flex-wrap">
+            <span className="material-symbols-outlined text-[14px] text-[#E8611A]">location_on</span>
+            <span className={currentLevel === 'district' ? 'text-[#E8611A] font-bold' : ''}>CI</span>
             {breadcrumb.district && (
               <>
-                <span className="text-[#CBD5E1]">/</span>
-                <span className={currentLevel === 'r\u00e9gion' ? 'text-[#E8611A]' : ''}>{breadcrumb.district}</span>
+                <span className="material-symbols-outlined text-[10px] text-[#CBD5E1]">chevron_right</span>
+                <span className={currentLevel === 'r\u00e9gion' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.district}</span>
               </>
             )}
             {breadcrumb.region && (
               <>
-                <span className="text-[#CBD5E1]">/</span>
-                <span className={currentLevel === 'd\u00e9partement' ? 'text-[#E8611A]' : ''}>{breadcrumb.region}</span>
+                <span className="material-symbols-outlined text-[10px] text-[#CBD5E1]">chevron_right</span>
+                <span className={currentLevel === 'd\u00e9partement' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.region}</span>
               </>
             )}
             {breadcrumb.dept && (
               <>
-                <span className="text-[#CBD5E1]">/</span>
-                <span className={currentLevel === 'sous-pr\u00e9fecture' ? 'text-[#E8611A]' : ''}>{breadcrumb.dept}</span>
+                <span className="material-symbols-outlined text-[10px] text-[#CBD5E1]">chevron_right</span>
+                <span className={currentLevel === 'sous-pr\u00e9fecture' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.dept}</span>
               </>
             )}
           </div>
@@ -758,8 +758,8 @@ export default function Explorer() {
                   }
 
                   // Zoom to zone geometry from full data
-                  const geoRefMap = { 'district': allDistrictsRef, 'région': allRegionsRef, 'département': allDeptsRef, 'sous-préfecture': allSPRef };
-                  const geoRef = geoRefMap[currentLevel];
+                  // currentLevel is stale in closure — determine the source ref from the zone's level
+                  const geoRef = currentLevel === 'district' ? allDistrictsRef : currentLevel === 'région' ? allRegionsRef : currentLevel === 'département' ? allDeptsRef : allSPRef;
                   const feat = geoRef?.current?.features?.find(f => f.properties?.name === z.name);
                   if (feat?.geometry) {
                     let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
@@ -775,12 +775,14 @@ export default function Explorer() {
                       }
                     }
                     if (isFinite(minLng) && isFinite(maxLng)) {
-                      const padLng = (maxLng - minLng) * 0.02;
-                      const padLat = (maxLat - minLat) * 0.02;
-                      zmap.fitBounds(
-                        [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                        { padding: 40, duration: 800 }
-                      );
+                      const padLng = (maxLng - minLng) * 0.05;
+                      const padLat = (maxLat - minLat) * 0.05;
+                      const targetZoom = currentLevel === 'district' ? 8.5 : currentLevel === 'région' ? 10 : 12;
+                      zmap.flyTo({
+                        center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2],
+                        zoom: targetZoom,
+                        duration: 1000,
+                      });
                     }
                   }
                 }}
