@@ -18,10 +18,10 @@ export default function Home() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
           {[
-            { value: '34', label: 'Districts', icon: 'map' },
-            { value: '31', label: 'Régions', icon: 'public' },
-            { value: '82', label: 'Départements', icon: 'location_on' },
-            { value: '~2 500', label: 'Communes', icon: 'location_city' },
+            { value: '14', label: 'Districts', icon: 'map' },
+            { value: '33', label: 'Régions', icon: 'public' },
+            { value: '108', label: 'Départements', icon: 'location_on' },
+            { value: '510', label: 'Sous-préfectures', icon: 'location_city' },
           ].map((s) => (
             <div key={s.label} className="kpi-card">
               <span className="material-symbols-outlined text-[#E8611A] text-[20px]">{s.icon}</span>

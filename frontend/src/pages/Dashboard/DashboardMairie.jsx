@@ -5,7 +5,7 @@ export default function DashboardMairie() {
         <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="material-symbols-outlined text-[#E8611A] text-[18px]">location_city</span>
-            <span className="text-xs font-bold text-[#E8611A] uppercase tracking-wider">Mairie & District des Savanes</span>
+            <span className="text-xs font-bold text-[#E8611A] uppercase tracking-wider">Mairie &amp; District des Savanes &middot; Région Poro</span>
           </div>
           <h2 className="text-lg font-bold text-[#0D1B2A]">Mairie de Korhogo</h2>
           <div className="flex items-center gap-2 mt-2">
