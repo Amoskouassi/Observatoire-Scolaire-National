@@ -9,6 +9,9 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP_PASSWORD,
   },
   tls: { rejectUnauthorized: false },
+  connectionTimeout: 30000,
+  greetingTimeout: 15000,
+  socketTimeout: 30000,
 });
 
 const FROM = process.env.SMTP_FROM || 'Observatoire Scolaire <noreply@observatoire.ci>';
