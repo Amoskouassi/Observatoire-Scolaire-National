@@ -55,20 +55,21 @@ function createLabelMarker(name, status, zoomThreshold) {
   el.textContent = name;
   el.dataset.zoomThreshold = zoomThreshold;
   el.style.cssText = `
-    background: ${COLORS[status] || COLORS.pending};
-    color: white;
+    background: rgba(255,255,255,0.92);
+    color: #0D1B2A;
     padding: 3px 10px;
-    border-radius: 6px;
-    font-size: 12px;
+    border-radius: 8px;
+    font-size: 11px;
     font-weight: 700;
     font-family: Inter, system-ui, -apple-system, sans-serif;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     white-space: nowrap;
     pointer-events: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
     line-height: 1.4;
     text-align: center;
-    border: 1.5px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.2s ease;
   `;
   return el;
 }
@@ -127,12 +128,13 @@ export default function Explorer() {
           id: 'districts-fill', type: 'fill', source: 'districts',
           paint: {
             'fill-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, COLORS.pending],
-            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.45, 0.25],
+            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.4, 0.2],
+            'fill-opacity-transition': { duration: 200 },
           },
         });
         map.addLayer({
           id: 'districts-outline', type: 'line', source: 'districts',
-          paint: { 'line-color': '#000000', 'line-width': 2 },
+          paint: { 'line-color': '#0D1B2A', 'line-width': 1.5, 'line-opacity': 0.7 },
         });
         // HTML markers for labels
         for (const f of districtsData.features) {
@@ -154,11 +156,12 @@ export default function Explorer() {
           id: 'regions-fill', type: 'fill', source: 'regions',
           paint: {
             'fill-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, COLORS.pending],
-            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.5, 0.3],
+            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.45, 0.25],
+            'fill-opacity-transition': { duration: 200 },
           },
           layout: { visibility: 'none' },
         });
-        map.addLayer({ id: 'regions-outline', type: 'line', source: 'regions', paint: { 'line-color': '#000000', 'line-width': 2 }, layout: { visibility: 'none' } });
+        map.addLayer({ id: 'regions-outline', type: 'line', source: 'regions', paint: { 'line-color': '#475569', 'line-width': 0.8, 'line-opacity': 0.6 }, layout: { visibility: 'none' } });
         for (const f of regionsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
@@ -179,11 +182,12 @@ export default function Explorer() {
           id: 'depts-fill', type: 'fill', source: 'depts',
           paint: {
             'fill-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, COLORS.pending],
-            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.55, 0.35],
+            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.5, 0.3],
+            'fill-opacity-transition': { duration: 200 },
           },
           layout: { visibility: 'none' },
         });
-        map.addLayer({ id: 'depts-outline', type: 'line', source: 'depts', paint: { 'line-color': '#555555', 'line-width': 1 }, layout: { visibility: 'none' } });
+        map.addLayer({ id: 'depts-outline', type: 'line', source: 'depts', paint: { 'line-color': '#94A3B8', 'line-width': 0.5, 'line-opacity': 0.5 }, layout: { visibility: 'none' } });
         for (const f of deptsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
