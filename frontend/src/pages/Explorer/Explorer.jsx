@@ -94,6 +94,7 @@ export default function Explorer() {
   const allDeptsRef = useRef(null);
   const allSPRef = useRef(null);
   const updateLayersRef = useRef(null);
+  const updateLabelsRef = useRef(null);
 
   useEffect(() => {
     if (mapInst.current) return;
@@ -273,10 +274,69 @@ export default function Explorer() {
         if (zf?.length) {
           const p = zf[0].properties;
           const name = p.name;
+          const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
 
-          // Find full geometry from source data
-          const srcData = map.getSource(sourceKey)?._data;
-          const feat = srcData?.features?.find(f => f.properties?.name === name);
+          if (z < 7) {
+            // Click district → set refs, show regions of that district, zoom to dept
+            selectedDistrictRef.current = name;
+            selectedRegionRef.current = null;
+            selectedDeptRef.current = null;
+            if (allRegionsRef.current) {
+              const filtered = { type: 'FeatureCollection', features: allRegionsRef.current.features.filter(f => f.properties.district === name) };
+              map.getSource('regions')?.setData(filtered);
+            }
+            // Reset depts/sp
+            if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
+            if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
+            setVis(['districts-fill', 'districts-outline'], 'visible');
+            setVis(['regions-fill', 'regions-outline'], 'visible');
+            setVis(['depts-fill', 'depts-outline'], 'none');
+            setVis(['sp-fill', 'sp-outline'], 'none');
+
+          } else if (z >= 7 && z < 9) {
+            // Click region → set refs, show depts of that region, zoom to SP
+            const regionFeat = allRegionsRef.current?.features?.find(f => f.properties.name === name);
+            selectedDistrictRef.current = regionFeat?.properties?.district || selectedDistrictRef.current;
+            selectedRegionRef.current = name;
+            selectedDeptRef.current = null;
+            if (allDeptsRef.current) {
+              const filtered = { type: 'FeatureCollection', features: allDeptsRef.current.features.filter(f => f.properties.region === name) };
+              map.getSource('depts')?.setData(filtered);
+            }
+            if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
+            setVis(['regions-fill'], 'none');
+            setVis(['regions-outline'], 'visible');
+            setVis(['depts-fill', 'depts-outline'], 'visible');
+            setVis(['sp-fill', 'sp-outline'], 'none');
+
+          } else if (z >= 9 && z < 11) {
+            // Click dept → set refs, show SPs of that dept
+            const deptFeat = allDeptsRef.current?.features?.find(f => f.properties.name === name);
+            selectedRegionRef.current = deptFeat?.properties?.region || selectedRegionRef.current;
+            selectedDeptRef.current = name;
+            if (allSPRef.current) {
+              const filtered = { type: 'FeatureCollection', features: allSPRef.current.features.filter(f => f.properties.departement === name) };
+              map.getSource('sp')?.setData(filtered);
+            }
+            setVis(['depts-fill'], 'none');
+            setVis(['depts-outline'], 'visible');
+            setVis(['sp-fill', 'sp-outline'], 'visible');
+          }
+
+          // Set panel info
+          const level = z < 7 ? 'district' : z < 9 ? 'r\u00e9gion' : z < 11 ? 'd\u00e9partement' : 'sous-pr\u00e9fecture';
+          setSelected({
+            name: name,
+            level: level,
+            status: p.status,
+            schools: p.schools,
+            students: p.students,
+            girls: p.girls,
+            boys: p.boys,
+          });
+
+          // Zoom to clicked zone
+          const feat = map.getSource(sourceKey)?._data?.features?.find(f => f.properties?.name === name);
           if (feat?.geometry) {
             let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
             const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates
@@ -297,40 +357,8 @@ export default function Explorer() {
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
                 { padding: 40, duration: 600 }
               );
-              const targetZ = z < 7 ? 10 : z < 9 ? 12 : z < 11 ? 14 : 15;
-              setTimeout(() => {
-                map.setZoom(targetZ);
-                updateLayers();
-              }, 650);
             }
           }
-
-          // Set parent refs for cascade filtering — look up parents from full data
-          if (z < 7) {
-            selectedDistrictRef.current = name;
-            selectedRegionRef.current = null;
-            selectedDeptRef.current = null;
-          } else if (z >= 7 && z < 9) {
-            const regionFeat = allRegionsRef.current?.features?.find(f => f.properties.name === name);
-            selectedDistrictRef.current = regionFeat?.properties?.district || selectedDistrictRef.current;
-            selectedRegionRef.current = name;
-            selectedDeptRef.current = null;
-          } else if (z >= 9 && z < 11) {
-            const deptFeat = allDeptsRef.current?.features?.find(f => f.properties.name === name);
-            selectedRegionRef.current = deptFeat?.properties?.region || selectedRegionRef.current;
-            selectedDeptRef.current = name;
-          }
-
-          const level = z < 7 ? 'district' : z < 9 ? 'r\u00e9gion' : z < 11 ? 'd\u00e9partement' : 'sous-pr\u00e9fecture';
-          setSelected({
-            name: name,
-            level: level,
-            status: p.status,
-            schools: p.schools,
-            students: p.students,
-            girls: p.girls,
-            boys: p.boys,
-          });
         }
       });
 
@@ -452,6 +480,7 @@ export default function Explorer() {
       };
 
       updateLayersRef.current = updateLayers;
+      updateLabelsRef.current = updateLabels;
 
       map.on('zoomend', updateLayers);
       map.on('move', updateLabels);
@@ -624,26 +653,61 @@ export default function Explorer() {
                 .map((z, i) => (
                 <button key={i} onClick={() => {
                   setSelected(z);
-                  // Look up parent from full data (state is async, can't rely on selected)
+                  const zmap = mapInst.current;
+
                   if (currentLevel === 'district') {
-                    const feat = allRegionsRef.current?.features?.find(f => f.properties.name === z.name);
-                    selectedDistrictRef.current = feat?.properties?.district || null;
+                    // Click region from district list → show that region's depts immediately
+                    const regionFeat = allRegionsRef.current?.features?.find(f => f.properties.name === z.name);
+                    const parentDistrict = regionFeat?.properties?.district || null;
+                    selectedDistrictRef.current = parentDistrict;
                     selectedRegionRef.current = z.name;
                     selectedDeptRef.current = null;
-                  } else if (currentLevel === 'r\u00e9gion') {
-                    const feat = allDeptsRef.current?.features?.find(f => f.properties.name === z.name);
-                    selectedRegionRef.current = feat?.properties?.region || selectedRegionRef.current || null;
+
+                    // Directly filter and set sources NOW (don't wait for updateLayers at wrong zoom)
+                    if (parentDistrict && allRegionsRef.current) {
+                      const filteredRegions = { type: 'FeatureCollection', features: allRegionsRef.current.features.filter(f => f.properties.district === parentDistrict) };
+                      zmap?.getSource('regions')?.setData(filteredRegions);
+                    }
+                    if (zmap) {
+                      // Show depts of the clicked region immediately
+                      const filteredDepts = { type: 'FeatureCollection', features: (allDeptsRef.current?.features || []).filter(f => f.properties.region === z.name) };
+                      zmap.getSource('depts')?.setData(filteredDepts);
+                      // Hide irrelevant layers
+                      const setVis = (ls, v) => ls.forEach(l => { if (zmap.getLayer(l)) zmap.setLayoutProperty(l, 'visibility', v); });
+                      setVis(['districts-fill'], 'visible');
+                      setVis(['regions-fill'], 'none');
+                      setVis(['regions-outline'], 'visible');
+                      setVis(['depts-fill', 'depts-outline'], 'visible');
+                      setVis(['sp-fill', 'sp-outline'], 'none');
+                      setCurrentLevel('département');
+                      setZones(filteredDepts.features.map(f => f.properties));
+                    }
+
+                  } else if (currentLevel === 'région') {
+                    // Click dept from region list → show that dept's SPs immediately
+                    const deptFeat = allDeptsRef.current?.features?.find(f => f.properties.name === z.name);
+                    selectedRegionRef.current = deptFeat?.properties?.region || selectedRegionRef.current;
                     selectedDeptRef.current = z.name;
-                  } else if (currentLevel === 'd\u00e9partement') {
-                    const feat = allSPRef.current?.features?.find(f => f.properties.name === z.name);
-                    selectedDeptRef.current = feat?.properties?.departement || selectedDeptRef.current || null;
+
+                    if (zmap) {
+                      const filteredSP = { type: 'FeatureCollection', features: (allSPRef.current?.features || []).filter(f => f.properties.departement === z.name) };
+                      zmap.getSource('sp')?.setData(filteredSP);
+                      const setVis = (ls, v) => ls.forEach(l => { if (zmap.getLayer(l)) zmap.setLayoutProperty(l, 'visibility', v); });
+                      setVis(['depts-fill'], 'none');
+                      setVis(['depts-outline'], 'visible');
+                      setVis(['sp-fill', 'sp-outline'], 'visible');
+                      setCurrentLevel('sous-préfecture');
+                      setZones(filteredSP.features.map(f => f.properties));
+                    }
+
+                  } else if (currentLevel === 'département') {
+                    const spFeat = allSPRef.current?.features?.find(f => f.properties.name === z.name);
+                    selectedDeptRef.current = spFeat?.properties?.departement || selectedDeptRef.current;
                   }
-                  // Force update layers immediately
-                  if (updateLayersRef.current) updateLayersRef.current();
-                  // Zoom to zone on map — use allRefs for geometry (source data may be filtered)
-                  const zmap = mapInst.current;
+
+                  // Now zoom to zone on map — use allRefs for geometry
                   if (zmap) {
-                    const allRef = currentLevel === 'district' ? allRegionsRef : currentLevel === 'r\u00e9gion' ? allDeptsRef : allSPRef;
+                    const allRef = currentLevel === 'district' ? allRegionsRef : currentLevel === 'région' ? allDeptsRef : allSPRef;
                     const feat = allRef.current?.features?.find(f => f.properties?.name === z.name);
                     if (feat?.geometry) {
                       let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
@@ -661,15 +725,15 @@ export default function Explorer() {
                       if (isFinite(minLng) && isFinite(maxLng)) {
                         const padLng = (maxLng - minLng) * 0.02;
                         const padLat = (maxLat - minLat) * 0.02;
-                        // Target zoom must cross level thresholds: dept 9-11, SP 11+
-                        const targetZoom = currentLevel === 'district' ? 10 : currentLevel === 'r\u00e9gion' ? 12 : 14;
+                        const targetZoom = currentLevel === 'district' ? 10 : currentLevel === 'région' ? 12 : 14;
                         zmap.fitBounds(
                           [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
                           { padding: 40, duration: 600 }
                         );
                         setTimeout(() => {
                           zmap.setZoom(targetZoom);
-                          if (updateLayersRef.current) updateLayersRef.current();
+                          // Restore labels for current level
+                          updateLabelsRef.current?.();
                         }, 650);
                       }
                     }
