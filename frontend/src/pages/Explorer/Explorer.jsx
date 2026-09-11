@@ -225,17 +225,19 @@ export default function Explorer() {
         let sourceKey = z < 7 ? 'districts' : z < 9 ? 'regions' : 'depts';
         const zf = map.queryRenderedFeatures(e.point, { layers: [layer] });
         if (zf?.length) {
-          const f = zf[0];
-          const p = f.properties;
+          const p = zf[0].properties;
+          const name = p.name;
 
-          // fitBounds from the feature's geometry (direct from MapLibre, no source lookup)
-          if (f.geometry) {
+          // Find full geometry from source data
+          const srcData = map.getSource(sourceKey)?._data;
+          const feat = srcData?.features?.find(f => f.properties?.name === name);
+          if (feat?.geometry) {
             let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-            const rings = f.geometry.type === 'Polygon' ? f.geometry.coordinates
-              : f.geometry.coordinates;
-            for (const ring of rings) {
-              const coords = ring[0] || ring;
-              for (const c of coords) {
+            const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates
+              : feat.geometry.type === 'MultiPolygon' ? feat.geometry.coordinates.flat()
+              : [];
+            for (const ring of coords) {
+              for (const c of ring) {
                 if (c[0] < minLng) minLng = c[0];
                 if (c[0] > maxLng) maxLng = c[0];
                 if (c[1] < minLat) minLat = c[1];
@@ -243,28 +245,28 @@ export default function Explorer() {
               }
             }
             if (isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
-              const padLng = (maxLng - minLng) * 0.1;
-              const padLat = (maxLat - minLat) * 0.1;
+              const padLng = (maxLng - minLng) * 0.05;
+              const padLat = (maxLat - minLat) * 0.05;
               map.fitBounds(
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                { padding: 30, duration: 1000, maxZoom: z < 7 ? 12 : z < 9 ? 13 : 14 }
+                { padding: 40, duration: 800, maxZoom: z < 7 ? 12 : z < 9 ? 13 : 14 }
               );
             }
           }
 
           // Set district filter
           if (z < 7) {
-            setSelectedDistrict(p.name);
-            selectedDistrictRef.current = p.name;
+            setSelectedDistrict(name);
+            selectedDistrictRef.current = name;
             selectedRegionRef.current = null;
           }
           // Set region filter for depts
           if (z >= 7 && z < 9) {
-            selectedRegionRef.current = p.name;
+            selectedRegionRef.current = name;
           }
 
           setSelected({
-            name: p.name,
+            name: name,
             level: z < 7 ? 'district' : z < 9 ? 'r\u00e9gion' : 'd\u00e9partement',
             status: p.status,
             schools: p.schools,
