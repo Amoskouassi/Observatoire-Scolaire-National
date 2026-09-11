@@ -325,13 +325,6 @@ export default function Explorer() {
           setCurrentLevel('d\u00e9partement');
           setZones(deptsData?.features?.map(f => f.properties) || []);
         }
-        } else {
-          setVis(['districts-fill', 'districts-outline'], 'none');
-          setVis(['regions-fill', 'regions-outline'], 'none');
-          setVis(['depts-fill', 'depts-outline'], 'visible');
-          setCurrentLevel('d\u00e9partement');
-          setZones(deptsData?.features?.map(f => f.properties) || []);
-        }
         updateLabels();
       };
 
