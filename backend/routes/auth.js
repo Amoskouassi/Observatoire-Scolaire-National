@@ -126,8 +126,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       expires_at,
     });
 
-    const emailResult = await sendMail({ to: email, ...verificationCodeEmail(prenom, code) });
-    console.log('Email verification result:', JSON.stringify(emailResult));
+    sendMail({ to: email, ...verificationCodeEmail(prenom, code) }).then(r => console.log('Email result:', JSON.stringify(r))).catch(e => console.error('Email error:', e));
 
     res.status(201).json({
       message: 'Compte créé. Vérifiez votre boîte mail pour le code de confirmation.',
