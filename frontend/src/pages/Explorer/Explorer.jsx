@@ -229,6 +229,13 @@ export default function Explorer() {
     const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
 
     if (currentLevelRef.current === 'sous-prefecture') {
+      const data = geoDataRef.current;
+      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      map.setPaintProperty('sp-fill', 'fill-opacity', 0.3);
+      map.setPaintProperty('sp-outline', 'line-width', 0.4);
+      map.setPaintProperty('sp-outline', 'line-color', '#94A3B8');
+      map.setPaintProperty('satellite', 'raster-opacity', 0);
+      map.setPaintProperty('sat-labels', 'raster-opacity', 0);
       const parentRegion = selRegRef.current;
       if (parentRegion && data.depts) {
         const filtered = { type: 'FeatureCollection', features: data.depts.features.filter(f => f.properties.region === parentRegion) };
@@ -346,6 +353,26 @@ export default function Explorer() {
       ]);
 
       geoDataRef.current = { districts: districtsData, regions: regionsData, depts: deptsData, sp: spData };
+
+      map.addSource('satellite', {
+        type: 'raster',
+        tiles: [
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        ],
+        tileSize: 256,
+        attribution: 'Esri, Maxar, Earthstar Geographics',
+        maxzoom: 19,
+      });
+      map.addSource('sat-labels', {
+        type: 'raster',
+        tiles: [
+          'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+      });
+      map.addLayer({ id: 'satellite', type: 'raster', source: 'satellite', paint: { 'raster-opacity': 0, 'raster-opacity-transition': { duration: 500 } }, layout: { visibility: 'visible' } });
+      map.addLayer({ id: 'sat-labels', type: 'raster', source: 'sat-labels', paint: { 'raster-opacity': 0, 'raster-opacity-transition': { duration: 500 } }, layout: { visibility: 'visible' } });
 
       if (districtsData) {
         map.addSource('districts', { type: 'geojson', data: districtsData });
@@ -482,9 +509,23 @@ export default function Explorer() {
         } else if (level === 'sous-prefecture') {
           const zf = map.queryRenderedFeatures(e.point, { layers: ['sp-fill', 'sp-outline'] });
           if (zf?.length) {
+            const spName = zf[0].properties.name;
+            const spFeat = geoDataRef.current.sp?.features?.find(f => f.properties?.name === spName);
+            if (spFeat) {
+              map.getSource('sp')?.setData({ type: 'FeatureCollection', features: [spFeat] });
+              map.setPaintProperty('sp-fill', 'fill-opacity', 0.35);
+              map.setPaintProperty('sp-outline', 'line-width', 2.5);
+              map.setPaintProperty('sp-outline', 'line-color', '#E8611A');
+              map.setLayoutProperty('sp-outline', 'visibility', 'visible');
+            }
             showZoneDetail(level, zf[0].properties);
-            const feat = geoDataRef.current.sp?.features?.find(f => f.properties?.name === zf[0].properties.name);
-            if (feat?.geometry) fitBBox(map, feat.geometry, 0.3);
+            if (spFeat?.geometry) {
+              drillingRef.current = true;
+              fitBBox(map, spFeat.geometry, 0.05);
+              map.setPaintProperty('satellite', 'raster-opacity', 0.85);
+              map.setPaintProperty('sat-labels', 'raster-opacity', 1);
+              setTimeout(() => { drillingRef.current = false; }, 900);
+            }
           }
         }
       });
