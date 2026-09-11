@@ -1,4 +1,4 @@
-const BREVO_API_KEY = process.env.SMTP_PASSWORD;
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const FROM = process.env.SMTP_FROM || 'Observatoire Scolaire <amoskouassi41@gmail.com>';
 
