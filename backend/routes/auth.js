@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { supabase } from '../server.js';
@@ -40,9 +39,6 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 
-    // Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash(password, 12);
-
     // Créer l'utilisateur dans Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -71,7 +67,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       });
 
     if (profileError) {
-      return res.status(500).json({ error: 'Erreur création profil' });
+      return res.status(500).json({ error: profileError.message || 'Erreur création profil' });
     }
 
     const token = jwt.sign({ userId: authData.user.id, role }, config.jwt.secret, {
@@ -139,14 +135,15 @@ router.get('/me', async (req, res) => {
 
   const token = authHeader.split(' ')[1];
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error || !user) return res.status(401).json({ error: 'Token invalide' });
+    const decoded = jwt.verify(token, config.jwt.secret);
 
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', decoded.userId)
       .single();
+
+    if (error || !profile) return res.status(404).json({ error: 'Profil introuvable' });
 
     res.json({ user: profile });
   } catch {
