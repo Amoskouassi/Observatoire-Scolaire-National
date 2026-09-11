@@ -539,7 +539,38 @@ export default function Explorer() {
               {zones
                 .sort((a, b) => (b.schools || 0) - (a.schools || 0))
                 .map((z, i) => (
-                <button key={i} onClick={() => setSelected(z)}
+                <button key={i} onClick={() => {
+                  setSelected(z);
+                  // Zoom to zone on map
+                  const zmap = mapInst.current;
+                  if (zmap) {
+                    const srcKey = currentLevel === 'district' ? 'districts' : currentLevel === 'r\u00e9gion' ? 'regions' : 'depts';
+                    const srcData = zmap.getSource(srcKey)?._data;
+                    const feat = srcData?.features?.find(f => f.properties?.name === z.name);
+                    if (feat?.geometry) {
+                      let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+                      const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates
+                        : feat.geometry.type === 'MultiPolygon' ? feat.geometry.coordinates.flat()
+                        : [];
+                      for (const ring of coords) {
+                        for (const c of ring) {
+                          if (c[0] < minLng) minLng = c[0];
+                          if (c[0] > maxLng) maxLng = c[0];
+                          if (c[1] < minLat) minLat = c[1];
+                          if (c[1] > maxLat) maxLat = c[1];
+                        }
+                      }
+                      if (isFinite(minLng) && isFinite(maxLng)) {
+                        const padLng = (maxLng - minLng) * 0.02;
+                        const padLat = (maxLat - minLat) * 0.02;
+                        zmap.fitBounds(
+                          [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
+                          { padding: 40, duration: 800, maxZoom: 13 }
+                        );
+                      }
+                    }
+                  }
+                }}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white hover:bg-white hover:shadow-sm transition-all duration-200 text-left group border border-transparent hover:border-[#E8611A]/10">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
                     style={{ backgroundColor: `${COLORS[z.status] || COLORS.pending}12`, color: COLORS[z.status] || COLORS.pending }}>
