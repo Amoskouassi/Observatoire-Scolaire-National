@@ -44,9 +44,15 @@ function getCentroid(geometry) {
   } else {
     return null;
   }
-  let lng = 0, lat = 0;
-  for (const c of coords) { lng += c[0]; lat += c[1]; }
-  return [lng / coords.length, lat / coords.length];
+  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  for (const c of coords) {
+    if (c[0] < minLng) minLng = c[0];
+    if (c[0] > maxLng) maxLng = c[0];
+    if (c[1] < minLat) minLat = c[1];
+    if (c[1] > maxLat) maxLat = c[1];
+  }
+  if (!isFinite(minLng)) return null;
+  return [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
 }
 
 function createLabelEl(name) {
