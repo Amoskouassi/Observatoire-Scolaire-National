@@ -245,11 +245,11 @@ export default function Explorer() {
               }
             }
             if (isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
-              const padLng = (maxLng - minLng) * 0.05;
-              const padLat = (maxLat - minLat) * 0.05;
+              const padLng = (maxLng - minLng) * 0.02;
+              const padLat = (maxLat - minLat) * 0.02;
               map.fitBounds(
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                { padding: 40, duration: 800, maxZoom: z < 7 ? 12 : z < 9 ? 13 : 14 }
+                { padding: 40, duration: 800, maxZoom: z < 7 ? 13 : z < 9 ? 14 : 15 }
               );
             }
           }
