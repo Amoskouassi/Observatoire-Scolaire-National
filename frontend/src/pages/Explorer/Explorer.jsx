@@ -24,35 +24,137 @@ const GEOJSON_PATHS = {
   sp: '/sous_prefectures.geojson',
 };
 
+function pointInRing(point, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if (((yi > point[1]) !== (yj > point[1])) && (point[0] < (xj - xi) * (point[1] - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function pointInPolygon(point, coords) {
+  if (coords[0][0] === coords[0][coords[0].length - 1]) {
+    if (!pointInRing(point, coords[0])) return false;
+    for (let i = 1; i < coords.length; i++) {
+      if (pointInRing(point, coords[i])) return false;
+    }
+    return true;
+  }
+  for (let i = 0; i < coords.length; i++) {
+    if (pointInRing(point, coords[i])) return !i;
+  }
+  return false;
+}
+
+function distToSegment(p, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(p[0] - a[0], p[1] - a[1]);
+  let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+}
+
+function polylabel(coords, precision) {
+  precision = precision || 0.001;
+  let bestDist = -1, bestPoint = null;
+
+  const flat = coords[0];
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const c of flat) {
+    if (c[0] < minX) minX = c[0];
+    if (c[0] > maxX) maxX = c[0];
+    if (c[1] < minY) minY = c[1];
+    if (c[1] > maxY) maxY = c[1];
+  }
+
+  let width = maxX - minX;
+  let height = maxY - minY;
+  let cellSize = Math.min(width, height);
+  let half = cellSize / 2;
+
+  function maxDist(px, py) {
+    let minD = Infinity;
+    for (let i = 0, j = flat.length - 1; i < flat.length; j = i++) {
+      const d = distToSegment([px, py], flat[i], flat[j]);
+      if (d < minD) minD = d;
+      if (minD < bestDist) return minD;
+    }
+    return minD;
+  }
+
+  for (let x = minX; x < maxX; x += cellSize) {
+    for (let y = minY; y < maxY; y += cellSize) {
+      const cx = x + half, cy = y + half;
+      if (pointInPolygon([cx, cy], coords)) {
+        const d = maxDist(cx, cy);
+        if (d > bestDist) { bestDist = d; bestPoint = [cx, cy]; }
+      }
+      const nx = x + cellSize / 2, ny = y + cellSize / 2;
+      if (pointInPolygon([nx, ny], coords)) {
+        const d = maxDist(nx, ny);
+        if (d > bestDist) { bestDist = d; bestPoint = [nx, ny]; }
+      }
+    }
+  }
+
+  if (!bestPoint) {
+    bestPoint = [(minX + maxX) / 2, (minY + maxY) / 2];
+  }
+
+  if (cellSize > precision) {
+    cellSize /= 2;
+    half = cellSize / 2;
+    const px = bestPoint[0] - half, py = bestPoint[1] - half;
+    for (let x = px; x < px + cellSize; x += cellSize / 2) {
+      for (let y = py; y < py + cellSize; y += cellSize / 2) {
+        if (pointInPolygon([x, y], coords)) {
+          const d = maxDist(x, y);
+          if (d > bestDist) { bestDist = d; bestPoint = [x, y]; }
+        }
+      }
+    }
+  }
+
+  return bestPoint;
+}
+
 function getCentroid(geometry) {
   if (!geometry) return null;
-  let coords;
-  if (geometry.type === 'Polygon') {
-    coords = geometry.coordinates[0];
-  } else if (geometry.type === 'MultiPolygon') {
-    let maxArea = 0;
-    let bestRing = null;
-    for (const poly of geometry.coordinates) {
-      const ring = poly[0];
-      let area = 0;
-      for (let i = 0; i < ring.length - 1; i++) {
-        area += Math.abs(ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1]);
+  try {
+    if (geometry.type === 'Polygon') {
+      return polylabel(geometry.coordinates, 0.0005);
+    } else if (geometry.type === 'MultiPolygon') {
+      let maxArea = 0, best = null;
+      for (const poly of geometry.coordinates) {
+        const ring = poly[0];
+        let area = 0;
+        for (let i = 0; i < ring.length - 1; i++) {
+          area += Math.abs(ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1]);
+        }
+        if (area > maxArea) {
+          maxArea = area;
+          const c = polylabel(poly, 0.0005);
+          if (c) best = c;
+        }
       }
-      if (area > maxArea) { maxArea = area; bestRing = ring; }
+      return best;
     }
-    coords = bestRing || geometry.coordinates[0][0];
-  } else {
-    return null;
+  } catch (e) {
+    const coords = geometry.type === 'Polygon' ? geometry.coordinates[0]
+      : geometry.type === 'MultiPolygon' ? geometry.coordinates[0][0] : [];
+    let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+    for (const c of coords) {
+      if (c[0] < minLng) minLng = c[0]; if (c[0] > maxLng) maxLng = c[0];
+      if (c[1] < minLat) minLat = c[1]; if (c[1] > maxLat) maxLat = c[1];
+    }
+    return [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
   }
-  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-  for (const c of coords) {
-    if (c[0] < minLng) minLng = c[0];
-    if (c[0] > maxLng) maxLng = c[0];
-    if (c[1] < minLat) minLat = c[1];
-    if (c[1] > maxLat) maxLat = c[1];
-  }
-  if (!isFinite(minLng)) return null;
-  return [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
+  return null;
 }
 
 function createLabelEl(name) {
