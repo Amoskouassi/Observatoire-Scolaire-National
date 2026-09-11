@@ -225,28 +225,29 @@ export default function Explorer() {
         let sourceKey = z < 7 ? 'districts' : z < 9 ? 'regions' : 'depts';
         const zf = map.queryRenderedFeatures(e.point, { layers: [layer] });
         if (zf?.length) {
-          const p = zf[0].properties;
-          const featureId = zf[0].id;
+          const f = zf[0];
+          const p = f.properties;
 
-          // fitBounds
-          const sourceData = map.getSource(sourceKey)?._data;
-          if (sourceData && sourceData.features) {
-            const feat = sourceData.features.find(f => f.id === featureId || f.properties?.name === p.name);
-            if (feat && feat.geometry) {
-              let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-              const flatCoords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates[0]
-                : feat.geometry.coordinates[0][0];
-              for (const c of flatCoords) {
+          // fitBounds from the feature's geometry (direct from MapLibre, no source lookup)
+          if (f.geometry) {
+            let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+            const rings = f.geometry.type === 'Polygon' ? f.geometry.coordinates
+              : f.geometry.coordinates;
+            for (const ring of rings) {
+              const coords = ring[0] || ring;
+              for (const c of coords) {
                 if (c[0] < minLng) minLng = c[0];
                 if (c[0] > maxLng) maxLng = c[0];
                 if (c[1] < minLat) minLat = c[1];
                 if (c[1] > maxLat) maxLat = c[1];
               }
-              const padLng = (maxLng - minLng) * 0.08;
-              const padLat = (maxLat - minLat) * 0.08;
+            }
+            if (isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
+              const padLng = (maxLng - minLng) * 0.1;
+              const padLat = (maxLat - minLat) * 0.1;
               map.fitBounds(
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                { padding: 20, duration: 1000, maxZoom: z < 7 ? 10 : z < 9 ? 12 : 14 }
+                { padding: 30, duration: 1000, maxZoom: z < 7 ? 10 : z < 9 ? 12 : 14 }
               );
             }
           }
