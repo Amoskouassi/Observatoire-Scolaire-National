@@ -96,6 +96,7 @@ export default function Explorer() {
   const allSPRef = useRef(null);
   const updateLayersRef = useRef(null);
   const updateLabelsRef = useRef(null);
+  const drillingRef = useRef(false);
 
   useEffect(() => {
     if (mapInst.current) return;
@@ -274,6 +275,7 @@ export default function Explorer() {
         let sourceKey = z < 7 ? 'districts' : z < 9 ? 'regions' : z < 11 ? 'depts' : 'sp';
         const zf = map.queryRenderedFeatures(e.point, { layers: [layer] });
         if (zf?.length) {
+          drillingRef.current = true;
           const p = zf[0].properties;
           const name = p.name;
           const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
@@ -359,6 +361,7 @@ export default function Explorer() {
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
                 { padding: 40, duration: 600 }
               );
+              setTimeout(() => { drillingRef.current = false; }, 700);
             }
           }
         }
@@ -408,6 +411,7 @@ export default function Explorer() {
       };
 
       const updateLayers = () => {
+        if (drillingRef.current) return; // Skip during drill-down animation
         const z = map.getZoom();
         const selDist = selectedDistrictRef.current;
         const selReg = selectedRegionRef.current;
@@ -698,6 +702,7 @@ export default function Explorer() {
                 .map((z, i) => (
                 <button key={i} onClick={() => {
                   // DON'T setSelected here — list click navigates/drills down, doesn't show detail
+                  drillingRef.current = true;
                   const zmap = mapInst.current;
                   if (!zmap) return;
                   const setVis = (ls, v) => ls.forEach(l => { if (zmap.getLayer(l)) zmap.setLayoutProperty(l, 'visibility', v); });
@@ -775,15 +780,17 @@ export default function Explorer() {
                       }
                     }
                     if (isFinite(minLng) && isFinite(maxLng)) {
-                      const padLng = (maxLng - minLng) * 0.05;
-                      const padLat = (maxLat - minLat) * 0.05;
-                      const targetZoom = currentLevel === 'district' ? 8.5 : currentLevel === 'région' ? 10 : 12;
+                      const targetZoom = currentLevel === 'district' ? 8.5 : currentLevel === 'r\u00e9gion' ? 10 : 12;
                       zmap.flyTo({
                         center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2],
                         zoom: targetZoom,
                         duration: 1000,
                       });
+                      setTimeout(() => { drillingRef.current = false; updateLabelsRef.current?.(); }, 1100);
+                      return;
                     }
+                  }
+                  drillingRef.current = false;
                   }
                 }}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white hover:bg-white hover:shadow-sm transition-all duration-200 text-left group border border-transparent hover:border-[#E8611A]/10">
