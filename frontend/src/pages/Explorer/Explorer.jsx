@@ -93,6 +93,7 @@ export default function Explorer() {
   const allRegionsRef = useRef(null);
   const allDeptsRef = useRef(null);
   const allSPRef = useRef(null);
+  const updateLayersRef = useRef(null);
 
   useEffect(() => {
     if (mapInst.current) return;
@@ -441,6 +442,8 @@ export default function Explorer() {
         updateLabels();
       };
 
+      updateLayersRef.current = updateLayers;
+
       map.on('zoomend', updateLayers);
       map.on('move', updateLabels);
       updateLayers();
@@ -606,17 +609,17 @@ export default function Explorer() {
                   setSelected(z);
                   // Set cascade refs based on current level
                   if (currentLevel === 'district') {
-                    // Clicking a region from district view
                     selectedDistrictRef.current = selectedDistrictRef.current || selected?.name || null;
                     selectedRegionRef.current = z.name;
                     selectedDeptRef.current = null;
                   } else if (currentLevel === 'r\u00e9gion') {
-                    // Clicking a dept from region view
                     selectedRegionRef.current = selectedRegionRef.current || selected?.name || null;
                     selectedDeptRef.current = z.name;
                   } else if (currentLevel === 'd\u00e9partement') {
                     selectedDeptRef.current = selectedDeptRef.current || selected?.name || null;
                   }
+                  // Force update layers immediately
+                  if (updateLayersRef.current) updateLayersRef.current();
                   // Zoom to zone on map
                   const zmap = mapInst.current;
                   if (zmap) {
