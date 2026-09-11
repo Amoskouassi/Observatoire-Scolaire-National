@@ -246,7 +246,7 @@ export default function Explorer() {
               const padLat = (maxLat - minLat) * 0.08;
               map.fitBounds(
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                { padding: 20, duration: 1000, maxZoom: z < 7 ? 9 : z < 9 ? 11 : 13 }
+                { padding: 20, duration: 1000, maxZoom: z < 7 ? 10 : z < 9 ? 12 : 14 }
               );
             }
           }
