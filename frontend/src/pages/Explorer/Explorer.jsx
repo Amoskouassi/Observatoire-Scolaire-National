@@ -29,7 +29,18 @@ function getCentroid(geometry) {
   if (geometry.type === 'Polygon') {
     coords = geometry.coordinates[0];
   } else if (geometry.type === 'MultiPolygon') {
-    coords = geometry.coordinates[0][0];
+    // Use the largest polygon for centroid
+    let maxArea = 0;
+    let bestRing = null;
+    for (const poly of geometry.coordinates) {
+      const ring = poly[0];
+      let area = 0;
+      for (let i = 0; i < ring.length - 1; i++) {
+        area += Math.abs(ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1]);
+      }
+      if (area > maxArea) { maxArea = area; bestRing = ring; }
+    }
+    coords = bestRing || geometry.coordinates[0][0];
   } else {
     return null;
   }
