@@ -295,7 +295,7 @@ export default function Explorer() {
               const padLat = (maxLat - minLat) * 0.02;
               map.fitBounds(
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                { padding: 40, duration: 800, maxZoom: z < 7 ? 12 : z < 9 ? 13 : z < 11 ? 14 : 15 }
+                { padding: 40, duration: 800, maxZoom: z < 7 ? 11 : z < 9 ? 13 : z < 11 ? 15 : 16 }
               );
             }
           }
@@ -642,7 +642,7 @@ export default function Explorer() {
                       if (isFinite(minLng) && isFinite(maxLng)) {
                         const padLng = (maxLng - minLng) * 0.02;
                         const padLat = (maxLat - minLat) * 0.02;
-                        const targetZoom = currentLevel === 'district' ? 10 : currentLevel === 'r\u00e9gion' ? 12 : 14;
+                        const targetZoom = currentLevel === 'district' ? 11 : currentLevel === 'r\u00e9gion' ? 13 : 15;
                         zmap.fitBounds(
                           [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
                           { padding: 40, duration: 800, maxZoom: targetZoom }
