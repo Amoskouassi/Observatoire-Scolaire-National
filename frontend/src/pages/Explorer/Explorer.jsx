@@ -76,6 +76,8 @@ export default function Explorer() {
   const markersRef = useRef({ districts: [], regions: [], depts: [] });
   const selectedDistrictRef = useRef(null);
   const selectedRegionRef = useRef(null);
+  const allRegionsRef = useRef(null);
+  const allDeptsRef = useRef(null);
 
   useEffect(() => {
     if (mapInst.current) return;
@@ -135,6 +137,7 @@ export default function Explorer() {
 
       // Regions fill + outline
       if (regionsData) {
+        allRegionsRef.current = regionsData;
         map.addSource('regions', { type: 'geojson', data: regionsData });
         map.addLayer({
           id: 'regions-fill', type: 'fill', source: 'regions',
@@ -159,6 +162,7 @@ export default function Explorer() {
 
       // Depts fill + outline
       if (deptsData) {
+        allDeptsRef.current = deptsData;
         map.addSource('depts', { type: 'geojson', data: deptsData });
         map.addLayer({
           id: 'depts-fill', type: 'fill', source: 'depts',
@@ -307,32 +311,43 @@ export default function Explorer() {
           setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('district');
           setZones(districtsData?.features?.map(f => f.properties) || []);
-          if (map.getLayer('regions-fill')) map.setFilter('regions-fill', null);
-          if (map.getLayer('regions-outline')) map.setFilter('regions-outline', null);
-          if (map.getLayer('depts-fill')) map.setFilter('depts-fill', null);
-          if (map.getLayer('depts-outline')) map.setFilter('depts-outline', null);
+          // Restore full data
+          if (allRegionsRef.current) map.getSource('regions')?.setData(allRegionsRef.current);
+          if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
         } else if (z < 9) {
           setVis(['districts-fill'], 'none');
           setVis(['districts-outline'], 'visible');
           setVis(['regions-fill', 'regions-outline'], 'visible');
           setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('r\u00e9gion');
-          setZones(regionsData?.features?.map(f => f.properties) || []);
-          if (selDist && map.getLayer('regions-fill')) {
-            map.setFilter('regions-fill', ['==', ['get', 'district'], selDist]);
-            map.setFilter('regions-outline', ['==', ['get', 'district'], selDist]);
+          // Replace regions source with only selected district's regions
+          if (selDist && allRegionsRef.current) {
+            const filtered = {
+              type: 'FeatureCollection',
+              features: allRegionsRef.current.features.filter(f => f.properties.district === selDist),
+            };
+            map.getSource('regions')?.setData(filtered);
+            setZones(filtered.features.map(f => f.properties));
+          } else {
+            setZones(allRegionsRef.current?.features?.map(f => f.properties) || []);
           }
-          if (map.getLayer('depts-fill')) map.setFilter('depts-fill', null);
-          if (map.getLayer('depts-outline')) map.setFilter('depts-outline', null);
+          // Restore full depts data
+          if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
         } else {
           setVis(['districts-fill', 'districts-outline'], 'none');
           setVis(['regions-fill', 'regions-outline'], 'none');
           setVis(['depts-fill', 'depts-outline'], 'visible');
           setCurrentLevel('d\u00e9partement');
-          setZones(deptsData?.features?.map(f => f.properties) || []);
-          if (selReg && map.getLayer('depts-fill')) {
-            map.setFilter('depts-fill', ['==', ['get', 'region'], selReg]);
-            map.setFilter('depts-outline', ['==', ['get', 'region'], selReg]);
+          // Replace depts source with only selected region's depts
+          if (selReg && allDeptsRef.current) {
+            const filtered = {
+              type: 'FeatureCollection',
+              features: allDeptsRef.current.features.filter(f => f.properties.region === selReg),
+            };
+            map.getSource('depts')?.setData(filtered);
+            setZones(filtered.features.map(f => f.properties));
+          } else {
+            setZones(allDeptsRef.current?.features?.map(f => f.properties) || []);
           }
         }
         updateLabels();
