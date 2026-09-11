@@ -293,27 +293,31 @@ export default function Explorer() {
             if (isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
               const padLng = (maxLng - minLng) * 0.02;
               const padLat = (maxLat - minLat) * 0.02;
-                map.fitBounds(
-                  [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                  { padding: 40, duration: 600 }
-                );
-                const targetZ = z < 7 ? 11 : z < 9 ? 13 : z < 11 ? 15 : 16;
-                setTimeout(() => {
-                  map.setZoom(targetZ);
-                  updateLayers();
-                }, 650);
+              map.fitBounds(
+                [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
+                { padding: 40, duration: 600 }
+              );
+              const targetZ = z < 7 ? 10 : z < 9 ? 12 : z < 11 ? 14 : 15;
+              setTimeout(() => {
+                map.setZoom(targetZ);
+                updateLayers();
+              }, 650);
             }
           }
 
-          // Set parent refs for cascade filtering
+          // Set parent refs for cascade filtering — look up parents from full data
           if (z < 7) {
             selectedDistrictRef.current = name;
             selectedRegionRef.current = null;
             selectedDeptRef.current = null;
           } else if (z >= 7 && z < 9) {
+            const regionFeat = allRegionsRef.current?.features?.find(f => f.properties.name === name);
+            selectedDistrictRef.current = regionFeat?.properties?.district || selectedDistrictRef.current;
             selectedRegionRef.current = name;
             selectedDeptRef.current = null;
           } else if (z >= 9 && z < 11) {
+            const deptFeat = allDeptsRef.current?.features?.find(f => f.properties.name === name);
+            selectedRegionRef.current = deptFeat?.properties?.region || selectedRegionRef.current;
             selectedDeptRef.current = name;
           }
 
@@ -620,25 +624,27 @@ export default function Explorer() {
                 .map((z, i) => (
                 <button key={i} onClick={() => {
                   setSelected(z);
-                  // Set cascade refs based on current level
+                  // Look up parent from full data (state is async, can't rely on selected)
                   if (currentLevel === 'district') {
-                    selectedDistrictRef.current = selectedDistrictRef.current || selected?.name || null;
+                    const feat = allRegionsRef.current?.features?.find(f => f.properties.name === z.name);
+                    selectedDistrictRef.current = feat?.properties?.district || null;
                     selectedRegionRef.current = z.name;
                     selectedDeptRef.current = null;
                   } else if (currentLevel === 'r\u00e9gion') {
-                    selectedRegionRef.current = selectedRegionRef.current || selected?.name || null;
+                    const feat = allDeptsRef.current?.features?.find(f => f.properties.name === z.name);
+                    selectedRegionRef.current = feat?.properties?.region || selectedRegionRef.current || null;
                     selectedDeptRef.current = z.name;
                   } else if (currentLevel === 'd\u00e9partement') {
-                    selectedDeptRef.current = selectedDeptRef.current || selected?.name || null;
+                    const feat = allSPRef.current?.features?.find(f => f.properties.name === z.name);
+                    selectedDeptRef.current = feat?.properties?.departement || selectedDeptRef.current || null;
                   }
                   // Force update layers immediately
                   if (updateLayersRef.current) updateLayersRef.current();
-                  // Zoom to zone on map
+                  // Zoom to zone on map — use allRefs for geometry (source data may be filtered)
                   const zmap = mapInst.current;
                   if (zmap) {
-                    const srcKey = currentLevel === 'district' ? 'districts' : currentLevel === 'r\u00e9gion' ? 'regions' : currentLevel === 'd\u00e9partement' ? 'depts' : 'sp';
-                    const srcData = zmap.getSource(srcKey)?._data;
-                    const feat = srcData?.features?.find(f => f.properties?.name === z.name);
+                    const allRef = currentLevel === 'district' ? allRegionsRef : currentLevel === 'r\u00e9gion' ? allDeptsRef : allSPRef;
+                    const feat = allRef.current?.features?.find(f => f.properties?.name === z.name);
                     if (feat?.geometry) {
                       let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
                       const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates
@@ -655,12 +661,12 @@ export default function Explorer() {
                       if (isFinite(minLng) && isFinite(maxLng)) {
                         const padLng = (maxLng - minLng) * 0.02;
                         const padLat = (maxLat - minLat) * 0.02;
-                        const targetZoom = currentLevel === 'district' ? 11 : currentLevel === 'r\u00e9gion' ? 13 : 15;
+                        // Target zoom must cross level thresholds: dept 9-11, SP 11+
+                        const targetZoom = currentLevel === 'district' ? 10 : currentLevel === 'r\u00e9gion' ? 12 : 14;
                         zmap.fitBounds(
                           [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
                           { padding: 40, duration: 600 }
                         );
-                        // Force zoom to target after animation
                         setTimeout(() => {
                           zmap.setZoom(targetZoom);
                           if (updateLayersRef.current) updateLayersRef.current();
