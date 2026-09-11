@@ -1,10 +1,17 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../server.js';
 import { validateRequest } from '../middleware/validate.js';
 import { config } from '../config/index.js';
 import { sendMail, welcomeEmail } from '../services/email.js';
+
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
 const router = Router();
 
@@ -70,7 +77,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
   try {
     const { email, password, nom, prenom, role, organisation, commune_code, region_code } = req.body;
 
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from('profiles')
       .select('id')
       .eq('email', email)
@@ -80,7 +87,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: false,
@@ -91,7 +98,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       return res.status(400).json({ error: authError.message });
     }
 
-    const { error: profileError } = await supabase
+    const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
         id: authData.user.id,
@@ -111,7 +118,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
     const code = generateCode();
     const expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    await supabase.from('verification_codes').insert({
+    await supabaseAdmin.from('verification_codes').insert({
       email,
       code,
       purpose: 'email_confirm',
@@ -136,7 +143,7 @@ router.post('/verify-code', validateRequest(verifyCodeSchema), async (req, res, 
   try {
     const { email, code } = req.body;
 
-    const { data: record, error: findError } = await supabase
+    const { data: record, error: findError } = await supabaseAdmin
       .from('verification_codes')
       .select('*')
       .eq('email', email)
@@ -156,20 +163,20 @@ router.post('/verify-code', validateRequest(verifyCodeSchema), async (req, res, 
       return res.status(429).json({ error: 'Trop de tentatives. Demandez un nouveau code.' });
     }
 
-    await supabase
+    await supabaseAdmin
       .from('verification_codes')
       .update({ used: true })
       .eq('id', record.id);
 
-    const { data: authUser } = await supabase.auth.admin.getUserByEmail(email);
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserByEmail(email);
 
     if (authUser?.user) {
-      await supabase.auth.admin.updateUserById(authUser.user.id, {
+      await supabaseAdmin.auth.admin.updateUserById(authUser.user.id, {
         email_confirm: true,
       });
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('role, nom, prenom, organisation')
       .eq('id', authUser?.user?.id)
@@ -202,7 +209,7 @@ router.post('/resend-code', validateRequest(resendCodeSchema), async (req, res, 
   try {
     const { email } = req.body;
 
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('nom, prenom')
       .eq('email', email)
@@ -212,7 +219,7 @@ router.post('/resend-code', validateRequest(resendCodeSchema), async (req, res, 
       return res.json({ message: 'Si cet email est enregistré, un code a été envoyé.' });
     }
 
-    await supabase
+    await supabaseAdmin
       .from('verification_codes')
       .update({ used: true })
       .eq('email', email)
@@ -222,7 +229,7 @@ router.post('/resend-code', validateRequest(resendCodeSchema), async (req, res, 
     const code = generateCode();
     const expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    await supabase.from('verification_codes').insert({
+    await supabaseAdmin.from('verification_codes').insert({
       email,
       code,
       purpose: 'email_confirm',
@@ -242,7 +249,7 @@ router.post('/login', validateRequest(loginSchema), async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password,
     });
@@ -259,7 +266,7 @@ router.post('/login', validateRequest(loginSchema), async (req, res, next) => {
       });
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('role, nom, prenom, organisation')
       .eq('id', data.user.id)
@@ -298,7 +305,7 @@ router.get('/me', async (req, res) => {
   try {
     const decoded = jwt.verify(token, config.jwt.secret);
 
-    const { data: profile, error } = await supabase
+    const { data: profile, error } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('id', decoded.userId)
@@ -320,13 +327,13 @@ router.post('/google-callback', async (req, res, next) => {
       return res.status(400).json({ error: 'access_token requis' });
     }
 
-    const { data: { user }, error } = await supabase.auth.getUser(access_token);
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(access_token);
 
     if (error || !user) {
       return res.status(401).json({ error: 'Token Google invalide' });
     }
 
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('id', user.id)
@@ -336,7 +343,7 @@ router.post('/google-callback', async (req, res, next) => {
       const nom = user.user_metadata?.full_name?.split(' ').slice(-1).join(' ') || '';
       const prenom = user.user_metadata?.full_name?.split(' ').slice(0, -1).join(' ') || user.email;
 
-      const { error: profileError } = await supabase
+      const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .insert({
           id: user.id,
@@ -390,7 +397,7 @@ const forgotSchema = z.object({ email: z.string().email() });
 router.post('/forgot-password', validateRequest(forgotSchema), async (req, res, next) => {
   try {
     const { email } = req.body;
-    await supabase.auth.resetPasswordForEmail(email, {
+    await supabaseAdmin.auth.resetPasswordForEmail(email, {
       redirectTo: `${process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-fron.vercel.app'}/login`,
     });
     res.json({ message: 'Si cet email est enregistré, un lien de réinitialisation a été envoyé.' });
