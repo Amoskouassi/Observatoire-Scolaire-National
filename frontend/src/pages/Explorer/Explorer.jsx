@@ -361,7 +361,7 @@ export default function Explorer() {
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
                 { padding: 40, duration: 600 }
               );
-              setTimeout(() => { drillingRef.current = false; }, 700);
+              setTimeout(() => { drillingRef.current = false; updateLayersRef.current?.(); updateLabelsRef.current?.(); }, 700);
             }
           }
         }
@@ -371,6 +371,7 @@ export default function Explorer() {
       const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
 
       const updateLabels = () => {
+        if (drillingRef.current) return;
         const z = map.getZoom();
         const selDist = selectedDistrictRef.current;
         const selReg = selectedRegionRef.current;
@@ -786,7 +787,7 @@ export default function Explorer() {
                         zoom: targetZoom,
                         duration: 1000,
                       });
-                      setTimeout(() => { drillingRef.current = false; updateLabelsRef.current?.(); }, 1100);
+                      setTimeout(() => { drillingRef.current = false; updateLayersRef.current?.(); updateLabelsRef.current?.(); }, 1100);
                       return;
                     }
                   }
