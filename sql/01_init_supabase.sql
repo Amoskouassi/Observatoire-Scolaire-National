@@ -315,14 +315,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_profiles_updated_at ON public.profiles;
 CREATE TRIGGER trigger_profiles_updated_at
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_ecoles_updated_at ON public.ecoles;
 CREATE TRIGGER trigger_ecoles_updated_at
   BEFORE UPDATE ON public.ecoles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+DROP TRIGGER IF EXISTS trigger_dossiers_updated_at ON public.dossiers_institutions;
 CREATE TRIGGER trigger_dossiers_updated_at
   BEFORE UPDATE ON public.dossiers_institutions
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -370,5 +373,12 @@ FROM public.ecoles e;
 -- ============================================================
 -- Permissions Realtime (pour les mises à jour en temps réel)
 -- ============================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE public.ecoles;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.collectes;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'ecoles') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.ecoles;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'collectes') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.collectes;
+  END IF;
+END $$;
