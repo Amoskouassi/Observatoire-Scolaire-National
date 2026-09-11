@@ -477,7 +477,7 @@ export default function Explorer() {
         <div className="px-5 pt-5 pb-4 border-b border-[#CBD5E1]/20">
           <div className="flex items-center gap-2 text-[10px] text-[#94A3B8] font-semibold uppercase tracking-wider mb-1">
             <span className="material-symbols-outlined text-[12px]">location_on</span>
-            Cote d'Ivoire
+            C\u00f4te d'Ivoire
             {selected && (
               <>
                 <span className="text-[#CBD5E1]">/</span>

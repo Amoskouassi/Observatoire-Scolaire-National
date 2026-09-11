@@ -21,7 +21,7 @@ export default function DashboardMairie() {
         <div className="grid grid-cols-2 gap-3">
           {[
             { icon: 'school', label: 'Écoles', value: '142', badge: '100%', badgeBg: '#0B7A3E' },
-            { icon: 'groups', label: 'Classes >50élèves', value: '38%', badge: 'Alerte', badgeBg: '#E8611A' },
+            { icon: 'groups', label: 'Classes >50 \u00e9l\u00e8ves', value: '38%', badge: 'Alerte', badgeBg: '#E8611A' },
             { icon: 'water_drop', label: 'Sans eau', value: '54', badge: 'Urgence', badgeBg: '#ba1a1a', error: true },
             { icon: 'account_balance_wallet', label: 'Budget', value: '320M', badge: 'FCFA', badgeBg: '#0B7A3E' },
           ].map((k) => (
