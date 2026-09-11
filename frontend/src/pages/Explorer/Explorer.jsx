@@ -14,7 +14,7 @@ const COLORS = {
 const STATUS_LABEL = {
   collected: 'Collecte',
   waiting: 'En attente',
-  pending: 'Non programm\u00e9',
+  pending: 'Non programmé',
 };
 
 const GEOJSON_PATHS = {
@@ -51,7 +51,6 @@ function getCentroid(geometry) {
 
 function createLabelEl(name) {
   const el = document.createElement('div');
-  el.className = 'map-label';
   el.textContent = name;
   el.style.cssText = `
     background: rgba(255,255,255,0.92);
@@ -90,6 +89,18 @@ function getBBox(geometry) {
   return [[minLng, minLat], [maxLng, maxLat]];
 }
 
+function fitBBox(map, geometry, pad) {
+  const bbox = getBBox(geometry);
+  if (!bbox) return;
+  const p = pad || 0.15;
+  const dLng = (bbox[1][0] - bbox[0][0]) * p;
+  const dLat = (bbox[1][1] - bbox[0][1]) * p;
+  map.fitBounds(
+    [[bbox[0][0] - dLng, bbox[0][1] - dLat], [bbox[1][0] + dLng, bbox[1][1] + dLat]],
+    { padding: 40, duration: 700 }
+  );
+}
+
 export default function Explorer() {
   const mapRef = useRef(null);
   const mapInst = useRef(null);
@@ -101,12 +112,14 @@ export default function Explorer() {
   const [zones, setZones] = useState([]);
   const [breadcrumb, setBreadcrumb] = useState({ district: null, region: null, dept: null });
 
-  const labelsRef = useRef({ districts: {}, regions: {}, depts: {}, sp: {} });
   const selDistRef = useRef(null);
   const selRegRef = useRef(null);
   const selDeptRef = useRef(null);
-  const geoDataRef = useRef({ districts: null, regions: null, depts: null, sp: null });
   const currentLevelRef = useRef('district');
+  const geoDataRef = useRef({ districts: null, regions: null, depts: null, sp: null });
+  const labelsRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
+  const drillingRef = useRef(false);
+  const syncViewRef = useRef(null);
 
   const showZoneDetail = useCallback((level, props) => {
     setSelected({
@@ -118,18 +131,6 @@ export default function Explorer() {
       girls: props.girls,
       boys: props.boys,
     });
-  }, []);
-
-  const fitToFeature = useCallback((map, geometry, pad) => {
-    const bbox = getBBox(geometry);
-    if (!bbox) return;
-    const p = pad || 0.15;
-    const dLng = (bbox[1][0] - bbox[0][0]) * p;
-    const dLat = (bbox[1][1] - bbox[0][1]) * p;
-    map.fitBounds(
-      [[bbox[0][0] - dLng, bbox[0][1] - dLat], [bbox[1][0] + dLng, bbox[1][1] + dLat]],
-      { padding: 40, duration: 700 }
-    );
   }, []);
 
   const drillDown = useCallback((level, name) => {
@@ -200,7 +201,6 @@ export default function Explorer() {
       setVis(['sp-fill', 'sp-outline'], 'visible');
 
       nextLevel = 'sous-prefecture';
-
     } else {
       return;
     }
@@ -210,14 +210,16 @@ export default function Explorer() {
     setCurrentLevel(nextLevel);
     currentLevelRef.current = nextLevel;
 
-    syncLabels(map, nextLevel);
+    syncViewRef.current?.();
 
     const parentData = level === 'district' ? data.districts : level === 'region' ? data.regions : data.depts;
     const feat = parentData?.features?.find(f => f.properties?.name === name);
     if (feat?.geometry) {
-      fitToFeature(map, feat.geometry, 0.15);
+      drillingRef.current = true;
+      fitBBox(map, feat.geometry, 0.15);
+      setTimeout(() => { drillingRef.current = false; }, 800);
     }
-  }, [fitToFeature]);
+  }, []);
 
   const handleBack = useCallback(() => {
     setSelected(null);
@@ -268,46 +270,14 @@ export default function Explorer() {
       setVis(['regions-fill', 'regions-outline'], 'none');
       setVis(['depts-fill', 'depts-outline'], 'none');
       setVis(['sp-fill', 'sp-outline'], 'none');
+      drillingRef.current = true;
       map.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 800 });
       setCurrentLevel('district');
       currentLevelRef.current = 'district';
+      setTimeout(() => { drillingRef.current = false; }, 900);
     }
 
-    syncLabels(map, currentLevelRef.current);
-  }, []);
-
-  const syncLabels = useCallback((map, level) => {
-    const labels = labelsRef.current;
-    const hideAll = (obj) => Object.values(obj).forEach(arr => arr.forEach(m => m.getElement().style.display = 'none'));
-    hideAll(labels.districts);
-    hideAll(labels.regions);
-    hideAll(labels.depts);
-    hideAll(labels.sp);
-
-    if (level === 'district') {
-      Object.values(labels.districts).forEach(arr => arr.forEach(m => m.getElement().style.display = ''));
-    } else if (level === 'region') {
-      const selD = selDistRef.current;
-      Object.entries(labels.regions).forEach(([dist, markers]) => {
-        markers.forEach(m => {
-          m.getElement().style.display = (dist === selD) ? '' : 'none';
-        });
-      });
-    } else if (level === 'departement') {
-      const selR = selRegRef.current;
-      Object.entries(labels.depts).forEach(([reg, markers]) => {
-        markers.forEach(m => {
-          m.getElement().style.display = (reg === selR) ? '' : 'none';
-        });
-      });
-    } else if (level === 'sous-prefecture') {
-      const selDe = selDeptRef.current;
-      Object.entries(labels.sp).forEach(([dept, markers]) => {
-        markers.forEach(m => {
-          m.getElement().style.display = (dept === selDe) ? '' : 'none';
-        });
-      });
-    }
+    syncViewRef.current?.();
   }, []);
 
   useEffect(() => {
@@ -332,6 +302,40 @@ export default function Explorer() {
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
+
+    const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
+
+    const syncLabels = () => {
+      const labels = labelsRef.current;
+      const hideAll = (arr) => arr.forEach(l => l.marker.getElement().style.display = 'none');
+      hideAll(labels.districts);
+      hideAll(labels.regions);
+      hideAll(labels.depts);
+      hideAll(labels.sp);
+
+      const level = currentLevelRef.current;
+
+      if (level === 'district') {
+        labels.districts.forEach(l => { l.marker.getElement().style.display = ''; });
+      } else if (level === 'region') {
+        labels.regions.forEach(l => {
+          l.marker.getElement().style.display = (l.parentKey === selDistRef.current) ? '' : 'none';
+        });
+      } else if (level === 'departement') {
+        labels.depts.forEach(l => {
+          l.marker.getElement().style.display = (l.parentKey === selRegRef.current) ? '' : 'none';
+        });
+      } else if (level === 'sous-prefecture') {
+        labels.sp.forEach(l => {
+          l.marker.getElement().style.display = (l.parentKey === selDeptRef.current) ? '' : 'none';
+        });
+      }
+    };
+
+    const syncView = () => {
+      syncLabels();
+    };
+    syncViewRef.current = syncView;
 
     map.on('load', async () => {
       const [districtsData, regionsData, deptsData, spData] = await Promise.all([
@@ -360,11 +364,10 @@ export default function Explorer() {
         for (const f of districtsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
-          const name = f.properties.name;
-          const el = createLabelEl(name);
+          const el = createLabelEl(f.properties.name);
           const marker = new maplibregl.Marker({ element: el }).setLngLat(centroid).addTo(map);
-          if (!labelsRef.current.districts[name]) labelsRef.current.districts[name] = [];
-          labelsRef.current.districts[name].push(marker);
+          el.style.display = '';
+          labelsRef.current.districts.push({ marker, parentKey: null });
         }
       }
 
@@ -383,13 +386,10 @@ export default function Explorer() {
         for (const f of regionsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
-          const name = f.properties.name;
-          const district = f.properties.district;
-          const el = createLabelEl(name);
+          const el = createLabelEl(f.properties.name);
           const marker = new maplibregl.Marker({ element: el }).setLngLat(centroid).addTo(map);
           el.style.display = 'none';
-          if (!labelsRef.current.regions[district]) labelsRef.current.regions[district] = [];
-          labelsRef.current.regions[district].push(marker);
+          labelsRef.current.regions.push({ marker, parentKey: f.properties.district });
         }
       }
 
@@ -408,13 +408,10 @@ export default function Explorer() {
         for (const f of deptsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
-          const name = f.properties.name;
-          const region = f.properties.region;
-          const el = createLabelEl(name);
+          const el = createLabelEl(f.properties.name);
           const marker = new maplibregl.Marker({ element: el }).setLngLat(centroid).addTo(map);
           el.style.display = 'none';
-          if (!labelsRef.current.depts[region]) labelsRef.current.depts[region] = [];
-          labelsRef.current.depts[region].push(marker);
+          labelsRef.current.depts.push({ marker, parentKey: f.properties.region });
         }
       }
 
@@ -433,13 +430,10 @@ export default function Explorer() {
         for (const f of spData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
-          const name = f.properties.name;
-          const dept = f.properties.departement;
-          const el = createLabelEl(name);
+          const el = createLabelEl(f.properties.name);
           const marker = new maplibregl.Marker({ element: el }).setLngLat(centroid).addTo(map);
           el.style.display = 'none';
-          if (!labelsRef.current.sp[dept]) labelsRef.current.sp[dept] = [];
-          labelsRef.current.sp[dept].push(marker);
+          labelsRef.current.sp.push({ marker, parentKey: f.properties.departement });
         }
       }
 
@@ -476,7 +470,6 @@ export default function Explorer() {
         if (sf?.length) { const id = sf[0].properties?.id; if (id) navigate('/ecole/' + id); return; }
 
         const level = currentLevelRef.current;
-
         if (level === 'district') {
           const zf = map.queryRenderedFeatures(e.point, { layers: ['districts-fill'] });
           if (zf?.length) drillDown('district', zf[0].properties.name);
@@ -491,12 +484,27 @@ export default function Explorer() {
           if (zf?.length) {
             showZoneDetail(level, zf[0].properties);
             const feat = geoDataRef.current.sp?.features?.find(f => f.properties?.name === zf[0].properties.name);
-            if (feat?.geometry) fitToFeature(map, feat.geometry, 0.3);
+            if (feat?.geometry) fitBBox(map, feat.geometry, 0.3);
           }
         }
       });
 
-      syncLabels(map, 'district');
+      map.on('zoomend', () => {
+        if (drillingRef.current) return;
+        const z = map.getZoom();
+        const level = currentLevelRef.current;
+        const data = geoDataRef.current;
+
+        if (level === 'region' && z < 7) {
+          handleBack();
+        } else if (level === 'departement' && z < 8) {
+          handleBack();
+        } else if (level === 'sous-prefecture' && z < 10) {
+          handleBack();
+        }
+      });
+
+      syncLabels();
       loadSchools();
       setTimeout(() => setLoading(false), 600);
     });
@@ -527,7 +535,7 @@ export default function Explorer() {
   const totalBoys = zones.reduce((s, z) => s + (z.boys || 0), 0);
   const maxSchools = Math.max(...zones.map(z => z.schools || 0), 1);
 
-  const levelLabel = { district: 'Districts', region: 'R\u00e9gions', departement: 'D\u00e9partements', 'sous-prefecture': 'Sous-pr\u00e9fectures' };
+  const levelLabel = { district: 'Districts', region: 'Régions', departement: 'Départements', 'sous-prefecture': 'Sous-préfectures' };
 
   return (
     <div className="h-full flex flex-col lg:flex-row">
@@ -611,12 +619,12 @@ export default function Explorer() {
               </button>
             )}
           </div>
-          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'region' ? 'r\u00e9gions' : currentLevel === 'departement' ? 'd\u00e9partements' : 'sous-pr\u00e9fectures'}</p>
+          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'region' ? 'régions' : currentLevel === 'departement' ? 'départements' : 'sous-préfectures'}</p>
         </div>
 
         <div className="px-5 py-4 grid grid-cols-3 gap-3 border-b border-[#CBD5E1]/20">
-          <StatCard icon="school" label="\u00c9coles" value={selected ? (selected.schools || 0) : totalSchools} />
-          <StatCard icon="groups" label="\u00c9l\u00e8ves" value={selected ? (selected.students || 0) : totalStudents} format="k" />
+          <StatCard icon="school" label="Écoles" value={selected ? (selected.schools || 0) : totalSchools} />
+          <StatCard icon="groups" label="Élèves" value={selected ? (selected.students || 0) : totalStudents} format="k" />
           <StatCard icon="girl" label="Filles" value={
             selected
               ? (selected.girls && selected.boys ? Math.round(selected.girls / (selected.girls + selected.boys) * 100) : 0)
@@ -627,7 +635,7 @@ export default function Explorer() {
         {(selected ? selected.girls > 0 : totalGirls > 0) && (
           <div className="px-5 py-3 border-b border-[#CBD5E1]/20">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Parit\u00e9 filles/gar\u00e7ons</span>
+              <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Parité filles/garçons</span>
             </div>
             <div className="w-full h-2 bg-white rounded-full overflow-hidden flex">
               <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500"
@@ -636,7 +644,7 @@ export default function Explorer() {
             </div>
             <div className="flex justify-between text-[10px] font-bold mt-1.5">
               <span className="text-[#E8611A]">{selected ? Math.round(selected.girls / (selected.girls + selected.boys) * 100) : Math.round(totalGirls / (totalGirls + totalBoys) * 100)}% filles</span>
-              <span className="text-[#0B7A3E]">{selected ? 100 - Math.round(selected.girls / (selected.girls + selected.boys) * 100) : 100 - Math.round(totalGirls / (totalGirls + totalBoys) * 100)}% gar\u00e7ons</span>
+              <span className="text-[#0B7A3E]">{selected ? 100 - Math.round(selected.girls / (selected.girls + selected.boys) * 100) : 100 - Math.round(totalGirls / (totalGirls + totalBoys) * 100)}% garçons</span>
             </div>
           </div>
         )}
@@ -657,7 +665,7 @@ export default function Explorer() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-bold text-[#0D1B2A] truncate group-hover:text-[#E8611A] transition-colors">{z.name}</p>
-                    <p className="text-[10px] text-[#94A3B8] font-medium">{(z.schools || 0).toLocaleString('fr-FR')} \u00e9coles &middot; {z.students ? Math.round(z.students / 1000) + 'k \u00e9l\u00e8ves' : '\u2014'}</p>
+                    <p className="text-[10px] text-[#94A3B8] font-medium">{(z.schools || 0).toLocaleString('fr-FR')} écoles · {z.students ? Math.round(z.students / 1000) + 'k élèves' : '—'}</p>
                   </div>
                   <div className="w-14 h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden shrink-0">
                     <div className="h-full rounded-full transition-all duration-500" style={{ width: `${((z.schools || 0) / maxSchools) * 100}%`, backgroundColor: COLORS[z.status] || COLORS.pending }} />
@@ -705,25 +713,25 @@ function ZoneDetail({ zone }) {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">\u00c9coles</p>
+            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Écoles</p>
             <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{(zone.schools || 0).toLocaleString('fr-FR')}</p>
           </div>
           <div>
-            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">\u00c9l\u00e8ves</p>
-            <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{zone.students ? Math.round(zone.students / 1000) + 'k' : '\u2014'}</p>
+            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Élèves</p>
+            <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{zone.students ? Math.round(zone.students / 1000) + 'k' : '—'}</p>
           </div>
           <div>
             <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Filles</p>
             <p className="text-2xl font-extrabold text-[#E8611A] tracking-tight mt-0.5">{pct}%</p>
           </div>
           <div>
-            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Gar\u00e7ons</p>
+            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Garçons</p>
             <p className="text-2xl font-extrabold text-[#0B7A3E] tracking-tight mt-0.5">{100 - pct}%</p>
           </div>
         </div>
         <div className="mt-4">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Parit\u00e9</span>
+            <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Parité</span>
           </div>
           <div className="w-full h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex">
             <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500" style={{ width: pct + '%' }} />
