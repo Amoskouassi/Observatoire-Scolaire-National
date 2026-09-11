@@ -74,9 +74,13 @@ export default function Explorer() {
   const [selectedDistrict, setSelectedDistrict] = useState(null);
 
   const markersRef = useRef({ districts: [], regions: [], depts: [] });
+  const selectedDistrictRef = useRef(null);
 
   useEffect(() => {
     if (mapInst.current) return;
+    if (!mapRef.current) return;
+    const rect = mapRef.current.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
 
     const map = new maplibregl.Map({
       container: mapRef.current,
@@ -251,6 +255,7 @@ export default function Explorer() {
           }
 
           setSelectedDistrict(z < 7 ? p.name : null);
+          selectedDistrictRef.current = z < 7 ? p.name : null;
 
           setSelected({
             name: p.name,
@@ -293,27 +298,25 @@ export default function Explorer() {
 
       const updateLayers = () => {
         const z = map.getZoom();
+        const selDist = selectedDistrictRef.current;
         if (z < 7) {
           setVis(['districts-fill', 'districts-outline'], 'visible');
           setVis(['regions-fill', 'regions-outline'], 'none');
           setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('district');
           setZones(districtsData?.features?.map(f => f.properties) || []);
-          // Reset region filter
           if (map.getLayer('regions-fill')) map.setFilter('regions-fill', null);
           if (map.getLayer('regions-outline')) map.setFilter('regions-outline', null);
         } else if (z < 9) {
-          // Show district outlines for context + regions inside selected district
           setVis(['districts-fill'], 'none');
           setVis(['districts-outline'], 'visible');
           setVis(['regions-fill', 'regions-outline'], 'visible');
           setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('r\u00e9gion');
           setZones(regionsData?.features?.map(f => f.properties) || []);
-          // Filter regions to selected district
-          if (selectedDistrict && map.getLayer('regions-fill')) {
-            map.setFilter('regions-fill', ['==', ['get', 'district'], selectedDistrict]);
-            map.setFilter('regions-outline', ['==', ['get', 'district'], selectedDistrict]);
+          if (selDist && map.getLayer('regions-fill')) {
+            map.setFilter('regions-fill', ['==', ['get', 'district'], selDist]);
+            map.setFilter('regions-outline', ['==', ['get', 'district'], selDist]);
           }
         } else {
           setVis(['districts-fill', 'districts-outline'], 'none');
@@ -371,6 +374,7 @@ export default function Explorer() {
   const handleBack = () => {
     setSelected(null);
     setSelectedDistrict(null);
+    selectedDistrictRef.current = null;
     if (mapInst.current) {
       mapInst.current.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 1200 });
     }
