@@ -8,6 +8,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
@@ -26,6 +28,52 @@ export default function Login() {
     }
   };
 
+  const handleForgot = async () => {
+    if (!email) { setError('Entrez votre email d\'abord'); return; }
+    try {
+      await api.forgotPassword(email);
+      setForgotSent(true);
+    } catch {
+      setForgotSent(true);
+    }
+  };
+
+  if (showForgot) {
+    return (
+      <div className="h-full flex items-center justify-center bg-[#F4EFE6] px-4">
+        <div className="kpi-card w-full max-w-md">
+          <div className="text-center mb-6">
+            <span className="text-4xl">🔑</span>
+            <h1 className="text-lg font-bold text-[#0D1B2A] mt-2">Mot de passe oublié</h1>
+            <p className="text-xs text-[#6B7280]">Un lien de réinitialisation sera envoyé par email</p>
+          </div>
+          {forgotSent ? (
+            <div className="text-center space-y-4">
+              <div className="bg-[#E8F5E9] border border-[#0B7A3E]/20 text-[#0B7A3E] text-xs p-3 rounded-lg">
+                Si cet email est enregistré, vous recevrez un lien de réinitialisation.
+              </div>
+              <button onClick={() => { setShowForgot(false); setForgotSent(false); }}
+                className="btn-primary w-full">Retour à la connexion</button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Email</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none" required />
+              </div>
+              {error && <div className="bg-[#ffdad6] border border-[#ba1a1a]/20 text-[#ba1a1a] text-xs p-3 rounded-lg">{error}</div>}
+              <button onClick={handleForgot} className="btn-primary w-full" disabled={loading}>
+                {loading ? 'Envoi...' : 'Envoyer le lien'}
+              </button>
+              <button onClick={() => setShowForgot(false)} className="btn-ghost w-full text-xs">Retour à la connexion</button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex items-center justify-center bg-[#F4EFE6] px-4">
       <div className="kpi-card w-full max-w-md">
@@ -42,7 +90,11 @@ export default function Login() {
               className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] focus:ring-2 focus:ring-[#E8611A]/20 outline-none transition-colors" required />
           </div>
           <div>
-            <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Mot de passe</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-xs font-bold text-[#6B7280] uppercase">Mot de passe</label>
+              <button type="button" onClick={() => setShowForgot(true)}
+                className="text-[10px] text-[#E8611A] font-bold hover:underline">Mot de passe oublié ?</button>
+            </div>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] focus:ring-2 focus:ring-[#E8611A]/20 outline-none transition-colors" required />
           </div>

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { supabase } from '../server.js';
 import { validateRequest } from '../middleware/validate.js';
 import { config } from '../config/index.js';
+import { sendMail, welcomeEmail } from '../services/email.js';
 
 const router = Router();
 
@@ -73,6 +74,9 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
     const token = jwt.sign({ userId: authData.user.id, role }, config.jwt.secret, {
       expiresIn: config.jwt.expiresIn,
     });
+
+    // Email de bienvenue (async, ne bloque pas la réponse)
+    sendMail({ to: email, ...welcomeEmail(nom, prenom) }).catch(() => {});
 
     res.status(201).json({
       token,
@@ -148,6 +152,22 @@ router.get('/me', async (req, res) => {
     res.json({ user: profile });
   } catch {
     res.status(401).json({ error: 'Token invalide' });
+  }
+});
+
+// Mot de passe oublié
+const forgotSchema = z.object({ email: z.string().email() });
+
+router.post('/forgot-password', validateRequest(forgotSchema), async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-frontend.vercel.app'}/login`,
+    });
+    // Toujours retourner 200 pour ne pas révéler si l'email existe
+    res.json({ message: 'Si cet email est enregistré, un lien de réinitialisation a été envoyé.' });
+  } catch (err) {
+    res.json({ message: 'Si cet email est enregistré, un lien de réinitialisation a été envoyé.' });
   }
 });
 

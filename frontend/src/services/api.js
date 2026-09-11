@@ -43,6 +43,13 @@ class ApiService {
     });
   }
 
+  forgotPassword(email) {
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
   // Écoles
   getSchools(filters = {}) {
     const params = new URLSearchParams();
