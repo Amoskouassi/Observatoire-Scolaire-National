@@ -83,7 +83,7 @@ export default function Explorer() {
         layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#F4EFE6' } }],
       },
       center: [-5.54, 7.54],
-      zoom: 6,
+      zoom: 5.5,
       minZoom: 5,
       maxZoom: 18,
       attributionControl: false,
