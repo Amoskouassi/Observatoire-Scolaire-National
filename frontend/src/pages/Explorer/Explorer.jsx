@@ -96,6 +96,7 @@ export default function Explorer() {
   const allSPRef = useRef(null);
   const updateLayersRef = useRef(null);
   const updateLabelsRef = useRef(null);
+  const drillingRef = useRef(false);
 
   const drillDown = useCallback((level, name) => {
     const map = mapInst.current;
@@ -176,6 +177,7 @@ export default function Explorer() {
     setSelected(null);
     setZones(nextZones);
     setCurrentLevel(nextLevel);
+    drillingRef.current = true;
 
     const feat = parentRef?.current?.features?.find(f => f.properties?.name === name);
     if (feat?.geometry) {
@@ -200,6 +202,7 @@ export default function Explorer() {
         );
       }
     }
+    setTimeout(() => { drillingRef.current = false; updateLayersRef.current?.(); }, 800);
   }, []);
 
   const showZoneDetail = useCallback((level, props) => {
@@ -467,6 +470,7 @@ export default function Explorer() {
       };
 
       const updateLayers = () => {
+        if (drillingRef.current) return;
         const z = map.getZoom();
         const selDist = selectedDistrictRef.current;
         const selReg = selectedRegionRef.current;
@@ -543,8 +547,7 @@ export default function Explorer() {
       updateLayersRef.current = updateLayers;
       updateLabelsRef.current = updateLabels;
 
-      map.on('zoomend', updateLayers);
-      map.on('move', updateLabels);
+      map.on('zoomend', () => { if (!drillingRef.current) updateLayers(); });
       updateLayers();
 
       loadSchools();
@@ -584,6 +587,7 @@ export default function Explorer() {
     const map = mapInst.current;
     if (!map) return;
     const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
+    drillingRef.current = true;
 
     if (currentLevel === 'sous-préfecture') {
       const parentRegion = selectedRegionRef.current;
@@ -626,6 +630,8 @@ export default function Explorer() {
       map.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 800 });
       setCurrentLevel('district');
     }
+    updateLabelsRef.current?.();
+    setTimeout(() => { drillingRef.current = false; updateLayersRef.current?.(); }, 900);
   };
 
   return (
