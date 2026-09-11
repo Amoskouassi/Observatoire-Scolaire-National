@@ -482,6 +482,7 @@ export default function Explorer() {
     setSelectedDistrict(null);
     selectedDistrictRef.current = null;
     selectedRegionRef.current = null;
+    selectedDeptRef.current = null;
     if (mapInst.current) {
       mapInst.current.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 1200 });
     }
@@ -603,10 +604,23 @@ export default function Explorer() {
                 .map((z, i) => (
                 <button key={i} onClick={() => {
                   setSelected(z);
+                  // Set cascade refs based on current level
+                  if (currentLevel === 'district') {
+                    // Clicking a region from district view
+                    selectedDistrictRef.current = selectedDistrictRef.current || selected?.name || null;
+                    selectedRegionRef.current = z.name;
+                    selectedDeptRef.current = null;
+                  } else if (currentLevel === 'r\u00e9gion') {
+                    // Clicking a dept from region view
+                    selectedRegionRef.current = selectedRegionRef.current || selected?.name || null;
+                    selectedDeptRef.current = z.name;
+                  } else if (currentLevel === 'd\u00e9partement') {
+                    selectedDeptRef.current = selectedDeptRef.current || selected?.name || null;
+                  }
                   // Zoom to zone on map
                   const zmap = mapInst.current;
                   if (zmap) {
-                    const srcKey = currentLevel === 'district' ? 'districts' : currentLevel === 'r\u00e9gion' ? 'regions' : 'depts';
+                    const srcKey = currentLevel === 'district' ? 'districts' : currentLevel === 'r\u00e9gion' ? 'regions' : currentLevel === 'd\u00e9partement' ? 'depts' : 'sp';
                     const srcData = zmap.getSource(srcKey)?._data;
                     const feat = srcData?.features?.find(f => f.properties?.name === z.name);
                     if (feat?.geometry) {
@@ -625,9 +639,10 @@ export default function Explorer() {
                       if (isFinite(minLng) && isFinite(maxLng)) {
                         const padLng = (maxLng - minLng) * 0.02;
                         const padLat = (maxLat - minLat) * 0.02;
+                        const targetZoom = currentLevel === 'district' ? 10 : currentLevel === 'r\u00e9gion' ? 12 : 14;
                         zmap.fitBounds(
                           [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                          { padding: 40, duration: 800, maxZoom: 13 }
+                          { padding: 40, duration: 800, maxZoom: targetZoom }
                         );
                       }
                     }
