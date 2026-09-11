@@ -247,7 +247,7 @@ export default function Explorer() {
               const padLat = (maxLat - minLat) * 0.1;
               map.fitBounds(
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                { padding: 30, duration: 1000, maxZoom: z < 7 ? 10 : z < 9 ? 12 : 14 }
+                { padding: 30, duration: 1000, maxZoom: z < 7 ? 12 : z < 9 ? 13 : 14 }
               );
             }
           }
@@ -280,6 +280,7 @@ export default function Explorer() {
 
       const updateLabels = () => {
         const z = map.getZoom();
+        const selDist = selectedDistrictRef.current;
         const show = (markers, threshold) => markers.forEach(m => {
           m.getElement().style.display = z < threshold ? '' : 'none';
         });
@@ -293,7 +294,13 @@ export default function Explorer() {
           hide(markersRef.current.depts);
         } else if (z < 9) {
           hide(markersRef.current.districts);
-          show(markersRef.current.regions, 9);
+          // Only show region labels for selected district
+          markersRef.current.regions.forEach((m, i) => {
+            const allFeats = allRegionsRef.current?.features || [];
+            const feat = allFeats[i];
+            const belongsToSel = feat && feat.properties.district === selDist;
+            m.getElement().style.display = (belongsToSel && z < 9) ? '' : 'none';
+          });
           hide(markersRef.current.depts);
         } else {
           hide(markersRef.current.districts);
@@ -306,31 +313,24 @@ export default function Explorer() {
         const z = map.getZoom();
         const selDist = selectedDistrictRef.current;
         const selReg = selectedRegionRef.current;
+
+        // Districts: ALWAYS visible, never filtered
+        setVis(['districts-fill', 'districts-outline'], 'visible');
+        if (districtsData) map.getSource('districts')?.setData(districtsData);
+
         if (z < 7) {
-          setVis(['districts-fill', 'districts-outline'], 'visible');
+          // National: no regions, no depts
           setVis(['regions-fill', 'regions-outline'], 'none');
           setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('district');
           setZones(districtsData?.features?.map(f => f.properties) || []);
-          // Restore full data
           if (allRegionsRef.current) map.getSource('regions')?.setData(allRegionsRef.current);
           if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
-          if (districtsData) map.getSource('districts')?.setData(districtsData);
         } else if (z < 9) {
-          setVis(['districts-fill'], 'none');
-          setVis(['districts-outline'], 'visible');
+          // Region view: selected district's regions only
           setVis(['regions-fill', 'regions-outline'], 'visible');
           setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('r\u00e9gion');
-          // Filter district outline to selected district only
-          if (selDist && districtsData) {
-            const filtered = {
-              type: 'FeatureCollection',
-              features: districtsData.features.filter(f => f.properties.name === selDist),
-            };
-            map.getSource('districts')?.setData(filtered);
-          }
-          // Replace regions source with only selected district's regions
           if (selDist && allRegionsRef.current) {
             const filtered = {
               type: 'FeatureCollection',
@@ -341,24 +341,13 @@ export default function Explorer() {
           } else {
             setZones(allRegionsRef.current?.features?.map(f => f.properties) || []);
           }
-          // Restore full depts data
           if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
         } else {
-          setVis(['districts-fill'], 'none');
-          setVis(['districts-outline'], 'visible');
+          // Dept view: selected region's depts only
           setVis(['regions-fill'], 'none');
           setVis(['regions-outline'], 'visible');
           setVis(['depts-fill', 'depts-outline'], 'visible');
           setCurrentLevel('d\u00e9partement');
-          // Filter district outline to selected district only
-          if (selDist && districtsData) {
-            const filtered = {
-              type: 'FeatureCollection',
-              features: districtsData.features.filter(f => f.properties.name === selDist),
-            };
-            map.getSource('districts')?.setData(filtered);
-          }
-          // Replace depts source with only selected region's depts
           if (selReg && allDeptsRef.current) {
             const filtered = {
               type: 'FeatureCollection',
