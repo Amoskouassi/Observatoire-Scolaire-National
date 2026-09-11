@@ -28,10 +28,12 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- RLS: chaque utilisateur ne voit que son profil (admin voit tout)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Voir son propre profil" ON public.profiles;
 CREATE POLICY "Voir son propre profil"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Admin voit tous les profils" ON public.profiles;
 CREATE POLICY "Admin voit tous les profils"
   ON public.profiles FOR SELECT
   USING (
@@ -41,6 +43,7 @@ CREATE POLICY "Admin voit tous les profils"
     )
   );
 
+DROP POLICY IF EXISTS "Admin gère les profils" ON public.profiles;
 CREATE POLICY "Admin gère les profils"
   ON public.profiles FOR ALL
   USING (
@@ -127,10 +130,12 @@ CREATE INDEX IF NOT EXISTS idx_ecoles_inventaire ON public.ecoles USING GIN(inve
 -- RLS: lecture publique, écriture authentifiée
 ALTER TABLE public.ecoles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Lecture publique des écoles" ON public.ecoles;
 CREATE POLICY "Lecture publique des écoles"
   ON public.ecoles FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Enquêteur crée/modifie ses collectes" ON public.ecoles;
 CREATE POLICY "Enquêteur crée/modifie ses collectes"
   ON public.ecoles FOR ALL
   USING (
@@ -143,6 +148,7 @@ CREATE POLICY "Enquêteur crée/modifie ses collectes"
     )
   );
 
+DROP POLICY IF EXISTS "Admin gère tout" ON public.ecoles;
 CREATE POLICY "Admin gère tout"
   ON public.ecoles FOR ALL
   USING (
@@ -216,14 +222,17 @@ CREATE INDEX IF NOT EXISTS idx_collectes_date ON public.collectes(date_collecte)
 
 ALTER TABLE public.collectes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Enquêteur voit ses collectes" ON public.collectes;
 CREATE POLICY "Enquêteur voit ses collectes"
   ON public.collectes FOR SELECT
   USING (enqueteur_id = auth.uid());
 
+DROP POLICY IF EXISTS "Enquêteur crée des collectes" ON public.collectes;
 CREATE POLICY "Enquêteur crée des collectes"
   ON public.collectes FOR INSERT
   WITH CHECK (enqueteur_id = auth.uid());
 
+DROP POLICY IF EXISTS "Admin voit toutes les collectes" ON public.collectes;
 CREATE POLICY "Admin voit toutes les collectes"
   ON public.collectes FOR SELECT
   USING (
@@ -253,10 +262,12 @@ CREATE TABLE IF NOT EXISTS public.dossiers_institutions (
 
 ALTER TABLE public.dossiers_institutions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Institution gère ses dossiers" ON public.dossiers_institutions;
 CREATE POLICY "Institution gère ses dossiers"
   ON public.dossiers_institutions FOR ALL
   USING (institution_id = auth.uid());
 
+DROP POLICY IF EXISTS "Admin voit tous les dossiers" ON public.dossiers_institutions;
 CREATE POLICY "Admin voit tous les dossiers"
   ON public.dossiers_institutions FOR SELECT
   USING (
@@ -284,6 +295,7 @@ CREATE TABLE IF NOT EXISTS public.abonnements_mairies (
 
 ALTER TABLE public.abonnements_mairies ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Mairie voit son abonnement" ON public.abonnements_mairies;
 CREATE POLICY "Mairie voit son abonnement"
   ON public.abonnements_mairies FOR SELECT
   USING (
