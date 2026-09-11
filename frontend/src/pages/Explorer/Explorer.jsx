@@ -14,7 +14,7 @@ const COLORS = {
 const STATUS_LABEL = {
   collected: 'Collecte',
   waiting: 'En attente',
-  pending: 'Non programm\u00e9',
+  pending: 'Non programmé',
 };
 
 const GEOJSON_PATHS = {
@@ -96,6 +96,123 @@ export default function Explorer() {
   const allSPRef = useRef(null);
   const updateLayersRef = useRef(null);
   const updateLabelsRef = useRef(null);
+
+  const drillDown = useCallback((level, name) => {
+    const map = mapInst.current;
+    if (!map) return;
+    const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
+
+    let nextLevel = null;
+    let nextZones = [];
+    let parentRef = null;
+
+    if (level === 'district') {
+      selectedDistrictRef.current = name;
+      selectedRegionRef.current = null;
+      selectedDeptRef.current = null;
+      setBreadcrumb({ district: name, region: null, dept: null });
+
+      if (allRegionsRef.current) {
+        const filtered = { type: 'FeatureCollection', features: allRegionsRef.current.features.filter(f => f.properties.district === name) };
+        map.getSource('regions')?.setData(filtered);
+        nextZones = filtered.features.map(f => f.properties);
+      }
+      if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
+      if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
+
+      setVis(['districts-fill', 'districts-outline'], 'visible');
+      setVis(['regions-fill', 'regions-outline'], 'visible');
+      setVis(['depts-fill', 'depts-outline'], 'none');
+      setVis(['sp-fill', 'sp-outline'], 'none');
+
+      nextLevel = 'région';
+      parentRef = allDistrictsRef;
+
+    } else if (level === 'région') {
+      const regionFeat = allRegionsRef.current?.features?.find(f => f.properties.name === name);
+      selectedDistrictRef.current = regionFeat?.properties?.district || selectedDistrictRef.current;
+      selectedRegionRef.current = name;
+      selectedDeptRef.current = null;
+      setBreadcrumb(prev => ({ ...prev, region: name, dept: null }));
+
+      if (allDeptsRef.current) {
+        const filtered = { type: 'FeatureCollection', features: allDeptsRef.current.features.filter(f => f.properties.region === name) };
+        map.getSource('depts')?.setData(filtered);
+        nextZones = filtered.features.map(f => f.properties);
+      }
+      if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
+
+      setVis(['regions-fill'], 'none');
+      setVis(['regions-outline'], 'visible');
+      setVis(['depts-fill', 'depts-outline'], 'visible');
+      setVis(['sp-fill', 'sp-outline'], 'none');
+
+      nextLevel = 'département';
+      parentRef = allRegionsRef;
+
+    } else if (level === 'département') {
+      const deptFeat = allDeptsRef.current?.features?.find(f => f.properties.name === name);
+      selectedRegionRef.current = deptFeat?.properties?.region || selectedRegionRef.current;
+      selectedDeptRef.current = name;
+      setBreadcrumb(prev => ({ ...prev, dept: name }));
+
+      if (allSPRef.current) {
+        const filtered = { type: 'FeatureCollection', features: allSPRef.current.features.filter(f => f.properties.departement === name) };
+        map.getSource('sp')?.setData(filtered);
+        nextZones = filtered.features.map(f => f.properties);
+      }
+
+      setVis(['depts-fill'], 'none');
+      setVis(['depts-outline'], 'visible');
+      setVis(['sp-fill', 'sp-outline'], 'visible');
+
+      nextLevel = 'sous-préfecture';
+      parentRef = allDeptsRef;
+
+    } else {
+      return;
+    }
+
+    setSelected(null);
+    setZones(nextZones);
+    setCurrentLevel(nextLevel);
+
+    const feat = parentRef?.current?.features?.find(f => f.properties?.name === name);
+    if (feat?.geometry) {
+      let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+      const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates
+        : feat.geometry.type === 'MultiPolygon' ? feat.geometry.coordinates.flat()
+        : [];
+      for (const ring of coords) {
+        for (const c of ring) {
+          if (c[0] < minLng) minLng = c[0];
+          if (c[0] > maxLng) maxLng = c[0];
+          if (c[1] < minLat) minLat = c[1];
+          if (c[1] > maxLat) maxLat = c[1];
+        }
+      }
+      if (isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
+        const padLng = (maxLng - minLng) * 0.15;
+        const padLat = (maxLat - minLat) * 0.15;
+        map.fitBounds(
+          [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
+          { padding: 40, duration: 700 }
+        );
+      }
+    }
+  }, []);
+
+  const showZoneDetail = useCallback((level, props) => {
+    setSelected({
+      name: props.name,
+      level,
+      status: props.status,
+      schools: props.schools,
+      students: props.students,
+      girls: props.girls,
+      boys: props.boys,
+    });
+  }, []);
 
   useEffect(() => {
     if (mapInst.current) return;
@@ -270,75 +387,15 @@ export default function Explorer() {
         if (sf?.length) { const id = sf[0].properties?.id; if (id) navigate('/ecole/' + id); return; }
 
         const z = map.getZoom();
-        let layer = z < 7 ? 'districts-fill' : z < 9 ? 'regions-fill' : z < 11 ? 'depts-fill' : 'sp-fill';
-        let sourceKey = z < 7 ? 'districts' : z < 9 ? 'regions' : z < 11 ? 'depts' : 'sp';
+        const level = z < 7 ? 'district' : z < 9 ? 'région' : z < 11 ? 'département' : 'sous-préfecture';
+        const layer = z < 7 ? 'districts-fill' : z < 9 ? 'regions-fill' : z < 11 ? 'depts-fill' : 'sp-fill';
         const zf = map.queryRenderedFeatures(e.point, { layers: [layer] });
-        if (zf?.length) {
-          const p = zf[0].properties;
-          const name = p.name;
-          const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
+        if (!zf?.length) return;
 
-          if (z < 7) {
-            // Click district → set refs, show regions of that district, zoom to dept
-            selectedDistrictRef.current = name;
-            selectedRegionRef.current = null;
-            selectedDeptRef.current = null;
-            if (allRegionsRef.current) {
-              const filtered = { type: 'FeatureCollection', features: allRegionsRef.current.features.filter(f => f.properties.district === name) };
-              map.getSource('regions')?.setData(filtered);
-            }
-            // Reset depts/sp
-            if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
-            if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
-            setVis(['districts-fill', 'districts-outline'], 'visible');
-            setVis(['regions-fill', 'regions-outline'], 'visible');
-            setVis(['depts-fill', 'depts-outline'], 'none');
-            setVis(['sp-fill', 'sp-outline'], 'none');
-
-          } else if (z >= 7 && z < 9) {
-            // Click region → set refs, show depts of that region, zoom to SP
-            const regionFeat = allRegionsRef.current?.features?.find(f => f.properties.name === name);
-            selectedDistrictRef.current = regionFeat?.properties?.district || selectedDistrictRef.current;
-            selectedRegionRef.current = name;
-            selectedDeptRef.current = null;
-            if (allDeptsRef.current) {
-              const filtered = { type: 'FeatureCollection', features: allDeptsRef.current.features.filter(f => f.properties.region === name) };
-              map.getSource('depts')?.setData(filtered);
-            }
-            if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
-            setVis(['regions-fill'], 'none');
-            setVis(['regions-outline'], 'visible');
-            setVis(['depts-fill', 'depts-outline'], 'visible');
-            setVis(['sp-fill', 'sp-outline'], 'none');
-
-          } else if (z >= 9 && z < 11) {
-            // Click dept → set refs, show SPs of that dept
-            const deptFeat = allDeptsRef.current?.features?.find(f => f.properties.name === name);
-            selectedRegionRef.current = deptFeat?.properties?.region || selectedRegionRef.current;
-            selectedDeptRef.current = name;
-            if (allSPRef.current) {
-              const filtered = { type: 'FeatureCollection', features: allSPRef.current.features.filter(f => f.properties.departement === name) };
-              map.getSource('sp')?.setData(filtered);
-            }
-            setVis(['depts-fill'], 'none');
-            setVis(['depts-outline'], 'visible');
-            setVis(['sp-fill', 'sp-outline'], 'visible');
-          }
-
-          // Set panel info
-          const level = z < 7 ? 'district' : z < 9 ? 'r\u00e9gion' : z < 11 ? 'd\u00e9partement' : 'sous-pr\u00e9fecture';
-          setSelected({
-            name: name,
-            level: level,
-            status: p.status,
-            schools: p.schools,
-            students: p.students,
-            girls: p.girls,
-            boys: p.boys,
-          });
-
-          // Zoom to clicked zone
-          const feat = map.getSource(sourceKey)?._data?.features?.find(f => f.properties?.name === name);
+        const p = zf[0].properties;
+        if (level === 'sous-préfecture') {
+          showZoneDetail(level, p);
+          const feat = allSPRef.current?.features?.find(f => f.properties?.name === p.name);
           if (feat?.geometry) {
             let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
             const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates
@@ -353,14 +410,16 @@ export default function Explorer() {
               }
             }
             if (isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
-              const padLng = (maxLng - minLng) * 0.02;
-              const padLat = (maxLat - minLat) * 0.02;
+              const padLng = (maxLng - minLng) * 0.3;
+              const padLat = (maxLat - minLat) * 0.3;
               map.fitBounds(
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                { padding: 40, duration: 600 }
+                { padding: 40, duration: 500 }
               );
             }
           }
+        } else {
+          drillDown(level, p.name);
         }
       });
 
@@ -431,7 +490,7 @@ export default function Explorer() {
           // Region view: selected district's regions
           setVis(['regions-fill', 'regions-outline'], 'visible');
           setVis(['depts-fill', 'depts-outline'], 'none');
-          setCurrentLevel('r\u00e9gion');
+          setCurrentLevel('région');
           if (selDist && allRegionsRef.current) {
             const filtered = {
               type: 'FeatureCollection',
@@ -449,7 +508,7 @@ export default function Explorer() {
           setVis(['regions-fill'], 'none');
           setVis(['regions-outline'], 'visible');
           setVis(['depts-fill', 'depts-outline'], 'visible');
-          setCurrentLevel('d\u00e9partement');
+          setCurrentLevel('département');
           if (selReg && allDeptsRef.current) {
             const filtered = {
               type: 'FeatureCollection',
@@ -466,7 +525,7 @@ export default function Explorer() {
           setVis(['depts-fill'], 'none');
           setVis(['depts-outline'], 'visible');
           setVis(['sp-fill', 'sp-outline'], 'visible');
-          setCurrentLevel('sous-pr\u00e9fecture');
+          setCurrentLevel('sous-préfecture');
           if (selDept && allSPRef.current) {
             const filtered = {
               type: 'FeatureCollection',
@@ -518,7 +577,7 @@ export default function Explorer() {
   const totalBoys = zones.reduce((s, z) => s + (z.boys || 0), 0);
   const maxSchools = Math.max(...zones.map(z => z.schools || 0), 1);
 
-  const levelLabel = { district: 'Districts', 'r\u00e9gion': 'R\u00e9gions', 'd\u00e9partement': 'D\u00e9partements', 'sous-pr\u00e9fecture': 'Sous-pr\u00e9fectures' };
+  const levelLabel = { district: 'Districts', 'région': 'Régions', 'département': 'Départements', 'sous-préfecture': 'Sous-préfectures' };
 
   const handleBack = () => {
     setSelected(null);
@@ -527,7 +586,6 @@ export default function Explorer() {
     const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
 
     if (currentLevel === 'sous-préfecture') {
-      // Back to depts
       const parentRegion = selectedRegionRef.current;
       if (parentRegion && allDeptsRef.current) {
         const filtered = { type: 'FeatureCollection', features: allDeptsRef.current.features.filter(f => f.properties.region === parentRegion) };
@@ -540,7 +598,6 @@ export default function Explorer() {
       setVis(['sp-fill', 'sp-outline'], 'none');
       setCurrentLevel('département');
     } else if (currentLevel === 'département') {
-      // Back to regions
       const parentDistrict = selectedDistrictRef.current;
       if (parentDistrict && allRegionsRef.current) {
         const filtered = { type: 'FeatureCollection', features: allRegionsRef.current.features.filter(f => f.properties.district === parentDistrict) };
@@ -553,7 +610,6 @@ export default function Explorer() {
       setVis(['depts-fill', 'depts-outline'], 'none');
       setCurrentLevel('région');
     } else if (currentLevel === 'région') {
-      // Back to districts
       selectedDistrictRef.current = null;
       setBreadcrumb({ district: null, region: null, dept: null });
       if (allDistrictsRef.current) {
@@ -628,19 +684,19 @@ export default function Explorer() {
             {breadcrumb.district && (
               <>
                 <span className="material-symbols-outlined text-[10px] text-[#CBD5E1]">chevron_right</span>
-                <span className={currentLevel === 'r\u00e9gion' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.district}</span>
+                <span className={currentLevel === 'région' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.district}</span>
               </>
             )}
             {breadcrumb.region && (
               <>
                 <span className="material-symbols-outlined text-[10px] text-[#CBD5E1]">chevron_right</span>
-                <span className={currentLevel === 'd\u00e9partement' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.region}</span>
+                <span className={currentLevel === 'département' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.region}</span>
               </>
             )}
             {breadcrumb.dept && (
               <>
                 <span className="material-symbols-outlined text-[10px] text-[#CBD5E1]">chevron_right</span>
-                <span className={currentLevel === 'sous-pr\u00e9fecture' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.dept}</span>
+                <span className={currentLevel === 'sous-préfecture' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.dept}</span>
               </>
             )}
           </div>
@@ -655,13 +711,13 @@ export default function Explorer() {
               </button>
             )}
           </div>
-          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'r\u00e9gion' ? 'r\u00e9gions' : currentLevel === 'd\u00e9partement' ? 'd\u00e9partements' : 'sous-pr\u00e9fectures'}</p>
+          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'région' ? 'régions' : currentLevel === 'département' ? 'départements' : 'sous-préfectures'}</p>
         </div>
 
         {/* Stats */}
         <div className="px-5 py-4 grid grid-cols-3 gap-3 border-b border-[#CBD5E1]/20">
-          <StatCard icon="school" label="\u00c9coles" value={selected ? (selected.schools || 0) : totalSchools} />
-          <StatCard icon="groups" label="\u00c9l\u00e8ves" value={selected ? (selected.students || 0) : totalStudents} format="k" />
+          <StatCard icon="school" label="Écoles" value={selected ? (selected.schools || 0) : totalSchools} />
+          <StatCard icon="groups" label="Élèves" value={selected ? (selected.students || 0) : totalStudents} format="k" />
           <StatCard icon="girl" label="Filles" value={
             selected
               ? (selected.girls && selected.boys ? Math.round(selected.girls / (selected.girls + selected.boys) * 100) : 0)
@@ -673,7 +729,7 @@ export default function Explorer() {
         {(selected ? selected.girls > 0 : totalGirls > 0) && (
           <div className="px-5 py-3 border-b border-[#CBD5E1]/20">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Parit\u00e9 filles/gar\u00e7ons</span>
+              <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Parité filles/garçons</span>
             </div>
             <div className="w-full h-2 bg-white rounded-full overflow-hidden flex">
               <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500"
@@ -682,7 +738,7 @@ export default function Explorer() {
             </div>
             <div className="flex justify-between text-[10px] font-bold mt-1.5">
               <span className="text-[#E8611A]">{selected ? Math.round(selected.girls / (selected.girls + selected.boys) * 100) : Math.round(totalGirls / (totalGirls + totalBoys) * 100)}% filles</span>
-              <span className="text-[#0B7A3E]">{selected ? 100 - Math.round(selected.girls / (selected.girls + selected.boys) * 100) : 100 - Math.round(totalGirls / (totalGirls + totalBoys) * 100)}% gar\u00e7ons</span>
+              <span className="text-[#0B7A3E]">{selected ? 100 - Math.round(selected.girls / (selected.girls + selected.boys) * 100) : 100 - Math.round(totalGirls / (totalGirls + totalBoys) * 100)}% garçons</span>
             </div>
           </div>
         )}
@@ -696,93 +752,7 @@ export default function Explorer() {
               {zones
                 .sort((a, b) => (b.schools || 0) - (a.schools || 0))
                 .map((z, i) => (
-                <button key={i} onClick={() => {
-                  const zmap = mapInst.current;
-                  if (!zmap) return;
-                  const setVis = (ls, v) => ls.forEach(l => { if (zmap.getLayer(l)) zmap.setLayoutProperty(l, 'visibility', v); });
-
-                  // 1) Set refs
-                  if (currentLevel === 'district') {
-                    selectedDistrictRef.current = z.name;
-                    selectedRegionRef.current = null;
-                    selectedDeptRef.current = null;
-                    setBreadcrumb({ district: z.name, region: null, dept: null });
-                    // Immediate rendering: show regions of this district
-                    if (allRegionsRef.current) {
-                      const filtered = { type: 'FeatureCollection', features: allRegionsRef.current.features.filter(f => f.properties.district === z.name) };
-                      zmap.getSource('regions')?.setData(filtered);
-                      setZones(filtered.features.map(f => f.properties));
-                    }
-                    if (allDeptsRef.current) zmap.getSource('depts')?.setData(allDeptsRef.current);
-                    if (allSPRef.current) zmap.getSource('sp')?.setData(allSPRef.current);
-                    setVis(['districts-fill', 'districts-outline'], 'visible');
-                    setVis(['regions-fill', 'regions-outline'], 'visible');
-                    setVis(['depts-fill', 'depts-outline'], 'none');
-                    setVis(['sp-fill', 'sp-outline'], 'none');
-                    setCurrentLevel('r\u00e9gion');
-
-                  } else if (currentLevel === 'r\u00e9gion') {
-                    const regionFeat = allRegionsRef.current?.features?.find(f => f.properties.name === z.name);
-                    selectedDistrictRef.current = regionFeat?.properties?.district || selectedDistrictRef.current;
-                    selectedRegionRef.current = z.name;
-                    selectedDeptRef.current = null;
-                    setBreadcrumb(prev => ({ ...prev, region: z.name, dept: null }));
-                    // Immediate rendering: show depts of this region
-                    if (allDeptsRef.current) {
-                      const filtered = { type: 'FeatureCollection', features: allDeptsRef.current.features.filter(f => f.properties.region === z.name) };
-                      zmap.getSource('depts')?.setData(filtered);
-                      setZones(filtered.features.map(f => f.properties));
-                    }
-                    if (allSPRef.current) zmap.getSource('sp')?.setData(allSPRef.current);
-                    setVis(['regions-fill'], 'none');
-                    setVis(['regions-outline'], 'visible');
-                    setVis(['depts-fill', 'depts-outline'], 'visible');
-                    setVis(['sp-fill', 'sp-outline'], 'none');
-                    setCurrentLevel('d\u00e9partement');
-
-                  } else if (currentLevel === 'd\u00e9partement') {
-                    const deptFeat = allDeptsRef.current?.features?.find(f => f.properties.name === z.name);
-                    selectedRegionRef.current = deptFeat?.properties?.region || selectedRegionRef.current;
-                    selectedDeptRef.current = z.name;
-                    setBreadcrumb(prev => ({ ...prev, dept: z.name }));
-                    // Immediate rendering: show SPs of this dept
-                    if (allSPRef.current) {
-                      const filtered = { type: 'FeatureCollection', features: allSPRef.current.features.filter(f => f.properties.departement === z.name) };
-                      zmap.getSource('sp')?.setData(filtered);
-                      setZones(filtered.features.map(f => f.properties));
-                    }
-                    setVis(['depts-fill'], 'none');
-                    setVis(['depts-outline'], 'visible');
-                    setVis(['sp-fill', 'sp-outline'], 'visible');
-                    setCurrentLevel('sous-pr\u00e9fecture');
-                  }
-
-                  // 2) Fly to zone center
-                  const geoRef = currentLevel === 'district' ? allDistrictsRef : currentLevel === 'r\u00e9gion' ? allRegionsRef : currentLevel === 'd\u00e9partement' ? allDeptsRef : allSPRef;
-                  const feat = geoRef?.current?.features?.find(f => f.properties?.name === z.name);
-                  if (feat?.geometry) {
-                    let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-                    const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates
-                      : feat.geometry.type === 'MultiPolygon' ? feat.geometry.coordinates.flat()
-                      : [];
-                    for (const ring of coords) {
-                      for (const c of ring) {
-                        if (c[0] < minLng) minLng = c[0];
-                        if (c[0] > maxLng) maxLng = c[0];
-                        if (c[1] < minLat) minLat = c[1];
-                        if (c[1] > maxLat) maxLat = c[1];
-                      }
-                    }
-                    if (isFinite(minLng) && isFinite(maxLng)) {
-                      const targetZoom = currentLevel === 'district' ? 8.5 : currentLevel === 'r\u00e9gion' ? 10 : 12;
-                      zmap.flyTo({
-                        center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2],
-                        zoom: targetZoom,
-                        duration: 800,
-                      });
-                    }
-                  }
-                }}
+                <button key={i} onClick={() => currentLevel === 'sous-préfecture' ? showZoneDetail(currentLevel, z) : drillDown(currentLevel, z.name)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white hover:bg-white hover:shadow-sm transition-all duration-200 text-left group border border-transparent hover:border-[#E8611A]/10">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
                     style={{ backgroundColor: `${COLORS[z.status] || COLORS.pending}12`, color: COLORS[z.status] || COLORS.pending }}>
@@ -790,7 +760,7 @@ export default function Explorer() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-bold text-[#0D1B2A] truncate group-hover:text-[#E8611A] transition-colors">{z.name}</p>
-                    <p className="text-[10px] text-[#94A3B8] font-medium">{(z.schools || 0).toLocaleString('fr-FR')} \u00e9coles &middot; {z.students ? Math.round(z.students / 1000) + 'k \u00e9l\u00e8ves' : '\u2014'}</p>
+                    <p className="text-[10px] text-[#94A3B8] font-medium">{(z.schools || 0).toLocaleString('fr-FR')} écoles &middot; {z.students ? Math.round(z.students / 1000) + 'k élèves' : '—'}</p>
                   </div>
                   <div className="w-14 h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden shrink-0">
                     <div className="h-full rounded-full transition-all duration-500" style={{ width: `${((z.schools || 0) / maxSchools) * 100}%`, backgroundColor: COLORS[z.status] || COLORS.pending }} />
@@ -838,25 +808,25 @@ function ZoneDetail({ zone }) {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">\u00c9coles</p>
+            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Écoles</p>
             <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{(zone.schools || 0).toLocaleString('fr-FR')}</p>
           </div>
           <div>
-            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">\u00c9l\u00e8ves</p>
-            <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{zone.students ? Math.round(zone.students / 1000) + 'k' : '\u2014'}</p>
+            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Élèves</p>
+            <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{zone.students ? Math.round(zone.students / 1000) + 'k' : '—'}</p>
           </div>
           <div>
             <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Filles</p>
             <p className="text-2xl font-extrabold text-[#E8611A] tracking-tight mt-0.5">{pct}%</p>
           </div>
           <div>
-            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Gar\u00e7ons</p>
+            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Garçons</p>
             <p className="text-2xl font-extrabold text-[#0B7A3E] tracking-tight mt-0.5">{100 - pct}%</p>
           </div>
         </div>
         <div className="mt-4">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Parit\u00e9</span>
+            <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Parité</span>
           </div>
           <div className="w-full h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex">
             <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500" style={{ width: pct + '%' }} />
