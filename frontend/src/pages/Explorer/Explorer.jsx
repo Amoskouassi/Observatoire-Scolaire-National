@@ -90,6 +90,7 @@ export default function Explorer() {
   const selectedDistrictRef = useRef(null);
   const selectedRegionRef = useRef(null);
   const selectedDeptRef = useRef(null);
+  const allDistrictsRef = useRef(null);
   const allRegionsRef = useRef(null);
   const allDeptsRef = useRef(null);
   const allSPRef = useRef(null);
@@ -129,6 +130,7 @@ export default function Explorer() {
 
       // Districts fill + outline
       if (districtsData) {
+        allDistrictsRef.current = districtsData;
         map.addSource('districts', { type: 'geojson', data: districtsData });
         map.addLayer({
           id: 'districts-fill', type: 'fill', source: 'districts',
@@ -654,89 +656,87 @@ export default function Explorer() {
                 <button key={i} onClick={() => {
                   setSelected(z);
                   const zmap = mapInst.current;
+                  if (!zmap) return;
+                  const setVis = (ls, v) => ls.forEach(l => { if (zmap.getLayer(l)) zmap.setLayoutProperty(l, 'visibility', v); });
 
                   if (currentLevel === 'district') {
-                    // Click region from district list → show that region's depts immediately
-                    const regionFeat = allRegionsRef.current?.features?.find(f => f.properties.name === z.name);
-                    const parentDistrict = regionFeat?.properties?.district || null;
-                    selectedDistrictRef.current = parentDistrict;
-                    selectedRegionRef.current = z.name;
+                    // Click district → show regions of that district
+                    selectedDistrictRef.current = z.name;
+                    selectedRegionRef.current = null;
                     selectedDeptRef.current = null;
-
-                    // Directly filter and set sources NOW (don't wait for updateLayers at wrong zoom)
-                    if (parentDistrict && allRegionsRef.current) {
-                      const filteredRegions = { type: 'FeatureCollection', features: allRegionsRef.current.features.filter(f => f.properties.district === parentDistrict) };
-                      zmap?.getSource('regions')?.setData(filteredRegions);
+                    if (allRegionsRef.current) {
+                      const filtered = { type: 'FeatureCollection', features: allRegionsRef.current.features.filter(f => f.properties.district === z.name) };
+                      zmap.getSource('regions')?.setData(filtered);
+                      setZones(filtered.features.map(f => f.properties));
                     }
-                    if (zmap) {
-                      // Show depts of the clicked region immediately
-                      const filteredDepts = { type: 'FeatureCollection', features: (allDeptsRef.current?.features || []).filter(f => f.properties.region === z.name) };
-                      zmap.getSource('depts')?.setData(filteredDepts);
-                      // Hide irrelevant layers
-                      const setVis = (ls, v) => ls.forEach(l => { if (zmap.getLayer(l)) zmap.setLayoutProperty(l, 'visibility', v); });
-                      setVis(['districts-fill'], 'visible');
-                      setVis(['regions-fill'], 'none');
-                      setVis(['regions-outline'], 'visible');
-                      setVis(['depts-fill', 'depts-outline'], 'visible');
-                      setVis(['sp-fill', 'sp-outline'], 'none');
-                      setCurrentLevel('département');
-                      setZones(filteredDepts.features.map(f => f.properties));
-                    }
+                    if (allDeptsRef.current) zmap.getSource('depts')?.setData(allDeptsRef.current);
+                    if (allSPRef.current) zmap.getSource('sp')?.setData(allSPRef.current);
+                    setVis(['districts-fill', 'districts-outline'], 'visible');
+                    setVis(['regions-fill', 'regions-outline'], 'visible');
+                    setVis(['depts-fill', 'depts-outline'], 'none');
+                    setVis(['sp-fill', 'sp-outline'], 'none');
+                    setCurrentLevel('région');
 
                   } else if (currentLevel === 'région') {
-                    // Click dept from region list → show that dept's SPs immediately
+                    // Click region → show depts of that region
+                    const regionFeat = allRegionsRef.current?.features?.find(f => f.properties.name === z.name);
+                    selectedDistrictRef.current = regionFeat?.properties?.district || selectedDistrictRef.current;
+                    selectedRegionRef.current = z.name;
+                    selectedDeptRef.current = null;
+                    if (allDeptsRef.current) {
+                      const filtered = { type: 'FeatureCollection', features: allDeptsRef.current.features.filter(f => f.properties.region === z.name) };
+                      zmap.getSource('depts')?.setData(filtered);
+                      setZones(filtered.features.map(f => f.properties));
+                    }
+                    if (allSPRef.current) zmap.getSource('sp')?.setData(allSPRef.current);
+                    setVis(['regions-fill'], 'none');
+                    setVis(['regions-outline'], 'visible');
+                    setVis(['depts-fill', 'depts-outline'], 'visible');
+                    setVis(['sp-fill', 'sp-outline'], 'none');
+                    setCurrentLevel('département');
+
+                  } else if (currentLevel === 'département') {
+                    // Click dept → show SPs of that dept
                     const deptFeat = allDeptsRef.current?.features?.find(f => f.properties.name === z.name);
                     selectedRegionRef.current = deptFeat?.properties?.region || selectedRegionRef.current;
                     selectedDeptRef.current = z.name;
-
-                    if (zmap) {
-                      const filteredSP = { type: 'FeatureCollection', features: (allSPRef.current?.features || []).filter(f => f.properties.departement === z.name) };
-                      zmap.getSource('sp')?.setData(filteredSP);
-                      const setVis = (ls, v) => ls.forEach(l => { if (zmap.getLayer(l)) zmap.setLayoutProperty(l, 'visibility', v); });
-                      setVis(['depts-fill'], 'none');
-                      setVis(['depts-outline'], 'visible');
-                      setVis(['sp-fill', 'sp-outline'], 'visible');
-                      setCurrentLevel('sous-préfecture');
-                      setZones(filteredSP.features.map(f => f.properties));
+                    if (allSPRef.current) {
+                      const filtered = { type: 'FeatureCollection', features: allSPRef.current.features.filter(f => f.properties.departement === z.name) };
+                      zmap.getSource('sp')?.setData(filtered);
+                      setZones(filtered.features.map(f => f.properties));
                     }
-
-                  } else if (currentLevel === 'département') {
-                    const spFeat = allSPRef.current?.features?.find(f => f.properties.name === z.name);
-                    selectedDeptRef.current = spFeat?.properties?.departement || selectedDeptRef.current;
+                    setVis(['depts-fill'], 'none');
+                    setVis(['depts-outline'], 'visible');
+                    setVis(['sp-fill', 'sp-outline'], 'visible');
+                    setCurrentLevel('sous-préfecture');
                   }
 
-                  // Now zoom to zone on map — use allRefs for geometry
-                  if (zmap) {
-                    const allRef = currentLevel === 'district' ? allRegionsRef : currentLevel === 'région' ? allDeptsRef : allSPRef;
-                    const feat = allRef.current?.features?.find(f => f.properties?.name === z.name);
-                    if (feat?.geometry) {
-                      let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-                      const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates
-                        : feat.geometry.type === 'MultiPolygon' ? feat.geometry.coordinates.flat()
-                        : [];
-                      for (const ring of coords) {
-                        for (const c of ring) {
-                          if (c[0] < minLng) minLng = c[0];
-                          if (c[0] > maxLng) maxLng = c[0];
-                          if (c[1] < minLat) minLat = c[1];
-                          if (c[1] > maxLat) maxLat = c[1];
-                        }
-                      }
-                      if (isFinite(minLng) && isFinite(maxLng)) {
-                        const padLng = (maxLng - minLng) * 0.02;
-                        const padLat = (maxLat - minLat) * 0.02;
-                        const targetZoom = currentLevel === 'district' ? 10 : currentLevel === 'région' ? 12 : 14;
-                        zmap.fitBounds(
-                          [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                          { padding: 40, duration: 600 }
-                        );
-                        setTimeout(() => {
-                          zmap.setZoom(targetZoom);
-                          // Restore labels for current level
-                          updateLabelsRef.current?.();
-                        }, 650);
+                  // Zoom to zone geometry from full data
+                  const geoRefMap = { 'district': allDistrictsRef, 'région': allRegionsRef, 'département': allDeptsRef, 'sous-préfecture': allSPRef };
+                  const geoRef = geoRefMap[currentLevel];
+                  const feat = geoRef?.current?.features?.find(f => f.properties?.name === z.name);
+                  if (feat?.geometry) {
+                    let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+                    const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates
+                      : feat.geometry.type === 'MultiPolygon' ? feat.geometry.coordinates.flat()
+                      : [];
+                    for (const ring of coords) {
+                      for (const c of ring) {
+                        if (c[0] < minLng) minLng = c[0];
+                        if (c[0] > maxLng) maxLng = c[0];
+                        if (c[1] < minLat) minLat = c[1];
+                        if (c[1] > maxLat) maxLat = c[1];
                       }
                     }
+                    if (isFinite(minLng) && isFinite(maxLng)) {
+                      const padLng = (maxLng - minLng) * 0.02;
+                      const padLat = (maxLat - minLat) * 0.02;
+                      zmap.fitBounds(
+                        [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
+                        { padding: 40, duration: 800 }
+                      );
+                    }
+                  }
                   }
                 }}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white hover:bg-white hover:shadow-sm transition-all duration-200 text-left group border border-transparent hover:border-[#E8611A]/10">
