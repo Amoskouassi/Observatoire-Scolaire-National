@@ -82,12 +82,12 @@ export default function Explorer() {
         sources: {},
         layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#F4EFE6' } }],
       },
-      center: [-5.54, 7.54],
+      center: [-5.5, 7.0],
       zoom: 5.5,
       minZoom: 5,
       maxZoom: 18,
       attributionControl: false,
-      maxBounds: [[-9, 3.5], [-2, 11.5]],
+      maxBounds: [[-9.5, 3], [-1.5, 12]],
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
@@ -111,7 +111,7 @@ export default function Explorer() {
         });
         map.addLayer({
           id: 'districts-outline', type: 'line', source: 'districts',
-          paint: { 'line-color': '#CBD5E1', 'line-width': 2 },
+          paint: { 'line-color': '#000000', 'line-width': 2 },
         });
         // HTML markers for labels
         for (const f of districtsData.features) {
@@ -136,7 +136,7 @@ export default function Explorer() {
           },
           layout: { visibility: 'none' },
         });
-        map.addLayer({ id: 'regions-outline', type: 'line', source: 'regions', paint: { 'line-color': '#CBD5E1', 'line-width': 1.5 }, layout: { visibility: 'none' } });
+        map.addLayer({ id: 'regions-outline', type: 'line', source: 'regions', paint: { 'line-color': '#333333', 'line-width': 1.5 }, layout: { visibility: 'none' } });
         for (const f of regionsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
@@ -160,7 +160,7 @@ export default function Explorer() {
           },
           layout: { visibility: 'none' },
         });
-        map.addLayer({ id: 'depts-outline', type: 'line', source: 'depts', paint: { 'line-color': '#CBD5E1', 'line-width': 1 }, layout: { visibility: 'none' } });
+        map.addLayer({ id: 'depts-outline', type: 'line', source: 'depts', paint: { 'line-color': '#555555', 'line-width': 1 }, layout: { visibility: 'none' } });
         for (const f of deptsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
