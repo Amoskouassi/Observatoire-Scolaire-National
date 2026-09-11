@@ -75,6 +75,7 @@ export default function Explorer() {
 
   const markersRef = useRef({ districts: [], regions: [], depts: [] });
   const selectedDistrictRef = useRef(null);
+  const selectedRegionRef = useRef(null);
 
   useEffect(() => {
     if (mapInst.current) return;
@@ -143,7 +144,7 @@ export default function Explorer() {
           },
           layout: { visibility: 'none' },
         });
-        map.addLayer({ id: 'regions-outline', type: 'line', source: 'regions', paint: { 'line-color': '#333333', 'line-width': 1.5 }, layout: { visibility: 'none' } });
+        map.addLayer({ id: 'regions-outline', type: 'line', source: 'regions', paint: { 'line-color': '#000000', 'line-width': 2 }, layout: { visibility: 'none' } });
         for (const f of regionsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
@@ -223,39 +224,39 @@ export default function Explorer() {
           const p = zf[0].properties;
           const featureId = zf[0].id;
 
-          // Get the source data to find geometry for fitBounds
+          // fitBounds
           const sourceData = map.getSource(sourceKey)?._data;
           if (sourceData && sourceData.features) {
             const feat = sourceData.features.find(f => f.id === featureId || f.properties?.name === p.name);
             if (feat && feat.geometry) {
-              const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates[0]
-                : feat.geometry.type === 'MultiPolygon' ? feat.geometry.coordinates.flat(2).filter((_, i) => i % 2 === 0).map((_, i, a) => [a[i], a[i+1]])
-                : null;
-
-              if (coords) {
-                // Compute bounding box
-                let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-                const flatCoords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates[0]
-                  : feat.geometry.coordinates[0][0];
-                for (const c of flatCoords) {
-                  if (c[0] < minLng) minLng = c[0];
-                  if (c[0] > maxLng) maxLng = c[0];
-                  if (c[1] < minLat) minLat = c[1];
-                  if (c[1] > maxLat) maxLat = c[1];
-                }
-                // Add padding
-                const padLng = (maxLng - minLng) * 0.08;
-                const padLat = (maxLat - minLat) * 0.08;
-                map.fitBounds(
-                  [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                  { padding: 20, duration: 1000, maxZoom: z < 7 ? 9 : z < 9 ? 11 : 13 }
-                );
+              let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+              const flatCoords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates[0]
+                : feat.geometry.coordinates[0][0];
+              for (const c of flatCoords) {
+                if (c[0] < minLng) minLng = c[0];
+                if (c[0] > maxLng) maxLng = c[0];
+                if (c[1] < minLat) minLat = c[1];
+                if (c[1] > maxLat) maxLat = c[1];
               }
+              const padLng = (maxLng - minLng) * 0.08;
+              const padLat = (maxLat - minLat) * 0.08;
+              map.fitBounds(
+                [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
+                { padding: 20, duration: 1000, maxZoom: z < 7 ? 9 : z < 9 ? 11 : 13 }
+              );
             }
           }
 
-          setSelectedDistrict(z < 7 ? p.name : null);
-          selectedDistrictRef.current = z < 7 ? p.name : null;
+          // Set district filter
+          if (z < 7) {
+            setSelectedDistrict(p.name);
+            selectedDistrictRef.current = p.name;
+            selectedRegionRef.current = null;
+          }
+          // Set region filter for depts
+          if (z >= 7 && z < 9) {
+            selectedRegionRef.current = p.name;
+          }
 
           setSelected({
             name: p.name,
@@ -299,6 +300,7 @@ export default function Explorer() {
       const updateLayers = () => {
         const z = map.getZoom();
         const selDist = selectedDistrictRef.current;
+        const selReg = selectedRegionRef.current;
         if (z < 7) {
           setVis(['districts-fill', 'districts-outline'], 'visible');
           setVis(['regions-fill', 'regions-outline'], 'none');
@@ -307,6 +309,8 @@ export default function Explorer() {
           setZones(districtsData?.features?.map(f => f.properties) || []);
           if (map.getLayer('regions-fill')) map.setFilter('regions-fill', null);
           if (map.getLayer('regions-outline')) map.setFilter('regions-outline', null);
+          if (map.getLayer('depts-fill')) map.setFilter('depts-fill', null);
+          if (map.getLayer('depts-outline')) map.setFilter('depts-outline', null);
         } else if (z < 9) {
           setVis(['districts-fill'], 'none');
           setVis(['districts-outline'], 'visible');
@@ -318,12 +322,18 @@ export default function Explorer() {
             map.setFilter('regions-fill', ['==', ['get', 'district'], selDist]);
             map.setFilter('regions-outline', ['==', ['get', 'district'], selDist]);
           }
+          if (map.getLayer('depts-fill')) map.setFilter('depts-fill', null);
+          if (map.getLayer('depts-outline')) map.setFilter('depts-outline', null);
         } else {
           setVis(['districts-fill', 'districts-outline'], 'none');
           setVis(['regions-fill', 'regions-outline'], 'none');
           setVis(['depts-fill', 'depts-outline'], 'visible');
           setCurrentLevel('d\u00e9partement');
           setZones(deptsData?.features?.map(f => f.properties) || []);
+          if (selReg && map.getLayer('depts-fill')) {
+            map.setFilter('depts-fill', ['==', ['get', 'region'], selReg]);
+            map.setFilter('depts-outline', ['==', ['get', 'region'], selReg]);
+          }
         }
         updateLabels();
       };
@@ -368,6 +378,7 @@ export default function Explorer() {
     setSelected(null);
     setSelectedDistrict(null);
     selectedDistrictRef.current = null;
+    selectedRegionRef.current = null;
     if (mapInst.current) {
       mapInst.current.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 1200 });
     }
