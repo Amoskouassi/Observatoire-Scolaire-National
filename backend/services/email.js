@@ -8,6 +8,7 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_LOGIN,
     pass: process.env.SMTP_PASSWORD,
   },
+  tls: { rejectUnauthorized: false },
 });
 
 const FROM = process.env.SMTP_FROM || 'Observatoire Scolaire <noreply@observatoire.ci>';

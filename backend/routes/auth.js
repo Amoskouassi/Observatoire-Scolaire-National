@@ -8,6 +8,38 @@ import { sendMail, welcomeEmail } from '../services/email.js';
 
 const router = Router();
 
+function generateCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function verificationCodeEmail(prenom, code) {
+  return {
+    subject: 'Code de confirmation — Observatoire Scolaire National',
+    html: `
+      <div style="font-family:Inter,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px">
+        <div style="background:#E8611A;color:white;padding:16px 24px;border-radius:12px 12px 0 0">
+          <h1 style="margin:0;font-size:18px">🇨🇮 Observatoire Scolaire National</h1>
+        </div>
+        <div style="background:#FAF8F3;padding:24px;border-radius:0 0 12px 12px;border:1px solid #CBD5E1">
+          <h2 style="color:#0D1B2A;margin-top:0">Bonjour ${prenom},</h2>
+          <p style="color:#475569;font-size:14px;line-height:1.6">
+            Voici votre code de confirmation :
+          </p>
+          <div style="background:#0D1B2A;color:white;text-align:center;padding:20px;border-radius:12px;margin:20px 0">
+            <span style="font-size:36px;font-weight:900;letter-spacing:12px">${code}</span>
+          </div>
+          <p style="color:#94A3B8;font-size:12px;text-align:center">
+            Ce code expire dans 15 minutes.
+          </p>
+          <p style="color:#94A3B8;font-size:12px;margin-top:16px">
+            Si vous n'avez pas créé de compte, ignorez cet email.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+}
+
 const registerSchema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
@@ -24,12 +56,20 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-// Inscription
+const verifyCodeSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+});
+
+const resendCodeSchema = z.object({
+  email: z.string().email(),
+});
+
+// Inscription — crée l'utilisateur + envoie le code
 router.post('/register', validateRequest(registerSchema), async (req, res, next) => {
   try {
     const { email, password, nom, prenom, role, organisation, commune_code, region_code } = req.body;
 
-    // Vérifier si l'email existe déjà
     const { data: existing } = await supabase
       .from('profiles')
       .select('id')
@@ -40,20 +80,17 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 
-    // Créer l'utilisateur dans Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: { nom, prenom, role },
-      },
+      email_confirm: false,
+      user_metadata: { nom, prenom, role },
     });
 
     if (authError) {
       return res.status(400).json({ error: authError.message });
     }
 
-    // Créer le profil
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
@@ -71,19 +108,131 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       return res.status(500).json({ error: profileError.message || 'Erreur création profil' });
     }
 
-    const token = jwt.sign({ userId: authData.user.id, role }, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn,
+    const code = generateCode();
+    const expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    await supabase.from('verification_codes').insert({
+      email,
+      code,
+      purpose: 'email_confirm',
+      expires_at,
     });
 
-    // Email de bienvenue (async, ne bloque pas la réponse)
-    sendMail({ to: email, ...welcomeEmail(nom, prenom) }).catch(() => {});
+    sendMail({ to: email, ...verificationCodeEmail(prenom, code) }).catch(() => {});
 
     res.status(201).json({
-      token,
-      user: { id: authData.user.id, email, nom, prenom, role },
+      message: 'Compte créé. Vérifiez votre boîte mail pour le code de confirmation.',
+      email,
+      needsVerification: true,
     });
   } catch (err) {
     next(err);
+  }
+});
+
+// Vérifier le code de confirmation
+router.post('/verify-code', validateRequest(verifyCodeSchema), async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+
+    const { data: record, error: findError } = await supabase
+      .from('verification_codes')
+      .select('*')
+      .eq('email', email)
+      .eq('code', code)
+      .eq('purpose', 'email_confirm')
+      .eq('used', false)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (findError || !record) {
+      return res.status(400).json({ error: 'Code invalide ou expiré' });
+    }
+
+    if (record.attempts >= record.max_attempts) {
+      return res.status(429).json({ error: 'Trop de tentatives. Demandez un nouveau code.' });
+    }
+
+    await supabase
+      .from('verification_codes')
+      .update({ used: true })
+      .eq('id', record.id);
+
+    const { data: authUser } = await supabase.auth.admin.getUserByEmail(email);
+
+    if (authUser?.user) {
+      await supabase.auth.admin.updateUserById(authUser.user.id, {
+        email_confirm: true,
+      });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, nom, prenom, organisation')
+      .eq('id', authUser?.user?.id)
+      .single();
+
+    const token = jwt.sign(
+      { userId: authUser?.user?.id, role: profile?.role || 'enqueteur' },
+      config.jwt.secret,
+      { expiresIn: config.jwt.expiresIn }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: authUser?.user?.id,
+        email,
+        nom: profile?.nom,
+        prenom: profile?.prenom,
+        role: profile?.role,
+        organisation: profile?.organisation,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Renvoyer le code de vérification
+router.post('/resend-code', validateRequest(resendCodeSchema), async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('nom, prenom')
+      .eq('email', email)
+      .single();
+
+    if (!profile) {
+      return res.json({ message: 'Si cet email est enregistré, un code a été envoyé.' });
+    }
+
+    await supabase
+      .from('verification_codes')
+      .update({ used: true })
+      .eq('email', email)
+      .eq('purpose', 'email_confirm')
+      .eq('used', false);
+
+    const code = generateCode();
+    const expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    await supabase.from('verification_codes').insert({
+      email,
+      code,
+      purpose: 'email_confirm',
+      expires_at,
+    });
+
+    sendMail({ to: email, ...verificationCodeEmail(profile.prenom || '', code) }).catch(() => {});
+
+    res.json({ message: 'Un nouveau code a été envoyé.' });
+  } catch (err) {
+    res.json({ message: 'Si cet email est enregistré, un code a été envoyé.' });
   }
 });
 
@@ -101,7 +250,14 @@ router.post('/login', validateRequest(loginSchema), async (req, res, next) => {
       return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
     }
 
-    // Récupérer le profil
+    if (!data.user.email_confirmed_at) {
+      return res.status(403).json({
+        error: 'Email non confirmé. Vérifiez votre boîte mail.',
+        needsVerification: true,
+        email,
+      });
+    }
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, nom, prenom, organisation')
@@ -155,16 +311,87 @@ router.get('/me', async (req, res) => {
   }
 });
 
+// Google OAuth callback — crée le profil si nouveau
+router.post('/google-callback', async (req, res, next) => {
+  try {
+    const { access_token } = req.body;
+    if (!access_token) {
+      return res.status(400).json({ error: 'access_token requis' });
+    }
+
+    const { data: { user }, error } = await supabase.auth.getUser(access_token);
+
+    if (error || !user) {
+      return res.status(401).json({ error: 'Token Google invalide' });
+    }
+
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (!existingProfile) {
+      const nom = user.user_metadata?.full_name?.split(' ').slice(-1).join(' ') || '';
+      const prenom = user.user_metadata?.full_name?.split(' ').slice(0, -1).join(' ') || user.email;
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email,
+          nom,
+          prenom,
+          role: 'enqueteur',
+        });
+
+      if (profileError) {
+        return res.status(500).json({ error: profileError.message });
+      }
+
+      const jwtToken = jwt.sign(
+        { userId: user.id, role: 'enqueteur' },
+        config.jwt.secret,
+        { expiresIn: config.jwt.expiresIn }
+      );
+
+      return res.json({
+        token: jwtToken,
+        user: { id: user.id, email: user.email, nom, prenom, role: 'enqueteur' },
+      });
+    }
+
+    const jwtToken = jwt.sign(
+      { userId: user.id, role: existingProfile.role },
+      config.jwt.secret,
+      { expiresIn: config.jwt.expiresIn }
+    );
+
+    res.json({
+      token: jwtToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        nom: existingProfile.nom,
+        prenom: existingProfile.prenom,
+        role: existingProfile.role,
+        organisation: existingProfile.organisation,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Mot de passe oublié
 const forgotSchema = z.object({ email: z.string().email() });
 
 router.post('/forgot-password', validateRequest(forgotSchema), async (req, res, next) => {
   try {
     const { email } = req.body;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-frontend.vercel.app'}/login`,
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-fron.vercel.app'}/login`,
     });
-    // Toujours retourner 200 pour ne pas révéler si l'email existe
     res.json({ message: 'Si cet email est enregistré, un lien de réinitialisation a été envoyé.' });
   } catch (err) {
     res.json({ message: 'Si cet email est enregistré, un lien de réinitialisation a été envoyé.' });

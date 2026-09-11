@@ -11,6 +11,8 @@ import Collecte from './pages/Collecte/Collecte';
 import Pricing from './pages/Pricing/Pricing';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
+import VerifyEmail from './pages/Auth/VerifyEmail';
+import AuthCallback from './pages/Auth/AuthCallback';
 import NotFound from './pages/NotFound/NotFound';
 
 function ProtectedRoute({ children, allowedRoles }) {
@@ -58,6 +60,8 @@ export default function App() {
           <Route path="/tarifs" element={<Pricing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

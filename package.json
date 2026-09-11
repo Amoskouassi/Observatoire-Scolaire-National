@@ -47,6 +47,7 @@
     "backend"
   ],
   "dependencies": {
+    "nodemailer": "^10.0.6",
     "zod": "^3.24.4"
   }
 }

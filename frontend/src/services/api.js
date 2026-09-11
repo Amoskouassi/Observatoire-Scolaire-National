@@ -50,6 +50,27 @@ class ApiService {
     });
   }
 
+  verifyCode(email, code) {
+    return this.request('/auth/verify-code', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
+  }
+
+  resendCode(email) {
+    return this.request('/auth/resend-code', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  googleCallback(access_token) {
+    return this.request('/auth/google-callback', {
+      method: 'POST',
+      body: JSON.stringify({ access_token }),
+    });
+  }
+
   // Écoles
   getSchools(filters = {}) {
     const params = new URLSearchParams();
