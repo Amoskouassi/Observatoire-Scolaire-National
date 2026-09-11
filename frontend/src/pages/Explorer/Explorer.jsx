@@ -21,6 +21,7 @@ const GEOJSON_PATHS = {
   districts: '/districts.geojson',
   regions: '/regions.geojson',
   depts: '/depts.geojson',
+  sp: '/sous_prefectures.geojson',
 };
 
 function getCentroid(geometry) {
@@ -85,11 +86,13 @@ export default function Explorer() {
   const [zones, setZones] = useState([]);
   const [selectedDistrict, setSelectedDistrict] = useState(null);
 
-  const markersRef = useRef({ districts: [], regions: [], depts: [] });
+  const markersRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
   const selectedDistrictRef = useRef(null);
   const selectedRegionRef = useRef(null);
+  const selectedDeptRef = useRef(null);
   const allRegionsRef = useRef(null);
   const allDeptsRef = useRef(null);
+  const allSPRef = useRef(null);
 
   useEffect(() => {
     if (mapInst.current) return;
@@ -115,10 +118,11 @@ export default function Explorer() {
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
 
     map.on('load', async () => {
-      const [districtsData, regionsData, deptsData] = await Promise.all([
+      const [districtsData, regionsData, deptsData, spData] = await Promise.all([
         fetch(GEOJSON_PATHS.districts).then(r => r.json()).catch(() => null),
         fetch(GEOJSON_PATHS.regions).then(r => r.json()).catch(() => null),
         fetch(GEOJSON_PATHS.depts).then(r => r.json()).catch(() => null),
+        fetch(GEOJSON_PATHS.sp).then(r => r.json()).catch(() => null),
       ]);
 
       // Districts fill + outline
@@ -200,6 +204,32 @@ export default function Explorer() {
         }
       }
 
+      // SP fill + outline
+      if (spData) {
+        allSPRef.current = spData;
+        map.addSource('sp', { type: 'geojson', data: spData });
+        map.addLayer({
+          id: 'sp-fill', type: 'fill', source: 'sp',
+          paint: {
+            'fill-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, COLORS.pending],
+            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.5, 0.3],
+            'fill-opacity-transition': { duration: 200 },
+          },
+          layout: { visibility: 'none' },
+        });
+        map.addLayer({ id: 'sp-outline', type: 'line', source: 'sp', paint: { 'line-color': '#94A3B8', 'line-width': 0.4, 'line-opacity': 0.4 }, layout: { visibility: 'none' } });
+        for (const f of spData.features) {
+          const centroid = getCentroid(f.geometry);
+          if (!centroid) continue;
+          const el = createLabelMarker(f.properties.name, f.properties.status, 13);
+          const marker = new maplibregl.Marker({ element: el })
+            .setLngLat(centroid)
+            .addTo(map);
+          el.style.display = 'none';
+          markersRef.current.sp.push(marker);
+        }
+      }
+
       // Schools source
       map.addSource('ecoles', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({
@@ -211,7 +241,7 @@ export default function Explorer() {
       });
 
       // Hover
-      const allFill = ['districts-fill', 'regions-fill', 'depts-fill'];
+      const allFill = ['districts-fill', 'regions-fill', 'depts-fill', 'sp-fill'];
       let hId = null, hSrc = null;
       for (const lid of allFill) {
         map.on('mouseenter', lid, () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -236,8 +266,8 @@ export default function Explorer() {
         if (sf?.length) { const id = sf[0].properties?.id; if (id) navigate('/ecole/' + id); return; }
 
         const z = map.getZoom();
-        let layer = z < 7 ? 'districts-fill' : z < 9 ? 'regions-fill' : 'depts-fill';
-        let sourceKey = z < 7 ? 'districts' : z < 9 ? 'regions' : 'depts';
+        let layer = z < 7 ? 'districts-fill' : z < 9 ? 'regions-fill' : z < 11 ? 'depts-fill' : 'sp-fill';
+        let sourceKey = z < 7 ? 'districts' : z < 9 ? 'regions' : z < 11 ? 'depts' : 'sp';
         const zf = map.queryRenderedFeatures(e.point, { layers: [layer] });
         if (zf?.length) {
           const p = zf[0].properties;
@@ -264,25 +294,27 @@ export default function Explorer() {
               const padLat = (maxLat - minLat) * 0.02;
               map.fitBounds(
                 [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
-                { padding: 40, duration: 800, maxZoom: z < 7 ? 13 : z < 9 ? 14 : 15 }
+                { padding: 40, duration: 800, maxZoom: z < 7 ? 12 : z < 9 ? 13 : z < 11 ? 14 : 15 }
               );
             }
           }
 
-          // Set district filter
+          // Set parent refs for cascade filtering
           if (z < 7) {
-            setSelectedDistrict(name);
             selectedDistrictRef.current = name;
             selectedRegionRef.current = null;
-          }
-          // Set region filter for depts
-          if (z >= 7 && z < 9) {
+            selectedDeptRef.current = null;
+          } else if (z >= 7 && z < 9) {
             selectedRegionRef.current = name;
+            selectedDeptRef.current = null;
+          } else if (z >= 9 && z < 11) {
+            selectedDeptRef.current = name;
           }
 
+          const level = z < 7 ? 'district' : z < 9 ? 'r\u00e9gion' : z < 11 ? 'd\u00e9partement' : 'sous-pr\u00e9fecture';
           setSelected({
             name: name,
-            level: z < 7 ? 'district' : z < 9 ? 'r\u00e9gion' : 'd\u00e9partement',
+            level: level,
             status: p.status,
             schools: p.schools,
             students: p.students,
@@ -298,31 +330,40 @@ export default function Explorer() {
       const updateLabels = () => {
         const z = map.getZoom();
         const selDist = selectedDistrictRef.current;
-        const show = (markers, threshold) => markers.forEach(m => {
-          m.getElement().style.display = z < threshold ? '' : 'none';
-        });
+        const selReg = selectedRegionRef.current;
+        const selDept = selectedDeptRef.current;
         const hide = (markers) => markers.forEach(m => {
           m.getElement().style.display = 'none';
         });
 
+        hide(markersRef.current.districts);
+        hide(markersRef.current.regions);
+        hide(markersRef.current.depts);
+        hide(markersRef.current.sp);
+
         if (z < 7) {
-          show(markersRef.current.districts, 7);
-          hide(markersRef.current.regions);
-          hide(markersRef.current.depts);
+          markersRef.current.districts.forEach(m => m.getElement().style.display = '');
         } else if (z < 9) {
-          hide(markersRef.current.districts);
-          // Only show region labels for selected district
           markersRef.current.regions.forEach((m, i) => {
             const allFeats = allRegionsRef.current?.features || [];
             const feat = allFeats[i];
             const belongsToSel = feat && feat.properties.district === selDist;
-            m.getElement().style.display = (belongsToSel && z < 9) ? '' : 'none';
+            m.getElement().style.display = belongsToSel ? '' : 'none';
           });
-          hide(markersRef.current.depts);
+        } else if (z < 11) {
+          markersRef.current.depts.forEach((m, i) => {
+            const allFeats = allDeptsRef.current?.features || [];
+            const feat = allFeats[i];
+            const belongsToSel = feat && feat.properties.region === selReg;
+            m.getElement().style.display = belongsToSel ? '' : 'none';
+          });
         } else {
-          hide(markersRef.current.districts);
-          hide(markersRef.current.regions);
-          show(markersRef.current.depts, 99);
+          markersRef.current.sp.forEach((m, i) => {
+            const allFeats = allSPRef.current?.features || [];
+            const feat = allFeats[i];
+            const belongsToSel = feat && feat.properties.departement === selDept;
+            m.getElement().style.display = belongsToSel ? '' : 'none';
+          });
         }
       };
 
@@ -330,21 +371,24 @@ export default function Explorer() {
         const z = map.getZoom();
         const selDist = selectedDistrictRef.current;
         const selReg = selectedRegionRef.current;
+        const selDept = selectedDeptRef.current;
 
-        // Districts: ALWAYS visible, never filtered
+        // Districts: ALWAYS visible
         setVis(['districts-fill', 'districts-outline'], 'visible');
         if (districtsData) map.getSource('districts')?.setData(districtsData);
+        setVis(['sp-fill', 'sp-outline'], 'none');
 
         if (z < 7) {
-          // National: no regions, no depts
+          // National: districts only
           setVis(['regions-fill', 'regions-outline'], 'none');
           setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('district');
           setZones(districtsData?.features?.map(f => f.properties) || []);
           if (allRegionsRef.current) map.getSource('regions')?.setData(allRegionsRef.current);
           if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
+          if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
         } else if (z < 9) {
-          // Region view: selected district's regions only
+          // Region view: selected district's regions
           setVis(['regions-fill', 'regions-outline'], 'visible');
           setVis(['depts-fill', 'depts-outline'], 'none');
           setCurrentLevel('r\u00e9gion');
@@ -359,8 +403,9 @@ export default function Explorer() {
             setZones(allRegionsRef.current?.features?.map(f => f.properties) || []);
           }
           if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
-        } else {
-          // Dept view: selected region's depts only
+          if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
+        } else if (z < 11) {
+          // Dept view: selected region's depts
           setVis(['regions-fill'], 'none');
           setVis(['regions-outline'], 'visible');
           setVis(['depts-fill', 'depts-outline'], 'visible');
@@ -374,6 +419,23 @@ export default function Explorer() {
             setZones(filtered.features.map(f => f.properties));
           } else {
             setZones(allDeptsRef.current?.features?.map(f => f.properties) || []);
+          }
+          if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
+        } else {
+          // SP view: selected dept's sous-prefectures
+          setVis(['depts-fill'], 'none');
+          setVis(['depts-outline'], 'visible');
+          setVis(['sp-fill', 'sp-outline'], 'visible');
+          setCurrentLevel('sous-pr\u00e9fecture');
+          if (selDept && allSPRef.current) {
+            const filtered = {
+              type: 'FeatureCollection',
+              features: allSPRef.current.features.filter(f => f.properties.departement === selDept),
+            };
+            map.getSource('sp')?.setData(filtered);
+            setZones(filtered.features.map(f => f.properties));
+          } else {
+            setZones(allSPRef.current?.features?.map(f => f.properties) || []);
           }
         }
         updateLabels();
@@ -413,7 +475,7 @@ export default function Explorer() {
   const totalBoys = zones.reduce((s, z) => s + (z.boys || 0), 0);
   const maxSchools = Math.max(...zones.map(z => z.schools || 0), 1);
 
-  const levelLabel = { district: 'Districts', 'r\u00e9gion': 'R\u00e9gions', 'd\u00e9partement': 'D\u00e9partements' };
+  const levelLabel = { district: 'Districts', 'r\u00e9gion': 'R\u00e9gions', 'd\u00e9partement': 'D\u00e9partements', 'sous-pr\u00e9fecture': 'Sous-pr\u00e9fectures' };
 
   const handleBack = () => {
     setSelected(null);
@@ -481,7 +543,7 @@ export default function Explorer() {
             {selected && (
               <>
                 <span className="text-[#CBD5E1]">/</span>
-                <span className="text-[#E8611A]">{selected.level === 'district' ? 'District' : selected.level === 'r\u00e9gion' ? 'R\u00e9gion' : 'D\u00e9partement'}</span>
+                <span className="text-[#E8611A]">{selected.level === 'district' ? 'District' : selected.level === 'r\u00e9gion' ? 'R\u00e9gion' : selected.level === 'd\u00e9partement' ? 'D\u00e9partement' : 'Sous-pr\u00e9fecture'}</span>
               </>
             )}
           </div>
