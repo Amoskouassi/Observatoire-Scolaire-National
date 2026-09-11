@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapStore } from '../../stores/mapStore';
+import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
 
 const COLORS = {
@@ -214,7 +215,8 @@ export default function Explorer() {
   const mapInst = useRef(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { filters, schoolsData, setSchoolsData } = useMapStore();
+  const { filters, setFilter, resetFilters, advancedFiltersOpen, toggleAdvancedFilters, isPremium, schoolsData, setSchoolsData } = useMapStore();
+  const { role } = useAuthStore();
   const [selected, setSelected] = useState(null);
   const [currentLevel, setCurrentLevel] = useState('district');
   const [zones, setZones] = useState([]);
@@ -641,7 +643,23 @@ export default function Explorer() {
       const p = f.properties;
       if (filters.collect_status.length && !filters.collect_status.includes(p.collect_status)) return false;
       if (filters.milieu.length && !filters.milieu.includes(p.milieu_implantation)) return false;
+      if (filters.niveau.length && !filters.niveau.includes(p.niveau_enseignement)) return false;
+      if (filters.statut.length && !filters.statut.includes(p.statut)) return false;
       if (filters.manque_bancs && (!p.besoin_bancs || p.besoin_bancs <= 0)) return false;
+      if (filters.sans_toilettes && p.toilettes_filles_fonctionnelles !== false) return false;
+      if (filters.sans_eau && p.eau_potable !== false) return false;
+      if (filters.sans_electricite && p.electricite !== false) return false;
+      if (filters.manque_enseignants && (!p.enseignants_presents || p.enseignants_presents > 0)) return false;
+      if (filters.taux_filles_min != null) {
+        const total = (p.nombre_filles || 0) + (p.nombre_garcons || 0);
+        const pct = total > 0 ? (p.nombre_filles / total) * 100 : 0;
+        if (pct < filters.taux_filles_min) return false;
+      }
+      if (filters.taux_filles_max != null) {
+        const total = (p.nombre_filles || 0) + (p.nombre_garcons || 0);
+        const pct = total > 0 ? (p.nombre_filles / total) * 100 : 0;
+        if (pct > filters.taux_filles_max) return false;
+      }
       return true;
     });
     mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filtered });
@@ -672,22 +690,125 @@ export default function Explorer() {
               <input className="w-full bg-transparent text-[#0D1B2A] text-sm placeholder:text-[#94A3B8] focus:outline-none font-medium"
                 placeholder="Rechercher (Korhogo, Cocody, San-Pedro)..." type="search" />
             </div>
-            <button className="w-11 h-11 rounded-xl bg-white/90 backdrop-blur-md flex items-center justify-center shadow-lg border border-[#CBD5E1]/20 shrink-0 hover:bg-white transition">
-              <span className="material-symbols-outlined text-[18px] text-[#475569]">tune</span>
+            <button onClick={toggleAdvancedFilters}
+              className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-lg border shrink-0 transition ${advancedFiltersOpen ? 'bg-[#E8611A] border-[#E8611A]' : 'bg-white/90 backdrop-blur-md border-[#CBD5E1]/20 hover:bg-white'}`}>
+              <span className={`material-symbols-outlined text-[18px] ${advancedFiltersOpen ? 'text-white' : 'text-[#475569]'}`}>tune</span>
             </button>
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2">
-            <button className="px-3 py-1.5 rounded-full bg-[#E8611A] text-white text-[11px] font-bold shrink-0 shadow-sm">Tous</button>
-            <button className="px-3 py-1.5 rounded-full bg-white/90 backdrop-blur text-[#475569] text-[11px] font-semibold shrink-0 shadow-sm flex items-center gap-1.5 border border-[#CBD5E1]/20 hover:bg-white transition">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#E8611A]" /> Collecte
+            <button onClick={resetFilters}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold shrink-0 shadow-sm transition ${filters.collect_status.length === 0 && filters.milieu.length === 0 && filters.niveau.length === 0 ? 'bg-[#E8611A] text-white' : 'bg-white/90 backdrop-blur text-[#475569] border border-[#CBD5E1]/20 hover:bg-white'}`}>
+              Tous
             </button>
-            <button className="px-3 py-1.5 rounded-full bg-white/90 backdrop-blur text-[#475569] text-[11px] font-semibold shrink-0 shadow-sm flex items-center gap-1.5 border border-[#CBD5E1]/20 hover:bg-white transition">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0B7A3E]" /> En cours
-            </button>
-            <button className="px-3 py-1.5 rounded-full bg-white/90 backdrop-blur text-[#475569] text-[11px] font-semibold shrink-0 shadow-sm flex items-center gap-1.5 border border-[#CBD5E1]/20 hover:bg-white transition">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#94A3B8]" /> En attente
-            </button>
+            {[
+              { key: 'collected', label: 'Collecte', color: '#E8611A' },
+              { key: 'waiting', label: 'En cours', color: '#0B7A3E' },
+              { key: 'pending', label: 'En attente', color: '#94A3B8' },
+            ].map(f => {
+              const active = filters.collect_status.includes(f.key);
+              return (
+                <button key={f.key}
+                  onClick={() => setFilter('collect_status', active ? filters.collect_status.filter(v => v !== f.key) : [...filters.collect_status, f.key])}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shrink-0 shadow-sm flex items-center gap-1.5 border transition ${active ? 'bg-white border-[#E8611A]/30 text-[#0D1B2A]' : 'bg-white/90 backdrop-blur text-[#475569] border-[#CBD5E1]/20 hover:bg-white'}`}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: f.color }} /> {f.label}
+                </button>
+              );
+            })}
           </div>
+
+          {advancedFiltersOpen && (
+            <div className="mt-2 bg-white/95 backdrop-blur-md rounded-xl p-4 shadow-lg border border-[#CBD5E1]/20">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider">Filtres avancés</span>
+                <button onClick={resetFilters} className="text-[10px] text-[#E8611A] font-bold hover:underline">Réinitialiser</button>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <div>
+                  <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mb-1.5">Niveau</p>
+                  <div className="flex gap-1.5">
+                    {['primaire', 'secondaire'].map(n => {
+                      const active = filters.niveau.includes(n);
+                      return (
+                        <button key={n}
+                          onClick={() => setFilter('niveau', active ? filters.niveau.filter(v => v !== n) : [...filters.niveau, n])}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize transition ${active ? 'bg-[#E8611A] text-white' : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'}`}>
+                          {n}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mb-1.5">Milieu</p>
+                  <div className="flex gap-1.5">
+                    {['urbain', 'rural'].map(m => {
+                      const active = filters.milieu.includes(m);
+                      return (
+                        <button key={m}
+                          onClick={() => setFilter('milieu', active ? filters.milieu.filter(v => v !== m) : [...filters.milieu, m])}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize transition ${active ? 'bg-[#0B7A3E] text-white' : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'}`}>
+                          {m}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="h-px bg-[#CBD5E1]/20" />
+
+                {role === 'institution' || role === 'admin' ? (
+                  <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { key: 'manque_bancs', label: 'Manque bancs', icon: 'chair' },
+                        { key: 'sans_toilettes', label: 'Sans toilettes', icon: 'wc' },
+                        { key: 'sans_eau', label: 'Sans eau', icon: 'water_drop' },
+                        { key: 'sans_electricite', label: 'Sans électricité', icon: 'bolt' },
+                        { key: 'manque_enseignants', label: 'Manque enseignants', icon: 'person_off' },
+                      ].map(f => {
+                        const active = filters[f.key];
+                        return (
+                          <button key={f.key}
+                            onClick={() => setFilter(f.key, !active)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition ${active ? 'bg-[#E8611A] text-white' : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'}`}>
+                            <span className="material-symbols-outlined text-[12px]">{f.icon}</span>
+                            {f.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mb-1.5">Taux filles (%)</p>
+                      <div className="flex items-center gap-2">
+                        <input type="number" min="0" max="100" placeholder="Min"
+                          value={filters.taux_filles_min ?? ''}
+                          onChange={e => setFilter('taux_filles_min', e.target.value ? Number(e.target.value) : null)}
+                          className="w-16 px-2 py-1 rounded-lg bg-[#F1F5F9] text-[#0D1B2A] text-[11px] font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#E8611A]" />
+                        <span className="text-[10px] text-[#94A3B8]">→</span>
+                        <input type="number" min="0" max="100" placeholder="Max"
+                          value={filters.taux_filles_max ?? ''}
+                          onChange={e => setFilter('taux_filles_max', e.target.value ? Number(e.target.value) : null)}
+                          className="w-16 px-2 py-1 rounded-lg bg-[#F1F5F9] text-[#0D1B2A] text-[11px] font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#E8611A]" />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 py-3 px-3 bg-[#F8F6F1] rounded-xl border border-[#E8611A]/10">
+                    <div className="w-9 h-9 rounded-lg bg-[#E8611A]/10 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[18px] text-[#E8611A]">lock</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-[#0D1B2A]">Filtres institutions</p>
+                      <p className="text-[10px] text-[#94A3B8]">Manque bancs, eau, toilettes, enseignants, taux parité — réservé aux institutions & mairies</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="absolute bottom-2 left-3 right-3 z-20 flex items-center justify-between px-3 py-2 rounded-xl bg-[#0D1B2A]/80 backdrop-blur-md text-white text-[10px] font-bold shadow-lg pointer-events-none border border-white/5">
