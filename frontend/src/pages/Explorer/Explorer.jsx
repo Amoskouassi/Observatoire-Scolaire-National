@@ -84,7 +84,7 @@ export default function Explorer() {
   const [selected, setSelected] = useState(null);
   const [currentLevel, setCurrentLevel] = useState('district');
   const [zones, setZones] = useState([]);
-  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [breadcrumb, setBreadcrumb] = useState({ district: null, region: null, dept: null });
 
   const markersRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
   const selectedDistrictRef = useRef(null);
@@ -522,20 +522,53 @@ export default function Explorer() {
 
   const handleBack = () => {
     setSelected(null);
-    setSelectedDistrict(null);
-    selectedDistrictRef.current = null;
-    selectedRegionRef.current = null;
-    selectedDeptRef.current = null;
-    if (mapInst.current) {
-      const map = mapInst.current;
-      // Reset all source data to unfiltered
+    const map = mapInst.current;
+    if (!map) return;
+    const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
+
+    if (currentLevel === 'sous-préfecture') {
+      // Back to depts
+      const parentRegion = selectedRegionRef.current;
+      if (parentRegion && allDeptsRef.current) {
+        const filtered = { type: 'FeatureCollection', features: allDeptsRef.current.features.filter(f => f.properties.region === parentRegion) };
+        map.getSource('depts')?.setData(filtered);
+        setZones(filtered.features.map(f => f.properties));
+      }
+      selectedDeptRef.current = null;
+      setBreadcrumb(prev => ({ ...prev, dept: null }));
+      setVis(['depts-fill', 'depts-outline'], 'visible');
+      setVis(['sp-fill', 'sp-outline'], 'none');
+      setCurrentLevel('département');
+    } else if (currentLevel === 'département') {
+      // Back to regions
+      const parentDistrict = selectedDistrictRef.current;
+      if (parentDistrict && allRegionsRef.current) {
+        const filtered = { type: 'FeatureCollection', features: allRegionsRef.current.features.filter(f => f.properties.district === parentDistrict) };
+        map.getSource('regions')?.setData(filtered);
+        setZones(filtered.features.map(f => f.properties));
+      }
+      selectedRegionRef.current = null;
+      setBreadcrumb(prev => ({ ...prev, region: null, dept: null }));
+      setVis(['regions-fill', 'regions-outline'], 'visible');
+      setVis(['depts-fill', 'depts-outline'], 'none');
+      setCurrentLevel('région');
+    } else if (currentLevel === 'région') {
+      // Back to districts
+      selectedDistrictRef.current = null;
+      setBreadcrumb({ district: null, region: null, dept: null });
+      if (allDistrictsRef.current) {
+        map.getSource('districts')?.setData(allDistrictsRef.current);
+        setZones(allDistrictsRef.current.features.map(f => f.properties));
+      }
       if (allRegionsRef.current) map.getSource('regions')?.setData(allRegionsRef.current);
       if (allDeptsRef.current) map.getSource('depts')?.setData(allDeptsRef.current);
       if (allSPRef.current) map.getSource('sp')?.setData(allSPRef.current);
-      map.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 1200 });
-      setTimeout(() => {
-        if (updateLayersRef.current) updateLayersRef.current();
-      }, 1250);
+      setVis(['districts-fill', 'districts-outline'], 'visible');
+      setVis(['regions-fill', 'regions-outline'], 'none');
+      setVis(['depts-fill', 'depts-outline'], 'none');
+      setVis(['sp-fill', 'sp-outline'], 'none');
+      map.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 800 });
+      setCurrentLevel('district');
     }
   };
 
@@ -591,28 +624,38 @@ export default function Explorer() {
         <div className="px-5 pt-5 pb-4 border-b border-[#CBD5E1]/20">
           <div className="flex items-center gap-2 text-[10px] text-[#94A3B8] font-semibold uppercase tracking-wider mb-1">
             <span className="material-symbols-outlined text-[12px]">location_on</span>
-            C\u00f4te d'Ivoire
-            {selected && (
+            <span className={currentLevel === 'district' ? 'text-[#E8611A]' : ''}>C\u00f4te d'Ivoire</span>
+            {breadcrumb.district && (
               <>
                 <span className="text-[#CBD5E1]">/</span>
-                <span className="text-[#E8611A]">{selected.level === 'district' ? 'District' : selected.level === 'r\u00e9gion' ? 'R\u00e9gion' : selected.level === 'd\u00e9partement' ? 'D\u00e9partement' : 'Sous-pr\u00e9fecture'}</span>
+                <span className={currentLevel === 'r\u00e9gion' ? 'text-[#E8611A]' : ''}>{breadcrumb.district}</span>
+              </>
+            )}
+            {breadcrumb.region && (
+              <>
+                <span className="text-[#CBD5E1]">/</span>
+                <span className={currentLevel === 'd\u00e9partement' ? 'text-[#E8611A]' : ''}>{breadcrumb.region}</span>
+              </>
+            )}
+            {breadcrumb.dept && (
+              <>
+                <span className="text-[#CBD5E1]">/</span>
+                <span className={currentLevel === 'sous-pr\u00e9fecture' ? 'text-[#E8611A]' : ''}>{breadcrumb.dept}</span>
               </>
             )}
           </div>
           <div className="flex items-center justify-between">
             <h2 className="font-extrabold text-[#0D1B2A] text-lg tracking-tight">
-              {selected ? selected.name : levelLabel[currentLevel]}
+              {levelLabel[currentLevel]}
             </h2>
-            {selected && (
+            {currentLevel !== 'district' && (
               <button onClick={handleBack}
                 className="flex items-center gap-1 text-[11px] text-[#E8611A] font-bold hover:bg-[#E8611A]/5 px-2 py-1 rounded-lg transition">
                 <span className="material-symbols-outlined text-[14px]">arrow_back</span> Retour
               </button>
             )}
           </div>
-          {!selected && (
-            <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'r\u00e9gion' ? 'r\u00e9gions' : 'd\u00e9partements'}</p>
-          )}
+          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'r\u00e9gion' ? 'r\u00e9gions' : currentLevel === 'd\u00e9partement' ? 'd\u00e9partements' : 'sous-pr\u00e9fectures'}</p>
         </div>
 
         {/* Stats */}
@@ -654,7 +697,7 @@ export default function Explorer() {
                 .sort((a, b) => (b.schools || 0) - (a.schools || 0))
                 .map((z, i) => (
                 <button key={i} onClick={() => {
-                  setSelected(z);
+                  // DON'T setSelected here — list click navigates/drills down, doesn't show detail
                   const zmap = mapInst.current;
                   if (!zmap) return;
                   const setVis = (ls, v) => ls.forEach(l => { if (zmap.getLayer(l)) zmap.setLayoutProperty(l, 'visibility', v); });
@@ -664,6 +707,7 @@ export default function Explorer() {
                     selectedDistrictRef.current = z.name;
                     selectedRegionRef.current = null;
                     selectedDeptRef.current = null;
+                    setBreadcrumb({ district: z.name, region: null, dept: null });
                     if (allRegionsRef.current) {
                       const filtered = { type: 'FeatureCollection', features: allRegionsRef.current.features.filter(f => f.properties.district === z.name) };
                       zmap.getSource('regions')?.setData(filtered);
@@ -683,6 +727,7 @@ export default function Explorer() {
                     selectedDistrictRef.current = regionFeat?.properties?.district || selectedDistrictRef.current;
                     selectedRegionRef.current = z.name;
                     selectedDeptRef.current = null;
+                    setBreadcrumb(prev => ({ ...prev, region: z.name, dept: null }));
                     if (allDeptsRef.current) {
                       const filtered = { type: 'FeatureCollection', features: allDeptsRef.current.features.filter(f => f.properties.region === z.name) };
                       zmap.getSource('depts')?.setData(filtered);
@@ -700,6 +745,7 @@ export default function Explorer() {
                     const deptFeat = allDeptsRef.current?.features?.find(f => f.properties.name === z.name);
                     selectedRegionRef.current = deptFeat?.properties?.region || selectedRegionRef.current;
                     selectedDeptRef.current = z.name;
+                    setBreadcrumb(prev => ({ ...prev, dept: z.name }));
                     if (allSPRef.current) {
                       const filtered = { type: 'FeatureCollection', features: allSPRef.current.features.filter(f => f.properties.departement === z.name) };
                       zmap.getSource('sp')?.setData(filtered);
