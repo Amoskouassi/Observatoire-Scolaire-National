@@ -46,16 +46,18 @@ function createLabelMarker(name, status, zoomThreshold) {
   el.style.cssText = `
     background: ${COLORS[status] || COLORS.pending};
     color: white;
-    padding: 2px 7px;
-    border-radius: 4px;
-    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 700;
-    font-family: Inter, system-ui, sans-serif;
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.01em;
     white-space: nowrap;
     pointer-events: none;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     line-height: 1.4;
     text-align: center;
+    border: 1.5px solid rgba(255,255,255,0.3);
   `;
   return el;
 }
@@ -210,11 +212,43 @@ export default function Explorer() {
 
         const z = map.getZoom();
         let layer = z < 7 ? 'districts-fill' : z < 9 ? 'regions-fill' : 'depts-fill';
+        let sourceKey = z < 7 ? 'districts' : z < 9 ? 'regions' : 'depts';
         const zf = map.queryRenderedFeatures(e.point, { layers: [layer] });
         if (zf?.length) {
           const p = zf[0].properties;
-          const nextZoom = Math.min(z + 2, 13);
-          map.easeTo({ center: e.lngLat, zoom: nextZoom, duration: 1200 });
+          const featureId = zf[0].id;
+
+          // Get the source data to find geometry for fitBounds
+          const sourceData = map.getSource(sourceKey)?._data;
+          if (sourceData && sourceData.features) {
+            const feat = sourceData.features.find(f => f.id === featureId || f.properties?.name === p.name);
+            if (feat && feat.geometry) {
+              const coords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates[0]
+                : feat.geometry.type === 'MultiPolygon' ? feat.geometry.coordinates.flat(2).filter((_, i) => i % 2 === 0).map((_, i, a) => [a[i], a[i+1]])
+                : null;
+
+              if (coords) {
+                // Compute bounding box
+                let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+                const flatCoords = feat.geometry.type === 'Polygon' ? feat.geometry.coordinates[0]
+                  : feat.geometry.coordinates[0][0];
+                for (const c of flatCoords) {
+                  if (c[0] < minLng) minLng = c[0];
+                  if (c[0] > maxLng) maxLng = c[0];
+                  if (c[1] < minLat) minLat = c[1];
+                  if (c[1] > maxLat) maxLat = c[1];
+                }
+                // Add padding
+                const padLng = (maxLng - minLng) * 0.15;
+                const padLat = (maxLat - minLat) * 0.15;
+                map.fitBounds(
+                  [[minLng - padLng, minLat - padLat], [maxLng + padLng, maxLat + padLat]],
+                  { padding: 40, duration: 1200, maxZoom: z < 7 ? 8 : z < 9 ? 10.5 : 13 }
+                );
+              }
+            }
+          }
+
           setSelected({
             name: p.name,
             level: z < 7 ? 'district' : z < 9 ? 'r\u00e9gion' : 'd\u00e9partement',
@@ -314,6 +348,13 @@ export default function Explorer() {
 
   const levelLabel = { district: 'Districts', 'r\u00e9gion': 'R\u00e9gions', 'd\u00e9partement': 'D\u00e9partements' };
 
+  const handleBack = () => {
+    setSelected(null);
+    if (mapInst.current) {
+      mapInst.current.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 1200 });
+    }
+  };
+
   return (
     <div className="h-full flex flex-col lg:flex-row">
       {loading && (
@@ -368,7 +409,7 @@ export default function Explorer() {
             {selected ? selected.name : levelLabel[currentLevel] + ' (' + zones.length + ')'}
           </h2>
           {selected && (
-            <button onClick={() => setSelected(null)}
+            <button onClick={handleBack}
               className="text-[11px] text-[#E8611A] font-bold mt-1 hover:underline">
               &larr; Retour
             </button>
