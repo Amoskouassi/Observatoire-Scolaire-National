@@ -257,7 +257,7 @@ router.post('/login', validateRequest(loginSchema), async (req, res, next) => {
       return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('role, nom, prenom, organisation, commune_code, region_code, district_code, departement_code')
       .eq('id', data.user.id)
@@ -328,7 +328,7 @@ router.post('/google-callback', async (req, res, next) => {
       return res.status(401).json({ error: 'Token Google invalide' });
     }
 
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('id', user.id)
@@ -338,7 +338,7 @@ router.post('/google-callback', async (req, res, next) => {
       const nom = user.user_metadata?.full_name?.split(' ').slice(-1).join(' ') || '';
       const prenom = user.user_metadata?.full_name?.split(' ').slice(0, -1).join(' ') || user.email;
 
-      const { error: profileError } = await supabase
+      const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .insert({
           id: user.id,
