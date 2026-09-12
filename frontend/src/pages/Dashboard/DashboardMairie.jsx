@@ -18,6 +18,8 @@ const ROLE_LABELS = {
   institution: 'Institution',
   admin: 'Administrateur',
   enqueteur: 'Enquêteur',
+  partenaire: 'Partenaire',
+  chercheur: 'Chercheur',
 };
 
 function Jauge({ value, max, color = '#E8611A' }) {
@@ -55,14 +57,28 @@ export default function DashboardMairie() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [zoneName, setZoneName] = useState('');
 
   useEffect(() => {
     if (!token) return;
     setLoading(true);
     api.request('/dashboard/my-zone', {
       headers: { Authorization: `Bearer ${token}` },
-    }).then(d => { setData(d); setLoading(false); })
-      .catch(e => { setError(e.message || 'Erreur de chargement'); setLoading(false); });
+    }).then(async (d) => {
+      setData(d);
+      if (d.zone?.code && d.zone?.level) {
+        const geoMap = { district: 'districts', region: 'regions', departement: 'depts', commune: 'sous_prefectures' };
+        const geoFile = geoMap[d.zone.level];
+        if (geoFile) {
+          try {
+            const geo = await fetch(`/${geoFile}.geojson`).then(r => r.json());
+            const feat = geo.features?.find(f => f.properties.code === d.zone.code || f.properties.name === d.zone.code);
+            if (feat) setZoneName(feat.properties.name);
+          } catch {}
+        }
+      }
+      setLoading(false);
+    }).catch(e => { setError(e.message || 'Erreur de chargement'); setLoading(false); });
   }, [token]);
 
   if (loading) {
@@ -117,22 +133,23 @@ export default function DashboardMairie() {
     : 0;
 
   const besoins = [
-    { label: 'Sans eau potable', value: stats.infrastructure.sans_eau, color: '#ba1a1a', total: stats.total_ecoles },
-    { label: 'Sans toilettes', value: stats.infrastructure.sans_toilettes, color: '#E8611A', total: stats.total_ecoles },
-    { label: 'Sans électricité', value: stats.infrastructure.sans_electricite, color: '#d97706', total: stats.total_ecoles },
-    { label: 'Matériaux précaires', value: stats.infrastructure.materiaux_precaires, color: '#4B5563', total: stats.total_ecoles },
+    { label: 'Sans eau potable', value: stats.infrastructure.sans_eau, color: '#ba1a1a', total: stats.total_ecoles, filter: 'sans_eau', icon: 'water_drop' },
+    { label: 'Sans toilettes', value: stats.infrastructure.sans_toilettes, color: '#E8611A', total: stats.total_ecoles, filter: 'sans_toilettes', icon: 'wc' },
+    { label: 'Sans électricité', value: stats.infrastructure.sans_electricite, color: '#d97706', total: stats.total_ecoles, filter: 'sans_electricite', icon: 'bolt' },
+    { label: 'Matériaux précaires', value: stats.infrastructure.materiaux_precaires, color: '#4B5563', total: stats.total_ecoles, filter: 'materiaux_precaires', icon: 'construction' },
+    { label: 'Manque bancs', value: stats.infrastructure.besoin_bancs, color: '#7C3AED', total: stats.total_ecoles, filter: 'manque_bancs', icon: 'table_chart' },
   ];
 
   return (
     <div className="h-full overflow-auto bg-[#F4EFE6]">
-      <div className="max-w-lg mx-auto px-4 py-6 flex flex-col gap-5">
+      <div className="max-w-lg mx-auto px-3 sm:px-4 py-4 sm:py-6 flex flex-col gap-4 sm:gap-5">
 
         {/* Header */}
         <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="material-symbols-outlined text-[#E8611A] text-[18px]">location_city</span>
             <span className="text-xs font-bold text-[#E8611A] uppercase tracking-wider">
-              {ROLE_LABELS[userInfo?.role] || userInfo?.role} &middot; {ZONE_LEVEL_LABELS[zone?.level]} {zone?.code}
+              {ROLE_LABELS[userInfo?.role] || userInfo?.role} &middot; {ZONE_LEVEL_LABELS[zone?.level]} {zoneName || zone?.code}
             </span>
           </div>
           <h2 className="text-lg font-bold text-[#0D1B2A]">
@@ -263,22 +280,22 @@ export default function DashboardMairie() {
           <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Infrastructure</h3>
           <div className="space-y-2.5">
             {besoins.map(b => (
-              <div key={b.label}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-semibold text-[#1E293B]">{b.label}</span>
-                  <span className="font-bold" style={{ color: b.color }}>{b.value} / {b.total}</span>
+              <button key={b.label} onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?filter=${b.filter}`)}
+                className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-2 -m-2 transition-colors cursor-pointer group">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[14px] text-[#94A3B8] group-hover:text-[#E8611A] transition-colors">{b.icon}</span>
+                    <span className="text-xs font-semibold text-[#1E293B]">{b.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs" style={{ color: b.color }}>{b.value}</span>
+                    <span className="material-symbols-outlined text-[12px] text-[#CBD5E1] group-hover:text-[#E8611A] transition-colors">arrow_forward</span>
+                  </div>
                 </div>
                 <Jauge value={b.value} max={b.total} color={b.color} />
-              </div>
+              </button>
             ))}
           </div>
-          {stats.infrastructure.besoin_bancs > 0 && (
-            <div className="mt-3 bg-[#ffdad6]/40 rounded-lg p-2.5 text-center">
-              <span className="material-symbols-outlined text-[#ba1a1a] text-[18px]">table_chart</span>
-              <p className="text-sm font-black text-[#ba1a1a]">{stats.infrastructure.besoin_bancs.toLocaleString('fr-FR')}</p>
-              <p className="text-[10px] font-bold text-[#6B7280] uppercase">Tables-bancs nécessaires</p>
-            </div>
-          )}
         </div>
 
         {/* Par milieu */}

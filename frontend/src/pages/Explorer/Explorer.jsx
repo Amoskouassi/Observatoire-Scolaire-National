@@ -244,6 +244,8 @@ export default function Explorer() {
     if (filterParam === 'sans_toilettes') setFilter('sans_toilettes', true);
     if (filterParam === 'sans_electricite') setFilter('sans_electricite', true);
     if (filterParam === 'manque_bancs') setFilter('manque_bancs', true);
+    if (filterParam === 'materiaux_precaires') setFilter('materiaux_precaires', true);
+    if (filterParam === 'manque_enseignants') setFilter('manque_enseignants', true);
     if (urlLevel && urlCode) {
       urlAppliedRef.current = true;
     }
@@ -658,24 +660,62 @@ export default function Explorer() {
       loadSchools();
       setTimeout(() => setLoading(false), 600);
 
-      if (user?.district_code || user?.region_code || user?.departement_code || user?.commune_code) {
-        const zoneCode = user.commune_code || user.departement_code || user.region_code || user.district_code;
-        const zoneLevel = user.commune_code ? 'sp' : user.departement_code ? 'depts' : user.region_code ? 'regions' : 'districts';
-        const geoData = geoDataRef.current[zoneLevel];
-        if (geoData) {
-          const feature = geoData.features.find(f => f.properties.code === zoneCode || f.properties.name === zoneCode);
-          if (feature) {
-            const bbox = getBBox(feature.geometry);
-            if (bbox) {
-              const dLng = (bbox[1][0] - bbox[0][0]) * 0.2;
-              const dLat = (bbox[1][1] - bbox[0][1]) * 0.2;
-              map.fitBounds(
-                [[bbox[0][0] - dLng, bbox[0][1] - dLat], [bbox[1][0] + dLng, bbox[1][1] + dLat]],
-                { padding: 40, duration: 1200 }
-              );
-            }
+      const autoDrillToZone = async (targetLevel, targetCode) => {
+        const geoData = geoDataRef.current;
+        const findFeat = (geoKey, code) => {
+          const g = geoData[geoKey];
+          if (!g) return null;
+          return g.features.find(f => f.properties.code === code || f.properties.name === code);
+        };
+
+        if (targetLevel === 'district') {
+          drillDown('district', findFeat('districts', targetCode)?.properties.name || targetCode);
+        } else if (targetLevel === 'region') {
+          const feat = findFeat('regions', targetCode);
+          if (feat) {
+            const distName = feat.properties.district;
+            drillDown('district', distName);
+            await new Promise(r => setTimeout(r, 900));
+            drillDown('region', feat.properties.name);
+          }
+        } else if (targetLevel === 'departement') {
+          const feat = findFeat('depts', targetCode);
+          if (feat) {
+            const regName = feat.properties.region;
+            const regFeat = findFeat('regions', regName);
+            const distName = regFeat?.properties.district;
+            if (distName) { drillDown('district', distName); await new Promise(r => setTimeout(r, 900)); }
+            drillDown('region', regName);
+            await new Promise(r => setTimeout(r, 900));
+            drillDown('departement', feat.properties.name);
+          }
+        } else if (targetLevel === 'commune' || targetLevel === 'sous-prefecture') {
+          const feat = findFeat('sp', targetCode);
+          if (feat) {
+            const deptName = feat.properties.departement;
+            const deptFeat = findFeat('depts', deptName);
+            const regName = deptFeat?.properties.region;
+            const regFeat = findFeat('regions', regName);
+            const distName = regFeat?.properties.district;
+            if (distName) { drillDown('district', distName); await new Promise(r => setTimeout(r, 900)); }
+            drillDown('region', regName);
+            await new Promise(r => setTimeout(r, 900));
+            drillDown('departement', deptName);
+            await new Promise(r => setTimeout(r, 900));
+            drillDown('sous-prefecture', feat.properties.name);
           }
         }
+      };
+
+      const urlTargetLevel = urlLevel || null;
+      const urlTargetCode = urlCode || null;
+
+      if (urlTargetLevel && urlTargetCode) {
+        autoDrillToZone(urlTargetLevel, urlTargetCode);
+      } else if (user?.commune_code || user?.departement_code || user?.region_code || user?.district_code) {
+        const zoneLevel = user.commune_code ? 'commune' : user.departement_code ? 'departement' : user.region_code ? 'region' : 'district';
+        const zoneCode = user.commune_code || user.departement_code || user.region_code || user.district_code;
+        autoDrillToZone(zoneLevel, zoneCode);
       }
     });
 
@@ -961,8 +1001,8 @@ export default function Explorer() {
         <div ref={mapRef} className="absolute inset-0" />
       </div>
 
-      <div className="w-full lg:w-[380px] xl:w-[420px] bg-[#FAF8F3] border-l border-[#CBD5E1]/30 flex flex-col overflow-hidden">
-        <div className="px-5 pt-5 pb-4 border-b border-[#CBD5E1]/20">
+      <div className="w-full lg:w-[380px] xl:w-[420px] bg-[#FAF8F3] border-l border-[#CBD5E1]/30 flex flex-col overflow-hidden max-h-[45vh] lg:max-h-none">
+        <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-[#CBD5E1]/20">
           <div className="flex items-center gap-1.5 text-[11px] text-[#94A3B8] font-semibold mb-2 flex-wrap">
             <span className="material-symbols-outlined text-[14px] text-[#E8611A]">location_on</span>
             <span className={currentLevel === 'district' ? 'text-[#E8611A] font-bold' : ''}>CI</span>

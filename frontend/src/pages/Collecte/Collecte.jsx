@@ -38,6 +38,68 @@ const labelCls = "text-[11px] font-bold text-[#6B7280] uppercase block mb-1";
 const selectCls = "w-full bg-white border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none appearance-none bg-no-repeat bg-[right_10px_center] bg-[length:16px]";
 const selectStyle = { backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E\")" };
 
+function SearchableSelect({ value, onChange, options, placeholder, disabled, searchPlaceholder }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = options.filter(o => {
+    const name = (typeof o === 'string' ? o : o.name || o.label || '').toLowerCase();
+    return name.includes(search.toLowerCase());
+  });
+
+  const selectedLabel = options.find(o => (typeof o === 'string' ? o : o.code) === value);
+  const displayValue = selectedLabel ? (typeof selectedLabel === 'string' ? selectedLabel : selectedLabel.name) : '';
+
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => !disabled && setOpen(!open)}
+        disabled={disabled}
+        className={`w-full bg-white border border-[#CBD5E1] rounded-lg p-2.5 text-sm text-left flex items-center justify-between transition ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#E8611A]/50 cursor-pointer'} ${open ? 'border-[#E8611A]' : ''}`}>
+        <span className={displayValue ? 'text-[#0D1B2A]' : 'text-[#94A3B8]'}>
+          {displayValue || placeholder || 'Sélectionner...'}
+        </span>
+        <span className="material-symbols-outlined text-[16px] text-[#94A3B8]">expand_more</span>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-[#CBD5E1] rounded-xl shadow-lg max-h-60 overflow-hidden">
+          <div className="p-2 border-b border-[#CBD5E1]/30">
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder={searchPlaceholder || 'Rechercher...'}
+              className="w-full bg-[#F1F5F9] rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#E8611A]"
+              autoFocus />
+          </div>
+          <div className="overflow-y-auto max-h-48">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-4 text-xs text-[#94A3B8] text-center">Aucun résultat</div>
+            ) : (
+              filtered.map(o => {
+                const code = typeof o === 'string' ? o : o.code;
+                const name = typeof o === 'string' ? o : o.name || o.label;
+                return (
+                  <button key={code} type="button"
+                    onClick={() => { onChange(code, o); setOpen(false); setSearch(''); }}
+                    className={`w-full text-left px-3 py-2 text-xs hover:bg-[#F4EFE6] transition ${value === code ? 'bg-[#E8611A]/5 text-[#E8611A] font-bold' : 'text-[#0D1B2A]'}`}>
+                    {name}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function YesNon({ value, onChange, label }) {
   return (
     <div className="flex gap-2">
@@ -76,6 +138,7 @@ export default function Collecte() {
   const [step, setStep] = useState(1);
   const [f, setF] = useState(initialState);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsAddress, setGpsAddress] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(null);
@@ -114,20 +177,34 @@ export default function Collecte() {
 
   const u = (k, v) => setF(p => ({ ...p, [k]: v }));
 
+  const reverseGeocode = useCallback(async (lat, lng) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=fr`);
+      const data = await res.json();
+      return data.display_name || '';
+    } catch {
+      return '';
+    }
+  }, []);
+
   const getGps = useCallback(() => {
     if (!navigator.geolocation) return;
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        u('latitude', pos.coords.latitude);
-        u('longitude', pos.coords.longitude);
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        u('latitude', lat);
+        u('longitude', lng);
         u('gps精度', pos.coords.accuracy);
+        const addr = await reverseGeocode(lat, lng);
+        setGpsAddress(addr);
         setGpsLoading(false);
       },
       () => setGpsLoading(false),
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, []);
+  }, [reverseGeocode]);
 
   useEffect(() => { getGps(); }, [getGps]);
 
@@ -250,7 +327,7 @@ export default function Collecte() {
 
   return (
     <div className="h-full flex flex-col bg-[#F4EFE6]">
-      <div className="px-4 pt-4 pb-2 bg-white border-b border-[#CBD5E1]/20">
+      <div className="px-3 sm:px-4 pt-3 sm:pt-4 pb-2 bg-white border-b border-[#CBD5E1]/20">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-sm font-extrabold text-[#0D1B2A]">Collecte Terrain</h1>
@@ -265,13 +342,14 @@ export default function Collecte() {
             <button key={t.id} onClick={() => setStep(t.id)}
               className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition ${step === t.id ? 'text-white' : 'bg-[#F1F5F9] text-[#94A3B8]'}`}
               style={step === t.id ? { backgroundColor: t.color } : {}}>
-              {t.label}
+              <span className="hidden sm:inline">{t.label}</span>
+              <span className="sm:hidden">{t.label.split(' ')[0]}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4">
         {error && (
           <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-medium">{error}</div>
         )}
@@ -280,47 +358,58 @@ export default function Collecte() {
           <div className="space-y-4 animate-fade-in-up">
             <Section title="Cascade géographique" color="#0B7A3E">
               <Field label="Q1 — District">
-                <select value={sel.district?.code || ''} onChange={e => {
-                  const z = zones.districts.find(d => d.code === e.target.value);
-                  setSel({ district: z || null, region: null, departement: null, commune: null });
-                  u('district', z?.name || '');
-                  u('region', ''); u('departement', ''); u('sous_prefecture', '');
-                }} className={selectCls} style={selectStyle}>
-                  <option value="">Sélectionner un district...</option>
-                  {zones.districts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
-                </select>
+                <SearchableSelect
+                  value={sel.district?.code || ''}
+                  onChange={(code, obj) => {
+                    setSel({ district: obj || null, region: null, departement: null, commune: null });
+                    u('district', obj?.name || '');
+                    u('region', ''); u('departement', ''); u('sous_prefecture', '');
+                  }}
+                  options={zones.districts}
+                  placeholder="Sélectionner un district..."
+                  searchPlaceholder="Rechercher un district..."
+                />
               </Field>
               <Field label="Q2 — Région">
-                <select value={sel.region?.code || ''} onChange={e => {
-                  const z = zones.regions.find(r => r.code === e.target.value);
-                  setSel(p => ({ ...p, region: z || null, departement: null, commune: null }));
-                  u('region', z?.name || '');
-                  u('departement', ''); u('sous_prefecture', '');
-                }} className={selectCls} style={selectStyle} disabled={!sel.district}>
-                  <option value="">{sel.district ? 'Sélectionner une région...' : 'Sélectionner d\'abord un district'}</option>
-                  {filteredRegions.map(r => <option key={r.code} value={r.code}>{r.name}</option>)}
-                </select>
+                <SearchableSelect
+                  value={sel.region?.code || ''}
+                  onChange={(code, obj) => {
+                    setSel(p => ({ ...p, region: obj || null, departement: null, commune: null }));
+                    u('region', obj?.name || '');
+                    u('departement', ''); u('sous_prefecture', '');
+                  }}
+                  options={filteredRegions}
+                  placeholder={sel.district ? 'Sélectionner une région...' : 'Sélectionner d\'abord un district'}
+                  disabled={!sel.district}
+                  searchPlaceholder="Rechercher une région..."
+                />
               </Field>
               <Field label="Q3 — Département">
-                <select value={sel.departement?.code || ''} onChange={e => {
-                  const z = zones.depts.find(d => d.code === e.target.value);
-                  setSel(p => ({ ...p, departement: z || null, commune: null }));
-                  u('departement', z?.name || '');
-                  u('sous_prefecture', '');
-                }} className={selectCls} style={selectStyle} disabled={!sel.region}>
-                  <option value="">{sel.region ? 'Sélectionner un département...' : 'Sélectionner d\'abord une région'}</option>
-                  {filteredDepts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
-                </select>
+                <SearchableSelect
+                  value={sel.departement?.code || ''}
+                  onChange={(code, obj) => {
+                    setSel(p => ({ ...p, departement: obj || null, commune: null }));
+                    u('departement', obj?.name || '');
+                    u('sous_prefecture', '');
+                  }}
+                  options={filteredDepts}
+                  placeholder={sel.region ? 'Sélectionner un département...' : 'Sélectionner d\'abord une région'}
+                  disabled={!sel.region}
+                  searchPlaceholder="Rechercher un département..."
+                />
               </Field>
               <Field label="Q4 — Sous-Préfecture / Commune">
-                <select value={sel.commune?.code || ''} onChange={e => {
-                  const z = zones.communes.find(c => c.code === e.target.value);
-                  setSel(p => ({ ...p, commune: z || null }));
-                  u('sous_prefecture', z?.name || '');
-                }} className={selectCls} style={selectStyle} disabled={!sel.departement}>
-                  <option value="">{sel.departement ? 'Sélectionner une sous-préfecture...' : 'Sélectionner d\'abord un département'}</option>
-                  {filteredCommunes.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-                </select>
+                <SearchableSelect
+                  value={sel.commune?.code || ''}
+                  onChange={(code, obj) => {
+                    setSel(p => ({ ...p, commune: obj || null }));
+                    u('sous_prefecture', obj?.name || '');
+                  }}
+                  options={filteredCommunes}
+                  placeholder={sel.departement ? 'Sélectionner une sous-préfecture...' : 'Sélectionner d\'abord un département'}
+                  disabled={!sel.departement}
+                  searchPlaceholder="Rechercher une sous-préfecture..."
+                />
               </Field>
               <Field label="Q5 — Localité / Village / Quartier">
                 <input value={f.localite} onChange={e => u('localite', e.target.value)} className={inputCls} placeholder="Nom du village ou quartier" />
@@ -556,13 +645,33 @@ export default function Collecte() {
                   </button>
                 </div>
                 {f.latitude ? (
-                  <div className="flex items-center gap-2 text-[11px]">
-                    <span className="material-symbols-outlined text-[14px] text-[#0B7A3E]">check_circle</span>
-                    <span className="text-[#0D1B2A] font-mono">{f.latitude.toFixed(5)}, {f.longitude.toFixed(5)}</span>
-                    <span className="text-[#94A3B8]">±{Math.round(f.gps精度 || 0)}m</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span className="material-symbols-outlined text-[14px] text-[#0B7A3E]">check_circle</span>
+                      <span className="text-[#0D1B2A] font-mono">{f.latitude.toFixed(5)}, {f.longitude.toFixed(5)}</span>
+                      <span className="text-[#94A3B8]">±{Math.round(f.gps精度 || 0)}m</span>
+                    </div>
+                    {gpsAddress && (
+                      <div className="flex items-start gap-2 text-[10px] bg-[#F4EFE6] rounded-lg p-2">
+                        <span className="material-symbols-outlined text-[12px] text-[#94A3B8] mt-0.5">location_on</span>
+                        <span className="text-[#6B7280] leading-relaxed">{gpsAddress}</span>
+                      </div>
+                    )}
+                    <div className="w-full h-32 rounded-lg overflow-hidden bg-[#F1F5F9] border border-[#CBD5E1]/30">
+                      <iframe
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${f.longitude - 0.005},${f.latitude - 0.003},${f.longitude + 0.005},${f.latitude + 0.003}&layer=mapnik&marker=${f.latitude},${f.longitude}`}
+                        className="w-full h-full border-0"
+                        loading="lazy"
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-[10px] text-[#94A3B8]">Géolocalisation en cours...</p>
+                  <div className="text-center py-3">
+                    <div className="w-8 h-8 rounded-full bg-[#E8611A]/10 flex items-center justify-center mx-auto mb-2">
+                      <span className="material-symbols-outlined text-[16px] text-[#E8611A] animate-pulse">my_location</span>
+                    </div>
+                    <p className="text-[10px] text-[#94A3B8]">Géolocalisation en cours...</p>
+                  </div>
                 )}
               </div>
 
@@ -595,22 +704,22 @@ export default function Collecte() {
         )}
       </div>
 
-      <div className="px-4 py-3 bg-white border-t border-[#CBD5E1]/20 flex items-center gap-2">
+      <div className="px-3 sm:px-4 py-3 bg-white border-t border-[#CBD5E1]/20 flex items-center gap-2">
         {step > 1 && (
           <button onClick={() => setStep(step - 1)}
-            className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] text-xs font-bold text-[#475569] hover:bg-[#F1F5F9] transition">
+            className="px-3 sm:px-4 py-2.5 rounded-xl border border-[#CBD5E1] text-xs font-bold text-[#475569] hover:bg-[#F1F5F9] transition">
             ← Retour
           </button>
         )}
         <div className="flex-1" />
         {step < 4 ? (
           <button onClick={() => setStep(step + 1)}
-            className="px-6 py-2.5 rounded-xl bg-[#E8611A] text-white text-xs font-bold shadow-sm hover:bg-[#D4550F] transition">
+            className="px-5 sm:px-6 py-2.5 rounded-xl bg-[#E8611A] text-white text-xs font-bold shadow-sm hover:bg-[#D4550F] transition">
             Suivant →
           </button>
         ) : (
           <button onClick={handleSubmit} disabled={submitting}
-            className="px-6 py-2.5 rounded-xl bg-[#0B7A3E] text-white text-xs font-bold shadow-sm hover:bg-[#096832] transition flex items-center gap-2 disabled:opacity-50">
+            className="px-5 sm:px-6 py-2.5 rounded-xl bg-[#0B7A3E] text-white text-xs font-bold shadow-sm hover:bg-[#096832] transition flex items-center gap-2 disabled:opacity-50">
             {submitting ? (
               <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Envoi...</>
             ) : (
