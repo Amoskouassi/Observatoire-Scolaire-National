@@ -708,18 +708,23 @@ export default function Explorer() {
     const allSchools = schoolsData?.features || [];
     if (!allSchools.length) return { totals: { schools: 0, students: 0, girls: 0, boys: 0 }, byZone: {} };
 
-    let scoped = allSchools;
+    const geo = geoDataRef.current;
     const level = currentLevelRef.current;
-    if (level === 'region' && selDistRef.current) {
-      scoped = allSchools.filter(f => f.properties.district_code === selDistRef.current);
-    } else if (level === 'departement' && selRegRef.current) {
-      scoped = allSchools.filter(f => f.properties.region_code === selRegRef.current);
-    } else if (level === 'sous-prefecture' && selDeptRef.current) {
-      scoped = allSchools.filter(f => f.properties.departement_code === selDeptRef.current);
-    }
 
-    const keyMap = { district: 'district_code', region: 'region_code', departement: 'departement_code', 'sous-prefecture': 'commune_code' };
-    const propKey = keyMap[level];
+    let scoped = allSchools;
+    if (level === 'region' && selDistRef.current) {
+      const distFeat = geo.districts?.features?.find(f => f.properties.name === selDistRef.current);
+      const distCode = distFeat?.properties.code;
+      if (distCode) scoped = allSchools.filter(f => f.properties.district_code === distCode);
+    } else if (level === 'departement' && selRegRef.current) {
+      const regFeat = geo.regions?.features?.find(f => f.properties.name === selRegRef.current);
+      const regCode = regFeat?.properties.code;
+      if (regCode) scoped = allSchools.filter(f => f.properties.region_code === regCode);
+    } else if (level === 'sous-prefecture' && selDeptRef.current) {
+      const deptFeat = geo.depts?.features?.find(f => f.properties.name === selDeptRef.current);
+      const deptCode = deptFeat?.properties.code;
+      if (deptCode) scoped = allSchools.filter(f => f.properties.departement_code === deptCode);
+    }
 
     const totals = { schools: scoped.length, students: 0, girls: 0, boys: 0 };
     const byZone = {};
@@ -733,15 +738,14 @@ export default function Explorer() {
       totals.girls += g;
       totals.boys += b;
 
-      if (propKey) {
-        const zKey = p[propKey];
-        if (zKey) {
-          if (!byZone[zKey]) byZone[zKey] = { schools: 0, students: 0, girls: 0, boys: 0 };
-          byZone[zKey].schools++;
-          byZone[zKey].students += t;
-          byZone[zKey].girls += g;
-          byZone[zKey].boys += b;
-        }
+      const codeMap = { district: p.district_code, region: p.region_code, departement: p.departement_code, 'sous-prefecture': p.commune_code };
+      const zKey = codeMap[level];
+      if (zKey) {
+        if (!byZone[zKey]) byZone[zKey] = { schools: 0, students: 0, girls: 0, boys: 0 };
+        byZone[zKey].schools++;
+        byZone[zKey].students += t;
+        byZone[zKey].girls += g;
+        byZone[zKey].boys += b;
       }
     }
 
