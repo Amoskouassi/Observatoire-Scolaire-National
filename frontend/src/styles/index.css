@@ -21,7 +21,7 @@
     @apply bg-transparent hover:bg-[#F4EFE6] text-[#1E293B] py-2.5 px-3 rounded-lg font-semibold text-sm transition-colors cursor-pointer;
   }
   .card { @apply bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]; }
-  .kpi-card { @apply bg-[#FAF8F3] p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] flex flex-col justify-between relative overflow-hidden; }
+  .kpi-card { @apply bg-[#FAF8F3] p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] flex flex-col justify-between relative; }
   .badge { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold; }
   .badge-orange { @apply badge bg-[#E8611A]/10 text-[#E8611A]; }
   .badge-vert { @apply badge bg-[#0B7A3E]/10 text-[#0B7A3E]; }
