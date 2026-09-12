@@ -254,12 +254,9 @@ export default function Explorer() {
   const showZoneDetail = useCallback((level, props) => {
     setSelected({
       name: props.name,
+      code: props.code,
       level,
       status: props.status,
-      schools: props.schools,
-      students: props.students,
-      girls: props.girls,
-      boys: props.boys,
     });
   }, []);
 
@@ -707,11 +704,57 @@ export default function Explorer() {
     mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filtered });
   }, [filters, schoolsData]);
 
-  const totalSchools = zones.reduce((s, z) => s + (z.schools || 0), 0);
-  const totalStudents = zones.reduce((s, z) => s + (z.students || 0), 0);
-  const totalGirls = zones.reduce((s, z) => s + (z.girls || 0), 0);
-  const totalBoys = zones.reduce((s, z) => s + (z.boys || 0), 0);
-  const maxSchools = Math.max(...zones.map(z => z.schools || 0), 1);
+  const computeZoneStats = useCallback(() => {
+    const allSchools = schoolsData?.features || [];
+    if (!allSchools.length) return { totals: { schools: 0, students: 0, girls: 0, boys: 0 }, byZone: {} };
+
+    let scoped = allSchools;
+    const level = currentLevelRef.current;
+    if (level === 'region' && selDistRef.current) {
+      scoped = allSchools.filter(f => f.properties.district_code === selDistRef.current);
+    } else if (level === 'departement' && selRegRef.current) {
+      scoped = allSchools.filter(f => f.properties.region_code === selRegRef.current);
+    } else if (level === 'sous-prefecture' && selDeptRef.current) {
+      scoped = allSchools.filter(f => f.properties.departement_code === selDeptRef.current);
+    }
+
+    const keyMap = { district: 'district_code', region: 'region_code', departement: 'departement_code', 'sous-prefecture': 'commune_code' };
+    const propKey = keyMap[level];
+
+    const totals = { schools: scoped.length, students: 0, girls: 0, boys: 0 };
+    const byZone = {};
+
+    for (const f of scoped) {
+      const p = f.properties;
+      const g = p.nombre_filles || 0;
+      const b = p.nombre_garcons || 0;
+      const t = g + b;
+      totals.students += t;
+      totals.girls += g;
+      totals.boys += b;
+
+      if (propKey) {
+        const zKey = p[propKey];
+        if (zKey) {
+          if (!byZone[zKey]) byZone[zKey] = { schools: 0, students: 0, girls: 0, boys: 0 };
+          byZone[zKey].schools++;
+          byZone[zKey].students += t;
+          byZone[zKey].girls += g;
+          byZone[zKey].boys += b;
+        }
+      }
+    }
+
+    return { totals, byZone };
+  }, [schoolsData]);
+
+  const { totals: schoolStats, byZone: zoneSchoolStats } = computeZoneStats();
+
+  const totalSchools = schoolStats.schools;
+  const totalStudents = schoolStats.students;
+  const totalGirls = schoolStats.girls;
+  const totalBoys = schoolStats.boys;
+  const maxSchools = Math.max(...zones.map(z => (zoneSchoolStats[z.code]?.schools || z.schools || 0)), 1);
 
   const levelLabel = { district: 'Districts', region: 'Régions', departement: 'Départements', 'sous-prefecture': 'Sous-préfectures' };
 
@@ -932,31 +975,40 @@ export default function Explorer() {
         </div>
 
         <div className="px-5 py-4 grid grid-cols-3 gap-3 border-b border-[#CBD5E1]/20">
-          <StatCard icon="school" label="Écoles" value={selected ? (selected.schools || 0) : totalSchools} />
-          <StatCard icon="groups" label="Élèves" value={selected ? (selected.students || 0) : totalStudents} format="k" />
-          <StatCard icon="girl" label="Filles" value={
-            selected
-              ? (selected.girls && selected.boys ? Math.round(selected.girls / (selected.girls + selected.boys) * 100) : 0)
-              : (totalGirls && totalBoys ? Math.round(totalGirls / (totalGirls + totalBoys) * 100) : 0)
-          } suffix="%" />
+          {(() => {
+            const sel = selected ? (zoneSchoolStats[selected.code] || { schools: 0, students: 0, girls: 0, boys: 0 }) : null;
+            const s = sel || { schools: totalSchools, students: totalStudents, girls: totalGirls, boys: totalBoys };
+            const pctFilles = (s.girls + s.boys) > 0 ? Math.round(s.girls / (s.girls + s.boys) * 100) : 0;
+            return (<>
+              <StatCard icon="school" label="Écoles" value={s.schools} />
+              <StatCard icon="groups" label="Élèves" value={s.students} format="k" />
+              <StatCard icon="girl" label="Filles" value={pctFilles} suffix="%" />
+            </>);
+          })()}
         </div>
 
-        {(selected ? selected.girls > 0 : totalGirls > 0) && (
-          <div className="px-5 py-3 border-b border-[#CBD5E1]/20">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Parité filles/garçons</span>
+        {(() => {
+          const sel = selected ? (zoneSchoolStats[selected.code] || { girls: 0, boys: 0 }) : null;
+          const g = sel ? sel.girls : totalGirls;
+          const b = sel ? sel.boys : totalBoys;
+          if ((g + b) <= 0) return null;
+          const pct = Math.round(g / (g + b) * 100);
+          return (
+            <div className="px-5 py-3 border-b border-[#CBD5E1]/20">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Parité filles/garçons</span>
+              </div>
+              <div className="w-full h-2 bg-white rounded-full overflow-hidden flex">
+                <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                <div className="h-full bg-[#0B7A3E] rounded-r-full flex-1" />
+              </div>
+              <div className="flex justify-between text-[10px] font-bold mt-1.5">
+                <span className="text-[#E8611A]">{pct}% filles</span>
+                <span className="text-[#0B7A3E]">{100 - pct}% garçons</span>
+              </div>
             </div>
-            <div className="w-full h-2 bg-white rounded-full overflow-hidden flex">
-              <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500"
-                style={{ width: `${selected ? Math.round(selected.girls / (selected.girls + selected.boys) * 100) : Math.round(totalGirls / (totalGirls + totalBoys) * 100)}%` }} />
-              <div className="h-full bg-[#0B7A3E] rounded-r-full flex-1" />
-            </div>
-            <div className="flex justify-between text-[10px] font-bold mt-1.5">
-              <span className="text-[#E8611A]">{selected ? Math.round(selected.girls / (selected.girls + selected.boys) * 100) : Math.round(totalGirls / (totalGirls + totalBoys) * 100)}% filles</span>
-              <span className="text-[#0B7A3E]">{selected ? 100 - Math.round(selected.girls / (selected.girls + selected.boys) * 100) : 100 - Math.round(totalGirls / (totalGirls + totalBoys) * 100)}% garçons</span>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         <div className="flex-1 overflow-y-auto px-5 py-3">
           {selectedSchool ? (
@@ -966,9 +1018,11 @@ export default function Explorer() {
           ) : (
             <div className="flex flex-col gap-1.5">
               {zones
-                .sort((a, b) => (b.schools || 0) - (a.schools || 0))
-                .map((z, i) => (
-                <button key={i} onClick={() => currentLevel === 'sous-prefecture' ? showZoneDetail(currentLevel, z) : drillDown(currentLevel, z.name)}
+                .sort((a, b) => (zoneSchoolStats[b.code]?.schools || 0) - (zoneSchoolStats[a.code]?.schools || 0))
+                .map((z, i) => {
+                const zs = zoneSchoolStats[z.code] || { schools: z.schools || 0, students: z.students || 0, girls: z.girls || 0, boys: z.boys || 0 };
+                return (
+                <button key={i} onClick={() => currentLevel === 'sous-prefecture' ? showZoneDetail(currentLevel, { ...z, ...zs }) : drillDown(currentLevel, z.name)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white hover:bg-white hover:shadow-sm transition-all duration-200 text-left group border border-transparent hover:border-[#E8611A]/10">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
                     style={{ backgroundColor: `${COLORS[z.status] || COLORS.pending}12`, color: COLORS[z.status] || COLORS.pending }}>
@@ -976,13 +1030,14 @@ export default function Explorer() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-bold text-[#0D1B2A] truncate group-hover:text-[#E8611A] transition-colors">{z.name}</p>
-                    <p className="text-[10px] text-[#94A3B8] font-medium">{(z.schools || 0).toLocaleString('fr-FR')} écoles · {z.students ? Math.round(z.students / 1000) + 'k élèves' : '—'}</p>
+                    <p className="text-[10px] text-[#94A3B8] font-medium">{zs.schools.toLocaleString('fr-FR')} écoles · {zs.students ? Math.round(zs.students / 1000) + 'k élèves' : '—'}</p>
                   </div>
                   <div className="w-14 h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden shrink-0">
-                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${((z.schools || 0) / maxSchools) * 100}%`, backgroundColor: COLORS[z.status] || COLORS.pending }} />
+                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${((zs.schools || 0) / maxSchools) * 100}%`, backgroundColor: COLORS[z.status] || COLORS.pending }} />
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
