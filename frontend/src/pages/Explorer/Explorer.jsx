@@ -223,6 +223,7 @@ export default function Explorer() {
   const [currentLevel, setCurrentLevel] = useState('district');
   const [zones, setZones] = useState([]);
   const [breadcrumb, setBreadcrumb] = useState({ district: null, region: null, dept: null });
+  const [selectedSchool, setSelectedSchool] = useState(null);
 
   const selDistRef = useRef(null);
   const selRegRef = useRef(null);
@@ -352,6 +353,7 @@ export default function Explorer() {
 
   const handleBack = useCallback(() => {
     setSelected(null);
+    setSelectedSchool(null);
     const map = mapInst.current;
     if (!map) return;
     const data = geoDataRef.current;
@@ -598,7 +600,7 @@ export default function Explorer() {
 
       map.on('click', (e) => {
         const sf = map.queryRenderedFeatures(e.point, { layers: ['ecoles-points'] });
-        if (sf?.length) { const id = sf[0].properties?.id; if (id) navigate('/ecole/' + id); return; }
+        if (sf?.length) { setSelectedSchool(sf[0].properties); return; }
 
         const level = currentLevelRef.current;
         if (level === 'district') {
@@ -908,13 +910,19 @@ export default function Explorer() {
                 <span className={currentLevel === 'sous-prefecture' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.dept}</span>
               </>
             )}
+            {selectedSchool && (
+              <>
+                <span className="material-symbols-outlined text-[10px] text-[#CBD5E1]">chevron_right</span>
+                <span className="text-[#E8611A] font-bold">{selectedSchool.nom_etablissement}</span>
+              </>
+            )}
           </div>
           <div className="flex items-center justify-between">
             <h2 className="font-extrabold text-[#0D1B2A] text-lg tracking-tight">
-              {levelLabel[currentLevel]}
+              {selectedSchool ? 'Fiche École' : levelLabel[currentLevel]}
             </h2>
-            {currentLevel !== 'district' && (
-              <button onClick={handleBack}
+            {(selectedSchool || currentLevel !== 'district') && (
+              <button onClick={() => selectedSchool ? setSelectedSchool(null) : handleBack()}
                 className="flex items-center gap-1 text-[11px] text-[#E8611A] font-bold hover:bg-[#E8611A]/5 px-2 py-1 rounded-lg transition">
                 <span className="material-symbols-outlined text-[14px]">arrow_back</span> Retour
               </button>
@@ -951,7 +959,9 @@ export default function Explorer() {
         )}
 
         <div className="flex-1 overflow-y-auto px-5 py-3">
-          {selected ? (
+          {selectedSchool ? (
+            <SchoolFiche school={selectedSchool} onBack={() => setSelectedSchool(null)} />
+          ) : selected ? (
             <ZoneDetail zone={selected} />
           ) : (
             <div className="flex flex-col gap-1.5">
@@ -1040,6 +1050,120 @@ function ZoneDetail({ zone }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SchoolFiche({ school }) {
+  const total = (school.nombre_filles || 0) + (school.nombre_garcons || 0);
+  const pctFilles = total > 0 ? Math.round((school.nombre_filles || 0) / total * 100) : 0;
+  const inventaire = (() => { try { return typeof school.inventaire_classes === 'string' ? JSON.parse(school.inventaire_classes) : (school.inventaire_classes || []); } catch { return []; } })();
+  const besoins = inventaire.reduce((s, c) => s + (c.besoin_bancs || 0), 0);
+
+  const STATUT_LABEL = { public: 'Public', prive_laic: 'Privé laïc', prive_confessionnel: 'Privé confessionnel', communautaire_non_reconnue: 'Communautaire' };
+  const NIVEAU_LABEL = { primaire: 'Primaire', secondaire: 'Secondaire' };
+  const STATUS_COLORS = { collected: '#E8611A', waiting: '#0B7A3E', pending: '#CBD5E1' };
+
+  return (
+    <div className="flex flex-col gap-3 pb-4">
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
+        <div className="flex items-center justify-between mb-3">
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+            style={{ backgroundColor: `${STATUS_COLORS[school.collect_status] || '#CBD5E1'}10`, color: STATUS_COLORS[school.collect_status] || '#CBD5E1' }}>
+            {school.collect_status === 'collected' ? 'Collecté' : school.collect_status === 'waiting' ? 'En cours' : 'En attente'}
+          </span>
+          <span className="text-[10px] text-[#94A3B8] font-mono">{school.code_mena}</span>
+        </div>
+        <h3 className="text-[15px] font-extrabold text-[#0D1B2A] leading-tight">{school.nom_etablissement}</h3>
+        <div className="flex flex-wrap gap-2 mt-2">
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F1F5F9] text-[#475569]">{STATUT_LABEL[school.statut] || school.statut}</span>
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F1F5F9] text-[#475569]">{NIVEAU_LABEL[school.niveau_enseignement] || school.niveau_enseignement}</span>
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F1F5F9] text-[#475569] capitalize">{school.milieu_implantation}</span>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
+        <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-3">Effectifs</h4>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="text-center">
+            <p className="text-2xl font-extrabold text-[#0D1B2A]">{total.toLocaleString('fr-FR')}</p>
+            <p className="text-[9px] font-bold text-[#94A3B8] uppercase">Total</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-extrabold text-[#E8611A]">{(school.nombre_filles || 0).toLocaleString('fr-FR')}</p>
+            <p className="text-[9px] font-bold text-[#E8611A] uppercase">Filles {pctFilles}%</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-extrabold text-[#0B7A3E]">{(school.nombre_garcons || 0).toLocaleString('fr-FR')}</p>
+            <p className="text-[9px] font-bold text-[#0B7A3E] uppercase">Garçons {100 - pctFilles}%</p>
+          </div>
+        </div>
+        <div className="w-full h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex mt-3">
+          <div className="h-full bg-[#E8611A] rounded-l-full transition-all" style={{ width: `${pctFilles}%` }} />
+          <div className="h-full bg-[#0B7A3E] rounded-r-full flex-1" />
+        </div>
+        <div className="flex items-center justify-between mt-2 text-[10px] font-bold">
+          <span className="text-[#94A3B8]">{school.enseignants_presents || 0} enseignants · {school.salles_classe_total || 0} salles</span>
+          {total > 0 && school.enseignants_presents > 0 && <span className="text-[#475569]">Ratio {Math.round(total / school.enseignants_presents)}:1</span>}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
+        <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-3">Infrastructure</h4>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: 'Eau potable', ok: school.eau_potable, icon: 'water_drop' },
+            { label: 'Électricité', ok: school.electricite, icon: 'bolt' },
+            { label: 'Toilettes filles', ok: school.toilettes_filles_fonctionnelles, icon: 'wc' },
+            { label: 'Bancs', ok: besoins === 0, icon: 'chair', extra: besoins > 0 ? `${besoins} besoins` : 'OK' },
+          ].map(item => (
+            <div key={item.label} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-bold ${item.ok ? 'bg-[#0B7A3E]/8 text-[#0B7A3E]' : 'bg-[#ba1a1a]/8 text-[#ba1a1a]'}`}>
+              <span className="material-symbols-outlined text-[14px]">{item.icon}</span>
+              <span>{item.label}</span>
+              {item.extra && <span className="ml-auto text-[9px]">{item.extra}</span>}
+            </div>
+          ))}
+        </div>
+        {school.materiaux_precaires && school.materiaux_precaires.length > 0 && (
+          <div className="mt-2 px-2.5 py-2 rounded-lg bg-[#d97706]/8 text-[#d97706] text-[11px] font-bold flex items-center gap-2">
+            <span className="material-symbols-outlined text-[14px]">construction</span>
+            <span>Matériaux précaires : {Array.isArray(school.materiaux_precaires) ? school.materiaux_precaires.join(', ') : school.materiaux_precaires}</span>
+          </div>
+        )}
+      </div>
+
+      {inventaire.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
+          <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-3">Inventaire des classes</h4>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center text-[10px] font-bold text-[#94A3B8] uppercase px-2">
+              <span className="flex-1">Classe</span>
+              <span className="w-10 text-center">F</span>
+              <span className="w-10 text-center">G</span>
+              <span className="w-10 text-center">Bancs</span>
+              <span className="w-14 text-center">Besoin</span>
+            </div>
+            {inventaire.map((cl, i) => (
+              <div key={i} className="flex items-center text-[11px] font-medium text-[#0D1B2A] px-2 py-1.5 rounded-lg bg-[#F8F6F1]">
+                <span className="flex-1 font-bold">{cl.classe}</span>
+                <span className="w-10 text-center text-[#E8611A]">{cl.filles || 0}</span>
+                <span className="w-10 text-center text-[#0B7A3E]">{cl.garcons || 0}</span>
+                <span className="w-10 text-center">{cl.bancs_actifs || 0}</span>
+                <span className="w-14 text-center font-bold text-[#ba1a1a]">{cl.besoin_bancs || 0}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {school.last_collecte_at && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
+          <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-2">Dernière collecte</h4>
+          <p className="text-[12px] font-medium text-[#475569]">
+            {new Date(school.last_collecte_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
