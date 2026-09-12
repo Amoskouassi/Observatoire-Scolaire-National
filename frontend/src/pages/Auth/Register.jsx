@@ -283,9 +283,6 @@ export default function Register() {
                   {sel.commune && <span> → {sel.commune.name}</span>}
                 </div>
               )}
-                  {sel.commune && <span> → {sel.commune.name}</span>}
-                </div>
-              )}
             </div>
           )}
 
