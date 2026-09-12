@@ -948,7 +948,11 @@ export default function Explorer() {
           </div>
           <div className="flex items-center justify-between">
             <h2 className="font-extrabold text-[#0D1B2A] text-lg tracking-tight">
-              {selectedSchool ? 'Fiche École' : breadcrumb.dept || breadcrumb.region || breadcrumb.district || levelLabel[currentLevel]}
+              {selectedSchool ? 'Fiche École' :
+                breadcrumb.dept ? `Département de ${breadcrumb.dept}` :
+                breadcrumb.region ? `Région de ${breadcrumb.region}` :
+                breadcrumb.district ? `District ${breadcrumb.district.includes('District') ? breadcrumb.district : 'des ' + breadcrumb.district}` :
+                'Districts'}
             </h2>
             {(selectedSchool || currentLevel !== 'district') && (
               <button onClick={() => selectedSchool ? setSelectedSchool(null) : handleBack()}
