@@ -255,8 +255,11 @@ export default function Explorer() {
     api.getZoneCounts().then(d => setZoneCounts(d)).catch(() => {});
   }, []);
 
+  const zoneSchoolStatsRef = useRef({});
+  zoneSchoolStatsRef.current = zoneSchoolStats;
+
   const showZoneDetail = useCallback((level, props) => {
-    const zs = zoneSchoolStats[props.code] || {};
+    const zs = zoneSchoolStatsRef.current[props.code] || {};
     setSelected({
       name: props.name,
       code: props.code,
@@ -267,7 +270,7 @@ export default function Explorer() {
       girls: zs.girls || 0,
       boys: zs.boys || 0,
     });
-  }, [zoneSchoolStats]);
+  }, []);
 
   const drillDown = useCallback((level, name) => {
     const map = mapInst.current;
@@ -738,6 +741,7 @@ export default function Explorer() {
   }
 
   const maxSchools = Math.max(...zones.map(z => (zoneSchoolStats[z.code]?.schools || 0)), 1);
+  const sortedZones = zones.slice().sort((a, b) => (zoneSchoolStats[b.code]?.schools || 0) - (zoneSchoolStats[a.code]?.schools || 0));
 
   const levelLabel = { district: 'Districts', region: 'Régions', departement: 'Départements', 'sous-prefecture': 'Sous-préfectures' };
 
@@ -1000,8 +1004,7 @@ export default function Explorer() {
             <ZoneDetail zone={selected} />
           ) : (
             <div className="flex flex-col gap-1.5">
-              {zones
-                .sort((a, b) => (zoneSchoolStats[b.code]?.schools || 0) - (zoneSchoolStats[a.code]?.schools || 0))
+              {sortedZones
                 .map((z, i) => {
                 const zs = zoneSchoolStats[z.code] || { schools: z.schools || 0, students: z.students || 0, girls: z.girls || 0, boys: z.boys || 0 };
                 return (
