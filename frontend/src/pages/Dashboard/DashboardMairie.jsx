@@ -106,6 +106,15 @@ export default function DashboardMairie() {
   const tauxCollecte = stats.total_ecoles > 0
     ? Math.round((stats.by_status.collected / stats.total_ecoles) * 100)
     : 0;
+  const ratioElevesEnseignant = stats.total_enseignants > 0
+    ? Math.round(stats.total_eleves / stats.total_enseignants)
+    : 0;
+  const pctUrbain = stats.total_ecoles > 0
+    ? Math.round((stats.by_milieu.urbain / stats.total_ecoles) * 100)
+    : 0;
+  const pctPublic = stats.total_ecoles > 0
+    ? Math.round((stats.by_statut.public / stats.total_ecoles) * 100)
+    : 0;
 
   const besoins = [
     { label: 'Sans eau potable', value: stats.infrastructure.sans_eau, color: '#ba1a1a', total: stats.total_ecoles },
@@ -132,6 +141,44 @@ export default function DashboardMairie() {
           {userInfo?.organisation && (
             <p className="text-xs text-[#6B7280] mt-1">{userInfo?.prenom} {userInfo?.nom}</p>
           )}
+        </div>
+
+        {/* Résumé rapide */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: 'Élèves', value: stats.total_eleves.toLocaleString('fr-FR'), icon: 'groups', color: '#E8611A' },
+            { label: 'Écoles', value: stats.total_ecoles, icon: 'school', color: '#0B7A3E' },
+            { label: 'Enseignants', value: stats.total_enseignants, icon: 'person', color: '#475569' },
+          ].map(k => (
+            <div key={k.label} className="bg-[#FAF8F3] rounded-xl p-3 text-center shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+              <span className="material-symbols-outlined text-[20px]" style={{ color: k.color }}>{k.icon}</span>
+              <p className="text-lg font-black text-[#0D1B2A] mt-0.5">{k.value}</p>
+              <p className="text-[9px] font-bold text-[#94A3B8] uppercase">{k.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Caractéristiques */}
+        <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+          <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Caractéristiques</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: 'Ratio élèves/enseignant', value: `${ratioElevesEnseignant}:1`, icon: 'calculate' },
+              { label: 'Taux de collecte', value: `${tauxCollecte}%`, icon: 'data_check' },
+              { label: 'Milieu urbain', value: `${pctUrbain}%`, icon: 'location_city' },
+              { label: 'Écoles publiques', value: `${pctPublic}%`, icon: 'account_balance' },
+              { label: 'Primaire', value: stats.by_niveau.primaire || 0, icon: 'child_care' },
+              { label: 'Secondaire', value: stats.by_niveau.secondaire || 0, icon: 'science' },
+            ].map(c => (
+              <div key={c.label} className="flex items-center gap-2 bg-[#F4EFE6] rounded-lg p-2">
+                <span className="material-symbols-outlined text-[16px] text-[#E8611A]">{c.icon}</span>
+                <div>
+                  <p className="text-sm font-black text-[#0D1B2A]">{c.value}</p>
+                  <p className="text-[9px] font-bold text-[#94A3B8] uppercase">{c.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* KPIs */}
