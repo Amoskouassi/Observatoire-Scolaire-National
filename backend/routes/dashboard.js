@@ -58,7 +58,7 @@ router.get('/my-zone', async (req, res, next) => {
       district_code: 'district',
     };
 
-    const { data: ecoles, error } = await supabase
+    const { data: ecoles, error } = await supabaseAdmin
       .from('ecoles')
       .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at')
       .eq(zoneColumn, zoneCode);
@@ -149,7 +149,7 @@ router.get('/stats/:level/:code?', async (req, res, next) => {
   try {
     const { level, code } = req.params;
 
-    let query = supabase.from('ecoles').select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, eleves_total, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at');
+    let query = supabaseAdmin.from('ecoles').select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, eleves_total, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at');
 
     if (code) {
       const columnMap = {
