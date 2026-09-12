@@ -949,6 +949,7 @@ export default function Explorer() {
           <div className="flex items-center justify-between">
             <h2 className="font-extrabold text-[#0D1B2A] text-lg tracking-tight">
               {selectedSchool ? 'Fiche École' :
+                selected ? `Sous-préfecture de ${selected.name}` :
                 breadcrumb.dept ? `Département de ${breadcrumb.dept}` :
                 breadcrumb.region ? `Région de ${breadcrumb.region}` :
                 breadcrumb.district ? `District ${breadcrumb.district.includes('District') ? breadcrumb.district : 'des ' + breadcrumb.district}` :
