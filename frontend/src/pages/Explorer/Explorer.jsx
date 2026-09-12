@@ -250,13 +250,11 @@ export default function Explorer() {
   }, [urlLevel, urlCode, searchParams, setFilter]);
   const drillingRef = useRef(false);
   const syncViewRef = useRef(null);
+  const zoneSchoolStatsRef = useRef({});
 
   useEffect(() => {
     api.getZoneCounts().then(d => setZoneCounts(d)).catch(() => {});
   }, []);
-
-  const zoneSchoolStatsRef = useRef({});
-  zoneSchoolStatsRef.current = zoneSchoolStats;
 
   const showZoneDetail = useCallback((level, props) => {
     const zs = zoneSchoolStatsRef.current[props.code] || {};
@@ -739,6 +737,7 @@ export default function Explorer() {
   for (const z of zones) {
     if (currentTable[z.code]) zoneSchoolStats[z.code] = currentTable[z.code];
   }
+  zoneSchoolStatsRef.current = zoneSchoolStats;
 
   const maxSchools = Math.max(...zones.map(z => (zoneSchoolStats[z.code]?.schools || 0)), 1);
   const sortedZones = zones.slice().sort((a, b) => (zoneSchoolStats[b.code]?.schools || 0) - (zoneSchoolStats[a.code]?.schools || 0));
