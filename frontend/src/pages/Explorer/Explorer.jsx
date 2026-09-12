@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapStore } from '../../stores/mapStore';
@@ -215,6 +215,8 @@ export default function Explorer() {
   const mapInst = useRef(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { level: urlLevel, code: urlCode } = useParams();
+  const [searchParams] = useSearchParams();
   const { filters, setFilter, resetFilters, advancedFiltersOpen, toggleAdvancedFilters, isPremium, schoolsData, setSchoolsData } = useMapStore();
   const { role } = useAuthStore();
   const [selected, setSelected] = useState(null);
@@ -228,6 +230,23 @@ export default function Explorer() {
   const currentLevelRef = useRef('district');
   const geoDataRef = useRef({ districts: null, regions: null, depts: null, sp: null });
   const labelsRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
+  const urlAppliedRef = useRef(false);
+
+  useEffect(() => {
+    if (urlAppliedRef.current) return;
+    const statusParam = searchParams.get('status');
+    const filterParam = searchParams.get('filter');
+    if (statusParam) {
+      setFilter('collect_status', [statusParam]);
+    }
+    if (filterParam === 'sans_eau') setFilter('sans_eau', true);
+    if (filterParam === 'sans_toilettes') setFilter('sans_toilettes', true);
+    if (filterParam === 'sans_electricite') setFilter('sans_electricite', true);
+    if (filterParam === 'manque_bancs') setFilter('manque_bancs', true);
+    if (urlLevel && urlCode) {
+      urlAppliedRef.current = true;
+    }
+  }, [urlLevel, urlCode, searchParams, setFilter]);
   const drillingRef = useRef(false);
   const syncViewRef = useRef(null);
 
@@ -650,6 +669,7 @@ export default function Explorer() {
       if (filters.sans_eau && p.eau_potable !== false) return false;
       if (filters.sans_electricite && p.electricite !== false) return false;
       if (filters.manque_enseignants && (!p.enseignants_presents || p.enseignants_presents > 0)) return false;
+      if (filters.materiaux_precaires && (!p.materiaux_precaires || p.materiaux_precaires.length === 0)) return false;
       if (filters.taux_filles_min != null) {
         const total = (p.nombre_filles || 0) + (p.nombre_garcons || 0);
         const pct = total > 0 ? (p.nombre_filles / total) * 100 : 0;
@@ -758,7 +778,7 @@ export default function Explorer() {
 
                 <div className="h-px bg-[#CBD5E1]/20" />
 
-                {role === 'institution' || role === 'admin' ? (
+                {['institution', 'admin', 'mairie', 'president_region', 'ministre', 'directeur_afrique'].includes(role) ? (
                   <div className="flex flex-col gap-2.5">
                     <div className="flex flex-wrap gap-1.5">
                       {[
@@ -767,6 +787,7 @@ export default function Explorer() {
                         { key: 'sans_eau', label: 'Sans eau', icon: 'water_drop' },
                         { key: 'sans_electricite', label: 'Sans électricité', icon: 'bolt' },
                         { key: 'manque_enseignants', label: 'Manque enseignants', icon: 'person_off' },
+                        { key: 'materiaux_precaires', label: 'Matériaux précaires', icon: 'construction' },
                       ].map(f => {
                         const active = filters[f.key];
                         return (
@@ -778,6 +799,27 @@ export default function Explorer() {
                           </button>
                         );
                       })}
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mb-1.5">Statut juridique</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { value: 'public', label: 'Public' },
+                          { value: 'prive_laic', label: 'Privé laïc' },
+                          { value: 'prive_confessionnel', label: 'Privé confes.' },
+                          { value: 'communautaire_non_reconnue', label: 'Communautaire' },
+                        ].map(s => {
+                          const active = filters.statut.includes(s.value);
+                          return (
+                            <button key={s.value}
+                              onClick={() => setFilter('statut', active ? filters.statut.filter(v => v !== s.value) : [...filters.statut, s.value])}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition ${active ? 'bg-[#0D1B2A] text-white' : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'}`}>
+                              {s.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div>
@@ -801,8 +843,8 @@ export default function Explorer() {
                       <span className="material-symbols-outlined text-[18px] text-[#E8611A]">lock</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-[#0D1B2A]">Filtres institutions</p>
-                      <p className="text-[10px] text-[#94A3B8]">Manque bancs, eau, toilettes, enseignants, taux parité — réservé aux institutions & mairies</p>
+                      <p className="text-[11px] font-bold text-[#0D1B2A]">Filtres avancés</p>
+                      <p className="text-[10px] text-[#94A3B8]">Infrastructure, statut juridique, taux parité — connectez-vous en tant que décideur</p>
                     </div>
                   </div>
                 )}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
 
@@ -28,9 +29,12 @@ function Jauge({ value, max, color = '#E8611A' }) {
   );
 }
 
-function KPICard({ icon, label, value, badge, badgeBg, error, loading }) {
+function KPICard({ icon, label, value, badge, badgeBg, error, loading, onClick }) {
   return (
-    <div className={`p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] ${error ? 'bg-[#ffdad6]/40' : 'bg-[#FAF8F3]'}`}>
+    <button
+      onClick={onClick}
+      className={`p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer ${error ? 'bg-[#ffdad6]/40' : 'bg-[#FAF8F3]'}`}
+    >
       <div className="flex items-center justify-between mb-2">
         <span className={`p-1.5 rounded-lg ${error ? 'bg-[#ffdad6] text-[#ba1a1a]' : 'bg-[#e7eeff] text-[#0D1B2A]'}`}>
           <span className="material-symbols-outlined text-[20px]">{icon}</span>
@@ -41,12 +45,13 @@ function KPICard({ icon, label, value, badge, badgeBg, error, loading }) {
       <p className={`text-[1.875rem] font-black tabular-nums ${error ? 'text-[#ba1a1a]' : 'text-[#0D1B2A]'}`}>
         {loading ? '—' : value}
       </p>
-    </div>
+    </button>
   );
 }
 
 export default function DashboardMairie() {
   const { user, token } = useAuthStore();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -134,11 +139,13 @@ export default function DashboardMairie() {
           <KPICard
             icon="school" label="Écoles" value={stats.total_ecoles}
             badge={`${tauxCollecte}%`} badgeBg="#0B7A3E"
+            onClick={() => navigate(`/explorer/${zone.level}/${zone.code}`)}
           />
           <KPICard
             icon="groups" label="Élèves"
             value={stats.total_eleves.toLocaleString('fr-FR')}
             badge={`${stats.taux_filles_pct}% filles`} badgeBg="#E8611A"
+            onClick={() => navigate(`/explorer/${zone.level}/${zone.code}`)}
           />
           <KPICard
             icon="water_drop" label="Sans eau"
@@ -146,11 +153,13 @@ export default function DashboardMairie() {
             error={stats.infrastructure.sans_eau > 0}
             badge={stats.infrastructure.sans_eau > 0 ? 'Urgence' : 'OK'}
             badgeBg={stats.infrastructure.sans_eau > 0 ? '#ba1a1a' : '#0B7A3E'}
+            onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?filter=sans_eau`)}
           />
           <KPICard
             icon="person" label="Enseignants"
             value={stats.total_enseignants.toLocaleString('fr-FR')}
             badge={`${Math.round(stats.total_eleves / Math.max(1, stats.total_enseignants))}:1`} badgeBg="#475569"
+            onClick={() => navigate(`/explorer/${zone.level}/${zone.code}`)}
           />
         </div>
 
@@ -159,17 +168,18 @@ export default function DashboardMairie() {
           <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Statut de collecte</h3>
           <div className="space-y-2.5">
             {[
-              { label: 'Collectées', count: stats.by_status.collected, color: '#0B7A3E' },
-              { label: 'En attente', count: stats.by_status.waiting, color: '#E8611A' },
-              { label: 'Non programmées', count: stats.by_status.pending, color: '#94A3B8' },
+              { label: 'Collectées', count: stats.by_status.collected, color: '#0B7A3E', filter: 'collected' },
+              { label: 'En attente', count: stats.by_status.waiting, color: '#E8611A', filter: 'waiting' },
+              { label: 'Non programmées', count: stats.by_status.pending, color: '#94A3B8', filter: 'pending' },
             ].map(s => (
-              <div key={s.label}>
+              <button key={s.label} onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?status=${s.filter}`)}
+                className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-1.5 -m-1.5 transition-colors cursor-pointer">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="font-semibold text-[#1E293B]">{s.label}</span>
                   <span className="font-bold" style={{ color: s.color }}>{s.count} / {stats.total_ecoles}</span>
                 </div>
                 <Jauge value={s.count} max={stats.total_ecoles} color={s.color} />
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -268,7 +278,8 @@ export default function DashboardMairie() {
           <button className="btn-secondary w-full flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-[20px]">description</span> Exporter le rapport
           </button>
-          <button className="btn-primary w-full flex items-center justify-center gap-2">
+          <button onClick={() => navigate(`/explorer/${zone.level}/${zone.code}`)}
+            className="btn-primary w-full flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-[20px]">map</span> Explorer la carte
           </button>
         </div>
