@@ -948,7 +948,7 @@ export default function Explorer() {
           </div>
           <div className="flex items-center justify-between">
             <h2 className="font-extrabold text-[#0D1B2A] text-lg tracking-tight">
-              {selectedSchool ? 'Fiche École' : levelLabel[currentLevel]}
+              {selectedSchool ? 'Fiche École' : breadcrumb.dept || breadcrumb.region || breadcrumb.district || levelLabel[currentLevel]}
             </h2>
             {(selectedSchool || currentLevel !== 'district') && (
               <button onClick={() => selectedSchool ? setSelectedSchool(null) : handleBack()}
@@ -957,7 +957,7 @@ export default function Explorer() {
               </button>
             )}
           </div>
-          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'region' ? 'régions' : currentLevel === 'departement' ? 'départements' : 'sous-préfectures'}</p>
+          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'region' ? 'régions' : currentLevel === 'departement' ? 'départements' : 'sous-préfectures'} dans {breadcrumb.dept || breadcrumb.region || breadcrumb.district || 'Côte d\'Ivoire'}</p>
         </div>
 
         <div className="px-5 py-4 grid grid-cols-3 gap-3 border-b border-[#CBD5E1]/20">
