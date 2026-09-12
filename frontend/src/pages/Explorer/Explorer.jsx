@@ -239,10 +239,16 @@ export default function Explorer() {
     const statusParam = searchParams.get('status');
     const filterParam = searchParams.get('filter');
     const showPoints = searchParams.get('show_points');
+    const milieuParam = searchParams.get('milieu');
+    const niveauParam = searchParams.get('niveau');
+    const statutParam = searchParams.get('statut');
     if (showPoints === '1') showPointsFromDashboard.current = true;
     if (statusParam) {
       setFilter('collect_status', [statusParam]);
     }
+    if (milieuParam) setFilter('milieu', [milieuParam]);
+    if (niveauParam) setFilter('niveau', [niveauParam]);
+    if (statutParam) setFilter('statut', [statutParam]);
     if (filterParam === 'sans_eau') setFilter('sans_eau', true);
     if (filterParam === 'sans_toilettes') setFilter('sans_toilettes', true);
     if (filterParam === 'sans_electricite') setFilter('sans_electricite', true);

@@ -163,15 +163,18 @@ export default function DashboardMairie() {
         {/* Résumé rapide */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: 'Élèves', value: stats.total_eleves.toLocaleString('fr-FR'), icon: 'groups', color: '#E8611A' },
-            { label: 'Écoles', value: stats.total_ecoles, icon: 'school', color: '#0B7A3E' },
-            { label: 'Enseignants', value: stats.total_enseignants, icon: 'person', color: '#475569' },
+            { label: 'Élèves', value: stats.total_eleves.toLocaleString('fr-FR'), icon: 'groups', color: '#E8611A', nav: true },
+            { label: 'Écoles', value: stats.total_ecoles, icon: 'school', color: '#0B7A3E', nav: true },
+            { label: 'Enseignants', value: stats.total_enseignants, icon: 'person', color: '#475569', nav: true },
           ].map(k => (
-            <div key={k.label} className="bg-[#FAF8F3] rounded-xl p-3 text-center shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+            <button key={k.label}
+              onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?show_points=1`)}
+              className="bg-[#FAF8F3] rounded-xl p-3 text-center shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-colors hover:bg-[#E8611A]/5 cursor-pointer group">
               <span className="material-symbols-outlined text-[20px]" style={{ color: k.color }}>{k.icon}</span>
               <p className="text-lg font-black text-[#0D1B2A] mt-0.5">{k.value}</p>
               <p className="text-[9px] font-bold text-[#94A3B8] uppercase">{k.label}</p>
-            </div>
+              <span className="material-symbols-outlined text-[10px] text-[#CBD5E1] group-hover:text-[#E8611A] transition-colors">arrow_forward</span>
+            </button>
           ))}
         </div>
 
@@ -181,19 +184,22 @@ export default function DashboardMairie() {
           <div className="grid grid-cols-2 gap-2">
             {[
               { label: 'Ratio élèves/enseignant', value: `${ratioElevesEnseignant}:1`, icon: 'calculate' },
-              { label: 'Taux de collecte', value: `${tauxCollecte}%`, icon: 'data_check' },
-              { label: 'Milieu urbain', value: `${pctUrbain}%`, icon: 'location_city' },
-              { label: 'Écoles publiques', value: `${pctPublic}%`, icon: 'account_balance' },
-              { label: 'Primaire', value: stats.by_niveau.primaire || 0, icon: 'child_care' },
-              { label: 'Secondaire', value: stats.by_niveau.secondaire || 0, icon: 'science' },
+              { label: 'Taux de collecte', value: `${tauxCollecte}%`, icon: 'data_check', nav: `?status=collected&show_points=1` },
+              { label: 'Milieu urbain', value: `${pctUrbain}%`, icon: 'location_city', nav: `?milieu=urbain&show_points=1` },
+              { label: 'Écoles publiques', value: `${pctPublic}%`, icon: 'account_balance', nav: `?statut=public&show_points=1` },
+              { label: 'Primaire', value: stats.by_niveau.primaire || 0, icon: 'child_care', nav: `?niveau=primaire&show_points=1` },
+              { label: 'Secondaire', value: stats.by_niveau.secondaire || 0, icon: 'science', nav: `?niveau=secondaire&show_points=1` },
             ].map(c => (
-              <div key={c.label} className="flex items-center gap-2 bg-[#F4EFE6] rounded-lg p-2">
+              <button key={c.label}
+                onClick={c.nav ? () => navigate(`/explorer/${zone.level}/${zone.code}${c.nav}`) : undefined}
+                className={`flex items-center gap-2 bg-[#F4EFE6] rounded-lg p-2 text-left transition-colors ${c.nav ? 'hover:bg-[#E8611A]/5 cursor-pointer group' : ''}`}>
                 <span className="material-symbols-outlined text-[16px] text-[#E8611A]">{c.icon}</span>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-black text-[#0D1B2A]">{c.value}</p>
                   <p className="text-[9px] font-bold text-[#94A3B8] uppercase">{c.label}</p>
                 </div>
-              </div>
+                {c.nav && <span className="material-symbols-outlined text-[12px] text-[#CBD5E1] group-hover:text-[#E8611A] transition-colors">arrow_forward</span>}
+              </button>
             ))}
           </div>
         </div>
@@ -302,16 +308,20 @@ export default function DashboardMairie() {
         <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
           <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Répartition par milieu</h3>
           <div className="grid grid-cols-2 gap-3">
-            <div className="text-center bg-[#F4EFE6] rounded-lg p-3">
+            <button onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?milieu=urbain&show_points=1`)}
+              className="text-center bg-[#F4EFE6] rounded-lg p-3 transition-colors hover:bg-[#E8611A]/5 cursor-pointer group">
               <span className="material-symbols-outlined text-[#E8611A] text-[22px]">location_city</span>
               <p className="text-lg font-black text-[#0D1B2A] mt-1">{stats.by_milieu.urbain}</p>
               <p className="text-[10px] font-bold text-[#6B7280] uppercase">Urbain</p>
-            </div>
-            <div className="text-center bg-[#F4EFE6] rounded-lg p-3">
+              <span className="material-symbols-outlined text-[12px] text-[#CBD5E1] group-hover:text-[#E8611A] transition-colors">arrow_forward</span>
+            </button>
+            <button onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?milieu=rural&show_points=1`)}
+              className="text-center bg-[#F4EFE6] rounded-lg p-3 transition-colors hover:bg-[#0B7A3E]/5 cursor-pointer group">
               <span className="material-symbols-outlined text-[#0B7A3E] text-[22px]">landscape</span>
               <p className="text-lg font-black text-[#0D1B2A] mt-1">{stats.by_milieu.rural}</p>
               <p className="text-[10px] font-bold text-[#6B7280] uppercase">Rural</p>
-            </div>
+              <span className="material-symbols-outlined text-[12px] text-[#CBD5E1] group-hover:text-[#0B7A3E] transition-colors">arrow_forward</span>
+            </button>
           </div>
         </div>
 
