@@ -226,18 +226,16 @@ export default function Register() {
               <p className="text-[10px] font-bold text-[#E8611A] uppercase">📍 Votre circonscription</p>
               {zonesLoading && <p className="text-xs text-[#94A3B8] animate-pulse">Chargement...</p>}
 
-              {(form.role === 'ministre' || form.role === 'directeur_afrique' || form.role === 'president_region') && (
-                <div>
-                  <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">District</label>
-                  <select value={sel.district?.code || ''} onChange={(e) => {
-                    const z = zones.districts.find(d => d.code === e.target.value);
-                    setSel({ district: z || null, region: null, departement: null, commune: null });
-                  }} className={selectClass} required>
-                    <option value="">— Sélectionner un district —</option>
-                    {zones.districts.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
-                  </select>
-                </div>
-              )}
+              <div>
+                <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">District</label>
+                <select value={sel.district?.code || ''} onChange={(e) => {
+                  const z = zones.districts.find(d => d.code === e.target.value);
+                  setSel({ district: z || null, region: null, departement: null, commune: null });
+                }} className={selectClass} required>
+                  <option value="">— Sélectionner un district —</option>
+                  {zones.districts.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
+                </select>
+              </div>
 
               {(form.role === 'president_region' || form.role === 'mairie') && (
                 <div>
@@ -245,7 +243,7 @@ export default function Register() {
                   <select value={sel.region?.code || ''} onChange={(e) => {
                     const z = zones.regions.find(r => r.code === e.target.value);
                     setSel(p => ({ ...p, region: z || null, departement: null, commune: null }));
-                  }} className={selectClass} required disabled={!sel.district && form.role !== 'president_region'}>
+                  }} className={selectClass} required disabled={!sel.district}>
                     <option value="">— Sélectionner une région —</option>
                     {filteredRegions.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
                   </select>
@@ -282,6 +280,9 @@ export default function Register() {
                   <span className="font-bold text-[#0D1B2A]">📍</span> {sel.district.name}
                   {sel.region && <span> → {sel.region.name}</span>}
                   {sel.departement && <span> → {sel.departement.name}</span>}
+                  {sel.commune && <span> → {sel.commune.name}</span>}
+                </div>
+              )}
                   {sel.commune && <span> → {sel.commune.name}</span>}
                 </div>
               )}
