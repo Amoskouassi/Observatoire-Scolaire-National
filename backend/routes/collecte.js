@@ -8,8 +8,8 @@ const router = Router();
 const collecteSchema = z.object({
   code_mena: z.string().min(1),
   ecole_id: z.string().uuid().optional(),
-  latitude: z.number().min(-8.5).max(-2.5),
-  longitude: z.number().min(4).max(11),
+  latitude: z.number().min(4).max(11),
+  longitude: z.number().min(-8.5).max(-2.5),
 
   district: z.string().optional(),
   region: z.string().optional(),
@@ -82,12 +82,12 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
     // Si une école existe, mettre à jour son inventaire + photo
     let ecoleId = req.body.ecole_id;
     if (!ecoleId && req.body.code_mena && !req.body.code_mena.startsWith('TEMP-')) {
-      const { data: ecole } = await supabase
+      const { data: ecole, error: ecoleErr } = await supabase
         .from('ecoles')
         .select('id')
         .eq('code_mena', req.body.code_mena)
         .single();
-      if (ecole) ecoleId = ecole.id;
+      if (!ecoleErr && ecole) ecoleId = ecole.id;
     }
     if (ecoleId) {
       const updateData = {
@@ -99,10 +99,11 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
       if (req.body.photos && req.body.photos.length > 0) {
         updateData.photo_url = req.body.photos[0].url;
       }
-      await supabase
+      const { error: updateErr } = await supabase
         .from('ecoles')
         .update(updateData)
         .eq('id', ecoleId);
+      if (updateErr) console.error('Erreur update école:', updateErr.message);
     }
 
     res.status(201).json({ id: data.id, status: 'submitted' });

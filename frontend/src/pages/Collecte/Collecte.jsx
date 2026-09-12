@@ -146,6 +146,13 @@ export default function Collecte() {
 
   const [zones, setZones] = useState({ districts: [], regions: [], depts: [], communes: [] });
   const [sel, setSel] = useState({ district: null, region: null, departement: null, commune: null });
+  const [ecoles, setEcoles] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/ecoles').then(r => r.json()).then(gj => {
+      setEcoles((gj.features || []).map(f => ({ code: f.properties.code_mena, name: f.properties.nom_etablissement, id: f.properties.id })));
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -439,9 +446,22 @@ export default function Collecte() {
                 ]} />
               </Field>
               <Field label="Q10 — Code Matricule MENA">
-                <input value={f.code_mena} onChange={e => u('code_mena', e.target.value)} className={inputCls}
-                  placeholder={f.statut_juridique === 'communaute' ? 'Matricule TEMP auto-généré' : 'PRIM-001234'}
-                  disabled={f.statut_juridique === 'communaute'} />
+                <SearchableSelect
+                  value={f.code_mena}
+                  onChange={v => {
+                    u('code_mena', v);
+                    const ecole = ecoles.find(e => e.code === v);
+                    if (ecole) {
+                      u('nom_ecole', ecole.name);
+                    }
+                  }}
+                  options={ecoles.map(e => ({ value: e.code, label: `${e.code} — ${e.name}` }))}
+                  placeholder="Rechercher une école par code ou nom..."
+                  disabled={f.statut_juridique === 'communaute'}
+                />
+                {f.statut_juridique === 'communaute' && (
+                  <p className="text-[10px] text-[#94A3B8] mt-1">Code TEMP auto-généré à la soumission</p>
+                )}
               </Field>
               <Field label="Q11 — Niveau d'enseignement">
                 <RadioGroup value={f.niveau_enseignement} onChange={v => u('niveau_enseignement', v)} options={['primaire', 'secondaire', 'superieur']} />
