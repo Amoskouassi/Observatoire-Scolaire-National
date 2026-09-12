@@ -241,7 +241,7 @@ router.get('/zone-counts', async (req, res, next) => {
 
     const group = (list, key) => {
       const map = {};
-      for (const s of schools) {
+      for (const s of list) {
         const k = s[key];
         if (k) { if (!map[k]) map[k] = []; map[k].push(s); }
       }
