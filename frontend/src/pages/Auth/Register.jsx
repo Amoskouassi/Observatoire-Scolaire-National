@@ -1,7 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
 import { signInWithGoogle } from '../../services/supabase';
+
+const ROLES = [
+  { value: 'enqueteur', label: 'Enquêteur terrain' },
+  { value: 'mairie', label: 'Maire / Conseil Municipal' },
+  { value: 'president_region', label: 'Président Conseil Régional' },
+  { value: 'ministre', label: 'Ministre / Direction Afrique' },
+  { value: 'institution', label: 'Institution / Partenaire' },
+  { value: 'directeur_afrique', label: 'Directeur Afrique' },
+  { value: 'partenaire', label: 'Partenaire technique' },
+  { value: 'chercheur', label: 'Chercheur / Analyste' },
+];
+
+const ROLES_WITH_ZONE = ['mairie', 'president_region', 'ministre', 'directeur_afrique'];
 
 export default function Register() {
   const [step, setStep] = useState('form');
@@ -13,23 +26,80 @@ export default function Register() {
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const { login } = useAuthStore();
-  const u = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+
+  const [zones, setZones] = useState({ districts: [], regions: [], depts: [], communes: [] });
+  const [selectedZone, setSelectedZone] = useState({ district: '', region: '', departement: '', commune: '' });
+  const [zonesLoading, setZonesLoading] = useState(false);
+
+  const u = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (!ROLES_WITH_ZONE.includes(form.role)) return;
+    setZonesLoading(true);
+    Promise.all([
+      fetch('/districts.geojson').then(r => r.json()),
+      fetch('/regions.geojson').then(r => r.json()),
+      fetch('/depts.geojson').then(r => r.json()),
+      fetch('/sous_prefectures.geojson').then(r => r.json()),
+    ]).then(([d, r, dp, sp]) => {
+      setZones({
+        districts: (d.features || []).map(f => ({ code: f.properties.code, name: f.properties.name })),
+        regions: (r.features || []).map(f => ({ code: f.properties.code, name: f.properties.name })),
+        depts: (dp.features || []).map(f => ({ code: f.properties.code, name: f.properties.name, region: f.properties.region })),
+        communes: (sp.features || []).map(f => ({ code: f.properties.code, name: f.properties.name, departement: f.properties.departement })),
+      });
+    }).catch(() => {}).finally(() => setZonesLoading(false));
+  }, [form.role]);
+
+  const filteredRegions = form.role === 'ministre' || form.role === 'directeur_afrique'
+    ? zones.regions.filter(r => selectedZone.district && zones.depts.some(d => d.region === r.code))
+    : zones.regions;
+
+  const filteredDepts = selectedZone.region
+    ? zones.depts.filter(d => d.region === selectedZone.region)
+    : [];
+
+  const filteredCommunes = selectedZone.departement
+    ? zones.communes.filter(c => c.departement === selectedZone.departement)
+    : [];
+
+  const needsZone = ROLES_WITH_ZONE.includes(form.role);
+
+  const buildPayload = () => {
+    const payload = { ...form };
+    if (needsZone) {
+      if (form.role === 'mairie') {
+        payload.commune_code = selectedZone.commune || undefined;
+        payload.departement_code = selectedZone.departement || undefined;
+        payload.region_code = selectedZone.region || undefined;
+        payload.district_code = selectedZone.district || undefined;
+      } else if (form.role === 'president_region') {
+        payload.region_code = selectedZone.region || undefined;
+        payload.district_code = selectedZone.district || undefined;
+      } else if (form.role === 'ministre' || form.role === 'directeur_afrique') {
+        payload.district_code = selectedZone.district || undefined;
+      }
+    }
+    return payload;
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
+    if (needsZone && !selectedZone.district) {
+      setError('Veuillez sélectionner au moins votre district.');
+      return;
+    }
     setLoading(true);
     try {
-      await api.register(form);
+      await api.register(buildPayload());
       setStep('verify');
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
 
   const handleGoogle = async () => {
     setError('');
-    try {
-      await signInWithGoogle();
-    } catch (err) { setError(err.message); }
+    try { await signInWithGoogle(); } catch (err) { setError(err.message); }
   };
 
   const handleCodeChange = (index, value) => {
@@ -41,18 +111,12 @@ export default function Register() {
       const next = document.querySelector(`input[data-index="${index + 1}"]`);
       if (next) next.focus();
     }
-    if (newCode.every(c => c !== '')) {
-      handleVerify(newCode.join(''));
-    }
+    if (newCode.every(c => c !== '')) handleVerify(newCode.join(''));
   };
 
   const handleCodePaste = (e) => {
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 6) {
-      const newCode = pasted.split('');
-      setCode(newCode);
-      handleVerify(pasted);
-    }
+    if (pasted.length === 6) { setCode(pasted.split('')); handleVerify(pasted); }
   };
 
   const handleVerify = async (codeStr) => {
@@ -75,6 +139,8 @@ export default function Register() {
     } catch {}
   };
 
+  const selectClass = "w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none";
+
   if (step === 'verify') {
     return (
       <div className="h-full flex items-center justify-center bg-[#F4EFE6] px-4">
@@ -85,41 +151,23 @@ export default function Register() {
             Un code à 6 chiffres a été envoyé à<br />
             <strong className="text-[#0D1B2A]">{form.email}</strong>
           </p>
-
           <div className="flex justify-center gap-2.5 mt-6" onPaste={handleCodePaste}>
             {code.map((digit, i) => (
-              <input
-                key={i}
-                data-index={i}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
+              <input key={i} data-index={i} type="text" inputMode="numeric" maxLength={1} value={digit}
                 onChange={(e) => handleCodeChange(i, e.target.value)}
                 className="w-11 h-13 text-center text-xl font-bold bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg focus:border-[#E8611A] focus:ring-2 focus:ring-[#E8611A]/20 outline-none transition-colors"
-                disabled={verifyLoading}
-              />
+                disabled={verifyLoading} />
             ))}
           </div>
-
-          {verifyError && (
-            <div className="bg-[#ffdad6] text-[#ba1a1a] text-xs p-3 rounded-lg mt-4">{verifyError}</div>
-          )}
-
-          {verifyLoading && (
-            <p className="text-xs text-[#6B7280] mt-4 animate-pulse">Vérification en cours...</p>
-          )}
-
+          {verifyError && <div className="bg-[#ffdad6] text-[#ba1a1a] text-xs p-3 rounded-lg mt-4">{verifyError}</div>}
+          {verifyLoading && <p className="text-xs text-[#6B7280] mt-4 animate-pulse">Vérification en cours...</p>}
           <div className="mt-6">
             {resendCooldown > 0 ? (
               <p className="text-xs text-[#94A3B8]">Renvoyer dans {resendCooldown}s</p>
             ) : (
-              <button onClick={handleResend} className="text-xs text-[#E8611A] font-bold hover:underline">
-                Renvoyer le code
-              </button>
+              <button onClick={handleResend} className="text-xs text-[#E8611A] font-bold hover:underline">Renvoyer le code</button>
             )}
           </div>
-
           <button onClick={() => { setStep('form'); setCode(['','','','','','']); setVerifyError(''); }}
             className="text-xs text-[#94A3B8] mt-4 hover:underline block mx-auto">
             Modifier l'adresse email
@@ -130,11 +178,12 @@ export default function Register() {
   }
 
   return (
-    <div className="h-full flex items-center justify-center bg-[#F4EFE6] px-4">
+    <div className="h-full flex items-center justify-center bg-[#F4EFE6] px-4 py-8">
       <div className="kpi-card w-full max-w-md">
         <div className="text-center mb-6">
           <span className="text-4xl">🇨🇮</span>
           <h1 className="text-lg font-bold text-[#0D1B2A] mt-2">Inscription</h1>
+          <p className="text-[11px] text-[#94A3B8] mt-1">Rejoignez l'Observatoire Scolaire National</p>
         </div>
 
         <button onClick={handleGoogle}
@@ -151,23 +200,81 @@ export default function Register() {
 
         <form onSubmit={handleRegister} className="space-y-3">
           {error && <div className="bg-[#ffdad6] text-[#ba1a1a] text-xs p-3 rounded-lg">{error}</div>}
+
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Nom</label><input value={form.nom} onChange={(e) => u('nom', e.target.value)} className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none" required /></div>
-            <div><label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Prénom</label><input value={form.prenom} onChange={(e) => u('prenom', e.target.value)} className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none" required /></div>
+            <div><label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Nom</label>
+              <input value={form.nom} onChange={(e) => u('nom', e.target.value)} className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none" required /></div>
+            <div><label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Prénom</label>
+              <input value={form.prenom} onChange={(e) => u('prenom', e.target.value)} className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none" required /></div>
           </div>
-          <div><label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Email</label><input type="email" value={form.email} onChange={(e) => u('email', e.target.value)} className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none" required /></div>
-          <div><label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Mot de passe</label><input type="password" value={form.password} onChange={(e) => u('password', e.target.value)} className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none" required minLength={8} /></div>
+
+          <div><label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Email</label>
+            <input type="email" value={form.email} onChange={(e) => u('email', e.target.value)} className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none" required /></div>
+
+          <div><label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Mot de passe</label>
+            <input type="password" value={form.password} onChange={(e) => u('password', e.target.value)} className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none" required minLength={8} /></div>
+
           <div>
-            <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Rôle</label>
-            <select value={form.role} onChange={(e) => u('role', e.target.value)} className="w-full bg-[#dee8ff]/60 border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none">
-              <option value="enqueteur">Enquêteur terrain</option>
-              <option value="mairie">Décideur Mairie</option>
-              <option value="institution">Institution</option>
+            <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Votre rôle</label>
+            <select value={form.role} onChange={(e) => { u('role', e.target.value); setSelectedZone({ district: '', region: '', departement: '', commune: '' }); }} className={selectClass}>
+              {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
-          <button type="submit" className="btn-primary w-full" disabled={loading}>{loading ? 'Inscription...' : "S'inscrire"}</button>
+
+          {needsZone && (
+            <div className="bg-[#F4EFE6] border border-[#CBD5E1] rounded-lg p-3 space-y-2.5">
+              <p className="text-[10px] font-bold text-[#E8611A] uppercase">📍 Votre zone d'affectation</p>
+              {zonesLoading && <p className="text-xs text-[#94A3B8] animate-pulse">Chargement des zones...</p>}
+
+              {(form.role === 'ministre' || form.role === 'directeur_afrique' || form.role === 'president_region') && (
+                <div>
+                  <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">District</label>
+                  <select value={selectedZone.district} onChange={(e) => setSelectedZone(p => ({ ...p, district: e.target.value, region: '', departement: '', commune: '' }))} className={selectClass} required>
+                    <option value="">Sélectionner un district</option>
+                    {zones.districts.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {(form.role === 'president_region' || form.role === 'mairie') && (
+                <div>
+                  <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Région</label>
+                  <select value={selectedZone.region} onChange={(e) => setSelectedZone(p => ({ ...p, region: e.target.value, departement: '', commune: '' }))} className={selectClass} required>
+                    <option value="">Sélectionner une région</option>
+                    {zones.regions.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {form.role === 'mairie' && (
+                <>
+                  <div>
+                    <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Département</label>
+                    <select value={selectedZone.departement} onChange={(e) => setSelectedZone(p => ({ ...p, departement: e.target.value, commune: '' }))} className={selectClass} required>
+                      <option value="">Sélectionner un département</option>
+                      {filteredDepts.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Commune / Sous-préfecture</label>
+                    <select value={selectedZone.commune} onChange={(e) => setSelectedZone(p => ({ ...p, commune: e.target.value }))} className={selectClass} required>
+                      <option value="">Sélectionner une commune</option>
+                      {filteredCommunes.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <button type="submit" className="btn-primary w-full" disabled={loading}>
+            {loading ? 'Inscription...' : "S'inscrire"}
+          </button>
         </form>
-        <p className="text-center text-xs text-[#6B7280] mt-4">Déjà inscrit ? <a href="/login" className="text-[#E8611A] underline font-bold">Connexion</a></p>
+
+        <p className="text-center text-xs text-[#6B7280] mt-4">
+          Déjà inscrit ? <a href="/login" className="text-[#E8611A] underline font-bold">Connexion</a>
+        </p>
       </div>
     </div>
   );

@@ -40,7 +40,7 @@ export default function App() {
           <Route path="/ecole/:id" element={<SchoolDetail />} />
 
           <Route path="/espace-decideur" element={
-            <ProtectedRoute allowedRoles={['mairie', 'institution', 'admin']}>
+            <ProtectedRoute allowedRoles={['mairie', 'institution', 'admin', 'president_region', 'ministre', 'directeur_afrique', 'partenaire', 'chercheur']}>
               <DashboardMairie />
             </ProtectedRoute>
           } />

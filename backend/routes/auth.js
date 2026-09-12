@@ -52,10 +52,12 @@ const registerSchema = z.object({
   password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
   nom: z.string().min(2, 'Nom trop court'),
   prenom: z.string().min(2, 'Prénom trop court'),
-  role: z.enum(['mairie', 'institution', 'enqueteur']),
+  role: z.enum(['mairie', 'institution', 'enqueteur', 'president_region', 'ministre', 'directeur_afrique', 'partenaire', 'chercheur']),
   organisation: z.string().optional(),
   commune_code: z.string().optional(),
   region_code: z.string().optional(),
+  district_code: z.string().optional(),
+  departement_code: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -75,7 +77,7 @@ const resendCodeSchema = z.object({
 // Inscription — crée l'utilisateur + envoie le code
 router.post('/register', validateRequest(registerSchema), async (req, res, next) => {
   try {
-    const { email, password, nom, prenom, role, organisation, commune_code, region_code } = req.body;
+    const { email, password, nom, prenom, role, organisation, commune_code, region_code, district_code, departement_code } = req.body;
 
     const { data: existing } = await supabaseAdmin
       .from('profiles')
@@ -109,6 +111,8 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
         organisation: organisation || null,
         commune_code: commune_code || null,
         region_code: region_code || null,
+        district_code: district_code || null,
+        departement_code: departement_code || null,
       });
 
     if (profileError) {
@@ -169,7 +173,7 @@ router.post('/verify-code', validateRequest(verifyCodeSchema), async (req, res, 
 
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('id, role, nom, prenom, organisation')
+      .select('id, role, nom, prenom, organisation, commune_code, region_code, district_code, departement_code')
       .eq('email', email)
       .single();
 
@@ -188,6 +192,10 @@ router.post('/verify-code', validateRequest(verifyCodeSchema), async (req, res, 
         prenom: profile?.prenom,
         role: profile?.role,
         organisation: profile?.organisation,
+        commune_code: profile?.commune_code,
+        region_code: profile?.region_code,
+        district_code: profile?.district_code,
+        departement_code: profile?.departement_code,
       },
     });
   } catch (err) {
@@ -251,7 +259,7 @@ router.post('/login', validateRequest(loginSchema), async (req, res, next) => {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, nom, prenom, organisation')
+      .select('role, nom, prenom, organisation, commune_code, region_code, district_code, departement_code')
       .eq('id', data.user.id)
       .single();
 
@@ -270,6 +278,10 @@ router.post('/login', validateRequest(loginSchema), async (req, res, next) => {
         prenom: profile?.prenom,
         role: profile?.role,
         organisation: profile?.organisation,
+        commune_code: profile?.commune_code,
+        region_code: profile?.region_code,
+        district_code: profile?.district_code,
+        departement_code: profile?.departement_code,
       },
     });
   } catch (err) {
@@ -367,6 +379,10 @@ router.post('/google-callback', async (req, res, next) => {
         prenom: existingProfile.prenom,
         role: existingProfile.role,
         organisation: existingProfile.organisation,
+        commune_code: existingProfile.commune_code,
+        region_code: existingProfile.region_code,
+        district_code: existingProfile.district_code,
+        departement_code: existingProfile.departement_code,
       },
     });
   } catch (err) {
