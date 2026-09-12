@@ -224,6 +224,7 @@ export default function Explorer() {
   const [zones, setZones] = useState([]);
   const [breadcrumb, setBreadcrumb] = useState({ district: null, region: null, dept: null });
   const [selectedSchool, setSelectedSchool] = useState(null);
+  const [zoneCounts, setZoneCounts] = useState(null);
 
   const selDistRef = useRef(null);
   const selRegRef = useRef(null);
@@ -250,6 +251,10 @@ export default function Explorer() {
   }, [urlLevel, urlCode, searchParams, setFilter]);
   const drillingRef = useRef(false);
   const syncViewRef = useRef(null);
+
+  useEffect(() => {
+    api.getZoneCounts().then(d => setZoneCounts(d)).catch(() => {});
+  }, []);
 
   const showZoneDetail = useCallback((level, props) => {
     setSelected({
@@ -704,58 +709,55 @@ export default function Explorer() {
     mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filtered });
   }, [filters, schoolsData]);
 
-  const computeZoneStats = useCallback(() => {
-    const allSchools = schoolsData?.features || [];
-    if (!allSchools.length) return { totals: { schools: 0, students: 0, girls: 0, boys: 0 }, byZone: {} };
+  const zoneLookupMap = { district: 'by_district', region: 'by_region', departement: 'by_departement', 'sous-prefecture': 'by_commune' };
+  const parentLookupMap = { region: 'by_district', departement: 'by_region', 'sous-prefecture': 'by_departement' };
+  const parentKeyMap = { region: 'district', departement: 'region', 'sous-prefecture': 'departement' };
+  const codeFieldMap = { district: 'district_code', region: 'region_code', departement: 'departement_code', 'sous-prefecture': 'commune_code' };
 
-    const geo = geoDataRef.current;
-    const level = currentLevelRef.current;
+  let scopedCounts = {};
+  let totalSchools = 0, totalStudents = 0, totalGirls = 0, totalBoys = 0;
 
-    let scoped = allSchools;
+  if (zoneCounts) {
+    const table = zoneLookupMap[currentLevel];
+    scopedCounts = zoneCounts[table] || {};
 
-    if (level === 'region' && breadcrumb.district) {
-      const distFeat = geo.districts?.features?.find(f => f.properties.name === breadcrumb.district);
-      if (distFeat) scoped = allSchools.filter(f => f.properties.district_code === distFeat.properties.code);
-    } else if (level === 'departement' && breadcrumb.region) {
-      const regFeat = geo.regions?.features?.find(f => f.properties.name === breadcrumb.region);
-      if (regFeat) scoped = allSchools.filter(f => f.properties.region_code === regFeat.properties.code);
-    } else if (level === 'sous-prefecture' && breadcrumb.dept) {
-      const deptFeat = geo.depts?.features?.find(f => f.properties.name === breadcrumb.dept);
-      if (deptFeat) scoped = allSchools.filter(f => f.properties.departement_code === deptFeat.properties.code);
-    }
-
-    const totals = { schools: scoped.length, students: 0, girls: 0, boys: 0 };
-    const byZone = {};
-
-    for (const f of scoped) {
-      const p = f.properties;
-      const g = p.nombre_filles || 0;
-      const b = p.nombre_garcons || 0;
-      totals.students += g + b;
-      totals.girls += g;
-      totals.boys += b;
-
-      const codeMap = { district: p.district_code, region: p.region_code, departement: p.departement_code, 'sous-prefecture': p.commune_code };
-      const zKey = codeMap[level];
-      if (zKey) {
-        if (!byZone[zKey]) byZone[zKey] = { schools: 0, students: 0, girls: 0, boys: 0 };
-        byZone[zKey].schools++;
-        byZone[zKey].students += g + b;
-        byZone[zKey].girls += g;
-        byZone[zKey].boys += b;
+    if (currentLevel === 'district') {
+      totalSchools = zoneCounts.national?.schools || 0;
+      totalStudents = zoneCounts.national?.students || 0;
+      totalGirls = zoneCounts.national?.girls || 0;
+      totalBoys = zoneCounts.national?.boys || 0;
+    } else {
+      const parentTable = parentLookupMap[currentLevel];
+      const parentField = parentKeyMap[currentLevel];
+      const parentName = breadcrumb[parentField];
+      if (parentName && geoDataRef.current) {
+        const geoKey = parentField === 'district' ? 'districts' : parentField === 'region' ? 'regions' : 'depts';
+        const feat = geoDataRef.current[geoKey]?.features?.find(f => f.properties.name === parentName);
+        if (feat) {
+          const parentCounts = zoneCounts[parentTable]?.[feat.properties.code];
+          if (parentCounts) {
+            totalSchools = parentCounts.schools;
+            totalStudents = parentCounts.students;
+            totalGirls = parentCounts.girls;
+            totalBoys = parentCounts.boys;
+          }
+        }
       }
     }
+  }
 
-    return { totals, byZone };
-  }, [schoolsData, breadcrumb]);
+  const zoneSchoolStats = {};
+  if (zoneCounts) {
+    const table = zoneLookupMap[currentLevel];
+    const rawCounts = zoneCounts[table] || {};
+    for (const z of zones) {
+      if (rawCounts[z.code]) {
+        zoneSchoolStats[z.code] = rawCounts[z.code];
+      }
+    }
+  }
 
-  const { totals: schoolStats, byZone: zoneSchoolStats } = computeZoneStats();
-
-  const totalSchools = schoolStats.schools;
-  const totalStudents = schoolStats.students;
-  const totalGirls = schoolStats.girls;
-  const totalBoys = schoolStats.boys;
-  const maxSchools = Math.max(...zones.map(z => (zoneSchoolStats[z.code]?.schools || z.schools || 0)), 1);
+  const maxSchools = Math.max(...zones.map(z => (zoneSchoolStats[z.code]?.schools || 0)), 1);
 
   const levelLabel = { district: 'Districts', region: 'Régions', departement: 'Départements', 'sous-prefecture': 'Sous-préfectures' };
 

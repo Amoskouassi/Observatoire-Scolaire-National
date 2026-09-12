@@ -144,6 +144,10 @@ class ApiService {
   getDashboardStats(level, code) {
     return this.request(`/dashboard/stats/${level}/${code || ''}`);
   }
+
+  getZoneCounts() {
+    return this.request('/dashboard/zone-counts');
+  }
 }
 
 export const api = new ApiService();

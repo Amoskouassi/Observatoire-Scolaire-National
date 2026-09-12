@@ -224,4 +224,45 @@ router.get('/stats/:level/:code?', async (req, res, next) => {
   }
 });
 
+router.get('/zone-counts', async (req, res, next) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('ecoles')
+      .select('district_code, region_code, departement_code, commune_code, nombre_filles, nombre_garcons, collect_status, milieu_implantation, niveau_enseignement, statut');
+    if (error) throw error;
+
+    const schools = data || [];
+    const agg = (list) => ({
+      schools: list.length,
+      students: list.reduce((s, e) => s + (e.nombre_filles || 0) + (e.nombre_garcons || 0), 0),
+      girls: list.reduce((s, e) => s + (e.nombre_filles || 0), 0),
+      boys: list.reduce((s, e) => s + (e.nombre_garcons || 0), 0),
+      collected: list.filter(e => e.collect_status === 'collected').length,
+      waiting: list.filter(e => e.collect_status === 'waiting').length,
+      pending: list.filter(e => e.collect_status === 'pending').length,
+    });
+
+    const byDistrict = {}, byRegion = {}, byDept = {}, byCommune = {};
+    for (const s of schools) {
+      const d = s.district_code, r = s.region_code, dp = s.departement_code, c = s.commune_code;
+      if (d) { if (!byDistrict[d]) byDistrict[d] = []; byDistrict[d].push(s); }
+      if (r) { if (!byRegion[r]) byRegion[r] = []; byRegion[r].push(s); }
+      if (dp) { if (!byDept[dp]) byDept[dp] = []; byDept[dp].push(s); }
+      if (c) { if (!byCommune[c]) byCommune[c] = []; byCommune[c].push(s); }
+    }
+
+    const result = (obj) => { const out = {}; for (const [k, v] of Object.entries(obj)) out[k] = agg(v); return out; };
+
+    res.json({
+      national: agg(schools),
+      by_district: result(byDistrict),
+      by_region: result(byRegion),
+      by_departement: result(byDept),
+      by_commune: result(byCommune),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;
