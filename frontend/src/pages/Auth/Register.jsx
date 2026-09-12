@@ -7,7 +7,7 @@ const ROLES = [
   { value: 'enqueteur', label: 'Enquêteur terrain' },
   { value: 'mairie', label: 'Maire / Conseil Municipal' },
   { value: 'president_region', label: 'Président Conseil Régional' },
-  { value: 'ministre', label: 'Ministre / Direction Afrique' },
+  { value: 'ministre', label: 'Ministre / Directeur' },
   { value: 'institution', label: 'Institution / Partenaire' },
   { value: 'directeur_afrique', label: 'Directeur Afrique' },
   { value: 'partenaire', label: 'Partenaire technique' },
@@ -28,7 +28,7 @@ export default function Register() {
   const { login } = useAuthStore();
 
   const [zones, setZones] = useState({ districts: [], regions: [], depts: [], communes: [] });
-  const [selectedZone, setSelectedZone] = useState({ district: '', region: '', departement: '', commune: '' });
+  const [sel, setSel] = useState({ district: null, region: null, departement: null, commune: null });
   const [zonesLoading, setZonesLoading] = useState(false);
 
   const u = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -44,23 +44,23 @@ export default function Register() {
     ]).then(([d, r, dp, sp]) => {
       setZones({
         districts: (d.features || []).map(f => ({ code: f.properties.code, name: f.properties.name })),
-        regions: (r.features || []).map(f => ({ code: f.properties.code, name: f.properties.name })),
-        depts: (dp.features || []).map(f => ({ code: f.properties.code, name: f.properties.name, region: f.properties.region })),
-        communes: (sp.features || []).map(f => ({ code: f.properties.code, name: f.properties.name, departement: f.properties.departement })),
+        regions: (r.features || []).map(f => ({ code: f.properties.code, name: f.properties.name, district: f.properties.district })),
+        depts: (dp.features || []).map(f => ({ code: f.properties.code, name: f.properties.name, region: f.properties.region, district: f.properties.district })),
+        communes: (sp.features || []).map(f => ({ code: f.properties.code, name: f.properties.name, departement: f.properties.departement, region: f.properties.region })),
       });
     }).catch(() => {}).finally(() => setZonesLoading(false));
   }, [form.role]);
 
-  const filteredRegions = form.role === 'ministre' || form.role === 'directeur_afrique'
-    ? zones.regions.filter(r => selectedZone.district && zones.depts.some(d => d.region === r.code))
+  const filteredRegions = sel.district
+    ? zones.regions.filter(r => r.district === sel.district.name)
     : zones.regions;
 
-  const filteredDepts = selectedZone.region
-    ? zones.depts.filter(d => d.region === selectedZone.region)
+  const filteredDepts = sel.region
+    ? zones.depts.filter(d => d.region === sel.region.name)
     : [];
 
-  const filteredCommunes = selectedZone.departement
-    ? zones.communes.filter(c => c.departement === selectedZone.departement)
+  const filteredCommunes = sel.departement
+    ? zones.communes.filter(c => c.departement === sel.departement.name)
     : [];
 
   const needsZone = ROLES_WITH_ZONE.includes(form.role);
@@ -69,15 +69,15 @@ export default function Register() {
     const payload = { ...form };
     if (needsZone) {
       if (form.role === 'mairie') {
-        payload.commune_code = selectedZone.commune || undefined;
-        payload.departement_code = selectedZone.departement || undefined;
-        payload.region_code = selectedZone.region || undefined;
-        payload.district_code = selectedZone.district || undefined;
+        payload.commune_code = sel.commune?.code || undefined;
+        payload.departement_code = sel.departement?.code || undefined;
+        payload.region_code = sel.region?.code || undefined;
+        payload.district_code = sel.district?.code || undefined;
       } else if (form.role === 'president_region') {
-        payload.region_code = selectedZone.region || undefined;
-        payload.district_code = selectedZone.district || undefined;
+        payload.region_code = sel.region?.code || undefined;
+        payload.district_code = sel.district?.code || undefined;
       } else if (form.role === 'ministre' || form.role === 'directeur_afrique') {
-        payload.district_code = selectedZone.district || undefined;
+        payload.district_code = sel.district?.code || undefined;
       }
     }
     return payload;
@@ -86,7 +86,7 @@ export default function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
-    if (needsZone && !selectedZone.district) {
+    if (needsZone && !sel.district) {
       setError('Veuillez sélectionner au moins votre district.');
       return;
     }
@@ -216,21 +216,24 @@ export default function Register() {
 
           <div>
             <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Votre rôle</label>
-            <select value={form.role} onChange={(e) => { u('role', e.target.value); setSelectedZone({ district: '', region: '', departement: '', commune: '' }); }} className={selectClass}>
+            <select value={form.role} onChange={(e) => { u('role', e.target.value); setSel({ district: null, region: null, departement: null, commune: null }); }} className={selectClass}>
               {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
 
           {needsZone && (
             <div className="bg-[#F4EFE6] border border-[#CBD5E1] rounded-lg p-3 space-y-2.5">
-              <p className="text-[10px] font-bold text-[#E8611A] uppercase">📍 Votre zone d'affectation</p>
-              {zonesLoading && <p className="text-xs text-[#94A3B8] animate-pulse">Chargement des zones...</p>}
+              <p className="text-[10px] font-bold text-[#E8611A] uppercase">📍 Votre circonscription</p>
+              {zonesLoading && <p className="text-xs text-[#94A3B8] animate-pulse">Chargement...</p>}
 
               {(form.role === 'ministre' || form.role === 'directeur_afrique' || form.role === 'president_region') && (
                 <div>
                   <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">District</label>
-                  <select value={selectedZone.district} onChange={(e) => setSelectedZone(p => ({ ...p, district: e.target.value, region: '', departement: '', commune: '' }))} className={selectClass} required>
-                    <option value="">Sélectionner un district</option>
+                  <select value={sel.district?.code || ''} onChange={(e) => {
+                    const z = zones.districts.find(d => d.code === e.target.value);
+                    setSel({ district: z || null, region: null, departement: null, commune: null });
+                  }} className={selectClass} required>
+                    <option value="">— Sélectionner un district —</option>
                     {zones.districts.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
                   </select>
                 </div>
@@ -239,9 +242,12 @@ export default function Register() {
               {(form.role === 'president_region' || form.role === 'mairie') && (
                 <div>
                   <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Région</label>
-                  <select value={selectedZone.region} onChange={(e) => setSelectedZone(p => ({ ...p, region: e.target.value, departement: '', commune: '' }))} className={selectClass} required>
-                    <option value="">Sélectionner une région</option>
-                    {zones.regions.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
+                  <select value={sel.region?.code || ''} onChange={(e) => {
+                    const z = zones.regions.find(r => r.code === e.target.value);
+                    setSel(p => ({ ...p, region: z || null, departement: null, commune: null }));
+                  }} className={selectClass} required disabled={!sel.district && form.role !== 'president_region'}>
+                    <option value="">— Sélectionner une région —</option>
+                    {filteredRegions.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
                   </select>
                 </div>
               )}
@@ -250,19 +256,34 @@ export default function Register() {
                 <>
                   <div>
                     <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Département</label>
-                    <select value={selectedZone.departement} onChange={(e) => setSelectedZone(p => ({ ...p, departement: e.target.value, commune: '' }))} className={selectClass} required>
-                      <option value="">Sélectionner un département</option>
+                    <select value={sel.departement?.code || ''} onChange={(e) => {
+                      const z = zones.depts.find(d => d.code === e.target.value);
+                      setSel(p => ({ ...p, departement: z || null, commune: null }));
+                    }} className={selectClass} required disabled={!sel.region}>
+                      <option value="">— Sélectionner un département —</option>
                       {filteredDepts.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-[#6B7280] uppercase block mb-1">Commune / Sous-préfecture</label>
-                    <select value={selectedZone.commune} onChange={(e) => setSelectedZone(p => ({ ...p, commune: e.target.value }))} className={selectClass} required>
-                      <option value="">Sélectionner une commune</option>
+                    <select value={sel.commune?.code || ''} onChange={(e) => {
+                      const z = zones.communes.find(c => c.code === e.target.value);
+                      setSel(p => ({ ...p, commune: z || null }));
+                    }} className={selectClass} required disabled={!sel.departement}>
+                      <option value="">— Sélectionner une commune —</option>
                       {filteredCommunes.map(z => <option key={z.code} value={z.code}>{z.name}</option>)}
                     </select>
                   </div>
                 </>
+              )}
+
+              {sel.district && (
+                <div className="text-[10px] text-[#6B7280] bg-white rounded-lg p-2 border border-[#CBD5E1]">
+                  <span className="font-bold text-[#0D1B2A]">📍</span> {sel.district.name}
+                  {sel.region && <span> → {sel.region.name}</span>}
+                  {sel.departement && <span> → {sel.departement.name}</span>}
+                  {sel.commune && <span> → {sel.commune.name}</span>}
+                </div>
               )}
             </div>
           )}

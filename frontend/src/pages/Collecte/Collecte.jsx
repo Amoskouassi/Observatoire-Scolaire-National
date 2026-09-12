@@ -10,12 +10,6 @@ const TABS = [
   { id: 4, label: 'Hygiène', icon: 'water_drop', color: '#E8611A' },
 ];
 
-const DISTRICTS = [
-  'Savanes','Bas-Sassandra','Comoé','Denguele','District Autonome D\'Abidjan',
-  'District Autonome De Yamoussoukro','Gôh-Djiboua','Lagunes','Lacs',
-  'Montagnes','Sassandra-Marahoué','Vallée Du Bandama','Woroba','Zanzan'
-];
-
 const ANNEES_SCOLAIRES = ['2025-2026','2024-2025','2023-2024'];
 
 const defaultClasse = () => ({ niveau: '', filles: '', garcons: '', bancs: '' });
@@ -86,6 +80,37 @@ export default function Collecte() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(null);
   const photoRef = useRef(null);
+
+  const [zones, setZones] = useState({ districts: [], regions: [], depts: [], communes: [] });
+  const [sel, setSel] = useState({ district: null, region: null, departement: null, commune: null });
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/districts.geojson').then(r => r.json()),
+      fetch('/regions.geojson').then(r => r.json()),
+      fetch('/depts.geojson').then(r => r.json()),
+      fetch('/sous_prefectures.geojson').then(r => r.json()),
+    ]).then(([d, r, dp, sp]) => {
+      setZones({
+        districts: (d.features || []).map(f => ({ code: f.properties.code, name: f.properties.name })),
+        regions: (r.features || []).map(f => ({ code: f.properties.code, name: f.properties.name, district: f.properties.district })),
+        depts: (dp.features || []).map(f => ({ code: f.properties.code, name: f.properties.name, region: f.properties.region, district: f.properties.district })),
+        communes: (sp.features || []).map(f => ({ code: f.properties.code, name: f.properties.name, departement: f.properties.departement, region: f.properties.region })),
+      });
+    }).catch(() => {});
+  }, []);
+
+  const filteredRegions = sel.district
+    ? zones.regions.filter(r => r.district === sel.district.name)
+    : [];
+
+  const filteredDepts = sel.region
+    ? zones.depts.filter(d => d.region === sel.region.name)
+    : [];
+
+  const filteredCommunes = sel.departement
+    ? zones.communes.filter(c => c.departement === sel.departement.name)
+    : [];
 
   const u = (k, v) => setF(p => ({ ...p, [k]: v }));
 
@@ -159,10 +184,10 @@ export default function Collecte() {
       await api.submitCollecte({
         code_mena: f.code_mena || 'TEMP-' + Date.now(),
         ecole_id: null,
-        district: f.district,
-        region: f.region,
-        departement: f.departement,
-        sous_prefecture: f.sous_prefecture,
+        district: sel.district?.name || f.district,
+        region: sel.region?.name || f.region,
+        departement: sel.departement?.name || f.departement,
+        sous_prefecture: sel.commune?.name || f.sous_prefecture,
         localite: f.localite,
         milieu: f.milieu,
         voie_acces: f.voie_acces,
@@ -255,19 +280,47 @@ export default function Collecte() {
           <div className="space-y-4 animate-fade-in-up">
             <Section title="Cascade géographique" color="#0B7A3E">
               <Field label="Q1 — District">
-                <select value={f.district} onChange={e => u('district', e.target.value)} className={selectCls} style={selectStyle}>
-                  <option value="">Sélectionner...</option>
-                  {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                <select value={sel.district?.code || ''} onChange={e => {
+                  const z = zones.districts.find(d => d.code === e.target.value);
+                  setSel({ district: z || null, region: null, departement: null, commune: null });
+                  u('district', z?.name || '');
+                  u('region', ''); u('departement', ''); u('sous_prefecture', '');
+                }} className={selectCls} style={selectStyle}>
+                  <option value="">Sélectionner un district...</option>
+                  {zones.districts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
                 </select>
               </Field>
               <Field label="Q2 — Région">
-                <input value={f.region} onChange={e => u('region', e.target.value)} className={inputCls} placeholder="Ex: Poro" />
+                <select value={sel.region?.code || ''} onChange={e => {
+                  const z = zones.regions.find(r => r.code === e.target.value);
+                  setSel(p => ({ ...p, region: z || null, departement: null, commune: null }));
+                  u('region', z?.name || '');
+                  u('departement', ''); u('sous_prefecture', '');
+                }} className={selectCls} style={selectStyle} disabled={!sel.district}>
+                  <option value="">{sel.district ? 'Sélectionner une région...' : 'Sélectionner d\'abord un district'}</option>
+                  {filteredRegions.map(r => <option key={r.code} value={r.code}>{r.name}</option>)}
+                </select>
               </Field>
               <Field label="Q3 — Département">
-                <input value={f.departement} onChange={e => u('departement', e.target.value)} className={inputCls} placeholder="Ex: Korhogo" />
+                <select value={sel.departement?.code || ''} onChange={e => {
+                  const z = zones.depts.find(d => d.code === e.target.value);
+                  setSel(p => ({ ...p, departement: z || null, commune: null }));
+                  u('departement', z?.name || '');
+                  u('sous_prefecture', '');
+                }} className={selectCls} style={selectStyle} disabled={!sel.region}>
+                  <option value="">{sel.region ? 'Sélectionner un département...' : 'Sélectionner d\'abord une région'}</option>
+                  {filteredDepts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                </select>
               </Field>
-              <Field label="Q4 — Sous-Préfecture">
-                <input value={f.sous_prefecture} onChange={e => u('sous_prefecture', e.target.value)} className={inputCls} placeholder="Ex: Korhogo" />
+              <Field label="Q4 — Sous-Préfecture / Commune">
+                <select value={sel.commune?.code || ''} onChange={e => {
+                  const z = zones.communes.find(c => c.code === e.target.value);
+                  setSel(p => ({ ...p, commune: z || null }));
+                  u('sous_prefecture', z?.name || '');
+                }} className={selectCls} style={selectStyle} disabled={!sel.departement}>
+                  <option value="">{sel.departement ? 'Sélectionner une sous-préfecture...' : 'Sélectionner d\'abord un département'}</option>
+                  {filteredCommunes.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                </select>
               </Field>
               <Field label="Q5 — Localité / Village / Quartier">
                 <input value={f.localite} onChange={e => u('localite', e.target.value)} className={inputCls} placeholder="Nom du village ou quartier" />
