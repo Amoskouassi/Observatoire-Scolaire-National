@@ -1122,7 +1122,7 @@ export default function Explorer() {
 
         <div className="flex-1 overflow-y-auto px-5 py-3">
           {selectedSchool ? (
-            <SchoolFiche school={selectedSchool} onBack={() => setSelectedSchool(null)} />
+            <SchoolFiche school={selectedSchool} onBack={() => setSelectedSchool(null)} geoData={geoDataRef.current} />
           ) : selected ? (
             <ZoneDetail zone={selected} level={selected.level || currentLevel} />
           ) : (
@@ -1328,15 +1328,47 @@ function ZoneDetail({ zone, level }) {
   );
 }
 
-function SchoolFiche({ school }) {
+function SchoolFiche({ school, onBack, geoData }) {
   const total = (school.nombre_filles || 0) + (school.nombre_garcons || 0);
   const pctFilles = total > 0 ? Math.round((school.nombre_filles || 0) / total * 100) : 0;
   const inventaire = (() => { try { return typeof school.inventaire_classes === 'string' ? JSON.parse(school.inventaire_classes) : (school.inventaire_classes || []); } catch { return []; } })();
+  const nbNiveaux = inventaire.length > 0 ? new Set(inventaire.map(c => c.classe?.split(' ')[0])).size : 0;
   const besoins = inventaire.reduce((s, c) => s + (c.besoin_bancs || 0), 0);
 
-  const STATUT_LABEL = { public: 'Public', prive_laic: 'Privé laïc', prive_confessionnel: 'Privé confessionnel', communautaire_non_reconnue: 'Communautaire' };
-  const NIVEAU_LABEL = { primaire: 'Primaire', secondaire: 'Secondaire' };
+  const STATUT_LABEL = { public: 'public', prive_laic: 'privé laïc', prive_confessionnel: 'privé confessionnel', communautaire_non_reconnue: 'communautaire non reconnu' };
+  const NIVEAU_LABEL = { primaire: 'primaire', secondaire: 'secondaire' };
   const STATUS_COLORS = { collected: '#E8611A', waiting: '#0B7A3E', pending: '#CBD5E1' };
+
+  const findZoneName = (geoKey, code) => {
+    if (!geoData || !geoData[geoKey] || !code) return null;
+    const f = geoData[geoKey].features.find(f => f.properties.code === code);
+    return f?.properties?.name || null;
+  };
+  const spName = findZoneName('sp', school.commune_code);
+  const deptName = findZoneName('depts', school.departement_code);
+  const regName = findZoneName('regions', school.region_code);
+
+  const isUrbain = school.milieu_implantation === 'urbain';
+  const statutLabel = STATUT_LABEL[school.statut] || school.statut || 'inconnu';
+  const niveauLabel = NIVEAU_LABEL[school.niveau_enseignement] || school.niveau_enseignement || '';
+
+  let confessionText = '';
+  if (school.statut === 'prive_confessionnel') {
+    const conf = school.type_genre || school.categorie || '';
+    confessionText = conf ? ` de confession ${conf}` : '';
+  }
+
+  let localisation = '';
+  if (isUrbain) {
+    localisation = `dans la commune de ${spName || school.commune_code || 'inconnue'}`;
+  } else {
+    localisation = `dans la communauté de ${spName || school.commune_code || 'inconnue'}`;
+  }
+
+  const directorTitle = school.directeur_genre === 'Mme' ? 'Madame' : school.directeur_genre === 'Mlle' ? 'Mademoiselle' : 'Monsieur';
+  const hasDirector = school.directeur_nom;
+
+  const description = `L'école ${school.nom_etablissement || 'inconnue'} est une école ${niveauLabel} ${statutLabel}${confessionText}. Elle se situe ${localisation}${deptName ? `, dans le département de ${deptName}` : ''}${regName ? `, dans la région de ${regName}` : ''}${school.annee_creation ? `. Créée en ${school.annee_creation}` : ''}${nbNiveaux > 0 ? `. Elle dispose de ${nbNiveaux} niveau${nbNiveaux > 1 ? 'x' : ''}` : ''}${school.enseignants_presents ? ` ainsi que de ${school.enseignants_presents} enseignant${school.enseignants_presents > 1 ? 's' : ''}` : ''}${hasDirector ? `. Et est dirigée par ${directorTitle} ${school.directeur_nom}` : ''}.`;
 
   return (
     <div className="flex flex-col gap-3 pb-4">
@@ -1348,39 +1380,37 @@ function SchoolFiche({ school }) {
           </span>
           <span className="text-[10px] text-[#94A3B8] font-mono">{school.code_mena}</span>
         </div>
-        <h3 className="text-[15px] font-extrabold text-[#0D1B2A] leading-tight">{school.nom_etablissement}</h3>
-        <div className="flex flex-wrap gap-2 mt-2">
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F1F5F9] text-[#475569]">{STATUT_LABEL[school.statut] || school.statut}</span>
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F1F5F9] text-[#475569]">{NIVEAU_LABEL[school.niveau_enseignement] || school.niveau_enseignement}</span>
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#F1F5F9] text-[#475569] capitalize">{school.milieu_implantation}</span>
-        </div>
+        <h3 className="text-[15px] font-extrabold text-[#0D1B2A] leading-tight mb-3">{school.nom_etablissement}</h3>
+        <p className="text-[12px] text-[#475569] leading-relaxed">{description}</p>
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-        <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-3">Effectifs</h4>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="text-center">
-            <p className="text-2xl font-extrabold text-[#0D1B2A]">{total.toLocaleString('fr-FR')}</p>
-            <p className="text-[9px] font-bold text-[#94A3B8] uppercase">Total</p>
+      {total > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
+          <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-3">Effectifs</h4>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center">
+              <p className="text-2xl font-extrabold text-[#0D1B2A]">{total.toLocaleString('fr-FR')}</p>
+              <p className="text-[9px] font-bold text-[#94A3B8] uppercase">Total</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-extrabold text-[#E8611A]">{(school.nombre_filles || 0).toLocaleString('fr-FR')}</p>
+              <p className="text-[9px] font-bold text-[#E8611A] uppercase">Filles {pctFilles}%</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-extrabold text-[#0B7A3E]">{(school.nombre_garcons || 0).toLocaleString('fr-FR')}</p>
+              <p className="text-[9px] font-bold text-[#0B7A3E] uppercase">Garçons {100 - pctFilles}%</p>
+            </div>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-extrabold text-[#E8611A]">{(school.nombre_filles || 0).toLocaleString('fr-FR')}</p>
-            <p className="text-[9px] font-bold text-[#E8611A] uppercase">Filles {pctFilles}%</p>
+          <div className="w-full h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex mt-3">
+            <div className="h-full bg-[#E8611A] rounded-l-full transition-all" style={{ width: `${pctFilles}%` }} />
+            <div className="h-full bg-[#0B7A3E] rounded-r-full flex-1" />
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-extrabold text-[#0B7A3E]">{(school.nombre_garcons || 0).toLocaleString('fr-FR')}</p>
-            <p className="text-[9px] font-bold text-[#0B7A3E] uppercase">Garçons {100 - pctFilles}%</p>
+          <div className="flex items-center justify-between mt-2 text-[10px] font-bold">
+            <span className="text-[#94A3B8]">{school.enseignants_presents || 0} enseignants · {school.salles_classe_total || 0} salles</span>
+            {total > 0 && school.enseignants_presents > 0 && <span className="text-[#475569]">Ratio {Math.round(total / school.enseignants_presents)}:1</span>}
           </div>
         </div>
-        <div className="w-full h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex mt-3">
-          <div className="h-full bg-[#E8611A] rounded-l-full transition-all" style={{ width: `${pctFilles}%` }} />
-          <div className="h-full bg-[#0B7A3E] rounded-r-full flex-1" />
-        </div>
-        <div className="flex items-center justify-between mt-2 text-[10px] font-bold">
-          <span className="text-[#94A3B8]">{school.enseignants_presents || 0} enseignants · {school.salles_classe_total || 0} salles</span>
-          {total > 0 && school.enseignants_presents > 0 && <span className="text-[#475569]">Ratio {Math.round(total / school.enseignants_presents)}:1</span>}
-        </div>
-      </div>
+      )}
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
         <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-3">Infrastructure</h4>

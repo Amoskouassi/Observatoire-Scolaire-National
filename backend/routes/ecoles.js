@@ -35,7 +35,7 @@ router.get('/', async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from('ecoles')
-      .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, categorie, type_genre, annee_creation, longitude, latitude, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, eleves_total, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, mobilier_scolaire, bibliotheca, laboratoire, terrain_sport, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at, photo_url, commentaires')
+      .select()
       .order('nom_etablissement');
 
     if (error) throw error;
@@ -63,7 +63,7 @@ router.get('/:id', async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from('ecoles')
-      .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, categorie, type_genre, annee_creation, longitude, latitude, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, eleves_total, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, mobilier_scolaire, bibliotheca, laboratoire, terrain_sport, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at, photo_url, commentaires')
+      .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, categorie, type_genre, annee_creation, longitude, latitude, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, eleves_total, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, mobilier_scolaire, bibliotheca, laboratoire, terrain_sport, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at, photo_url, commentaires, directeur_nom, directeur_genre')
       .eq('id', req.params.id)
       .single();
 
