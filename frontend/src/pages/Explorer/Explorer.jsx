@@ -1372,6 +1372,11 @@ function SchoolFiche({ school, onBack, geoData }) {
 
   return (
     <div className="flex flex-col gap-3 pb-4">
+      {school.photo_url && (
+        <div className="rounded-xl overflow-hidden shadow-sm border border-[#CBD5E1]/10">
+          <img src={school.photo_url} alt={school.nom_etablissement} className="w-full h-48 object-cover" />
+        </div>
+      )}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
         <div className="flex items-center justify-between mb-3">
           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"

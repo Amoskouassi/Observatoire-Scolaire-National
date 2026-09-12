@@ -79,16 +79,20 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
 
     if (error) throw error;
 
-    // Si une école existe, mettre à jour son inventaire
+    // Si une école existe, mettre à jour son inventaire + photo
     if (req.body.ecole_id) {
+      const updateData = {
+        inventaire_classes: req.body.inventaire_classes,
+        updated_at: new Date().toISOString(),
+        collect_status: 'collected',
+        last_collecte_at: req.body.date_collecte,
+      };
+      if (req.body.photos && req.body.photos.length > 0) {
+        updateData.photo_url = req.body.photos[0].url;
+      }
       await supabase
         .from('ecoles')
-        .update({
-          inventaire_classes: req.body.inventaire_classes,
-          updated_at: new Date().toISOString(),
-          collect_status: 'collected',
-          last_collecte_at: req.body.date_collecte,
-        })
+        .update(updateData)
         .eq('id', req.body.ecole_id);
     }
 
