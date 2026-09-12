@@ -200,6 +200,7 @@ export default function Explorer() {
   const urlAppliedRef = useRef(false);
   const drillingRef = useRef(false);
   const syncViewRef = useRef(null);
+  const schoolsDataRef = useRef(null);
 
   useEffect(() => {
     if (urlAppliedRef.current) return;
@@ -274,7 +275,8 @@ export default function Explorer() {
       const spFeat = data.sp?.features?.find(f => f.properties.name === name);
       if (spFeat?.geometry) {
         const spCode = spFeat.properties.code;
-        const ecolesInSp = (schoolsData?.features || []).filter(f => f.properties.commune_code === spCode);
+        const allSchools = schoolsDataRef.current;
+        const ecolesInSp = (allSchools?.features || []).filter(f => f.properties.commune_code === spCode);
         setSelectedSchools(ecolesInSp.map(f => f.properties));
       }
       setSpName(name);
@@ -305,7 +307,7 @@ export default function Explorer() {
         setTimeout(() => { drillingRef.current = false; }, 800);
       }
     }
-  }, [schoolsData]);
+  }, []);
 
   const showSchoolFiche = useCallback((school) => {
     setSelectedSchool(school);
@@ -541,8 +543,12 @@ export default function Explorer() {
   }, []);
 
   const loadSchools = useCallback(async () => {
-    try { const d = await api.getSchools(); setSchoolsData(d); } catch {}
+    try { const d = await api.getSchools(); setSchoolsData(d); schoolsDataRef.current = d; } catch {}
   }, [setSchoolsData]);
+
+  useEffect(() => {
+    schoolsDataRef.current = schoolsData;
+  }, [schoolsData]);
 
   useEffect(() => {
     if (!mapInst.current?.getLayer('ecoles-points') || !schoolsData) return;
