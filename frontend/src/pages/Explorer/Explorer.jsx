@@ -348,6 +348,7 @@ export default function Explorer() {
           setTimeout(() => { drillingRef.current = false; }, 900);
         }
       }
+      setVis(['ecoles-points'], 'visible');
       showZoneDetail('sous-prefecture', spFeat?.properties || { name });
       return;
     } else {
@@ -379,6 +380,7 @@ export default function Explorer() {
     const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
 
     if (currentLevelRef.current === 'sous-prefecture') {
+      setVis(['ecoles-points'], 'none');
       if (data.sp) map.getSource('sp')?.setData(data.sp);
       const parentRegion = selRegRef.current;
       if (parentRegion && data.depts) {
@@ -595,6 +597,7 @@ export default function Explorer() {
           'circle-radius': ['step', ['get', 'eleves_total'], 5, 100, 7, 500, 10, 1000, 14],
           'circle-color': '#E8611A', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#FAF8F3', 'circle-opacity': 0.85,
         },
+        layout: { visibility: 'none' },
       });
 
       const allFill = ['districts-fill', 'regions-fill', 'depts-fill', 'sp-fill'];
@@ -684,6 +687,28 @@ export default function Explorer() {
     try { const d = await api.getSchools(); setSchoolsData(d); } catch {}
   }, [setSchoolsData]);
 
+  const enrichWithStatus = useCallback((geoData, level) => {
+    if (!schoolsData || !geoData) return geoData;
+    const codeKey = level === 'districts' ? 'district_code' : level === 'regions' ? 'region_code' : level === 'depts' ? 'departement_code' : 'commune_code';
+    const statusMap = {};
+    for (const f of schoolsData.features) {
+      const code = f.properties[codeKey];
+      const st = f.properties.collect_status;
+      if (!code) continue;
+      if (!statusMap[code]) statusMap[code] = { collected: 0, waiting: 0, pending: 0 };
+      statusMap[code][st] = (statusMap[code][st] || 0) + 1;
+    }
+    return {
+      ...geoData,
+      features: geoData.features.map(f => {
+        const code = f.properties.code;
+        const counts = statusMap[code] || {};
+        const status = (counts.collected || 0) > 0 ? 'collected' : (counts.waiting || 0) > 0 ? 'waiting' : 'pending';
+        return { ...f, properties: { ...f.properties, status } };
+      }),
+    };
+  }, [schoolsData]);
+
   useEffect(() => {
     if (!mapInst.current?.getLayer('ecoles-points') || !schoolsData) return;
     const filtered = schoolsData.features.filter(f => {
@@ -712,6 +737,26 @@ export default function Explorer() {
     });
     mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filtered });
   }, [filters, schoolsData]);
+
+  useEffect(() => {
+    const map = mapInst.current;
+    if (!map || !schoolsData) return;
+    const data = geoDataRef.current;
+    if (data.districts) {
+      const enriched = enrichWithStatus(data.districts, 'districts');
+      data.districts = enriched;
+      map.getSource('districts')?.setData(enriched);
+    }
+    if (data.regions) {
+      data.regions = enrichWithStatus(data.regions, 'regions');
+    }
+    if (data.depts) {
+      data.depts = enrichWithStatus(data.depts, 'depts');
+    }
+    if (data.sp) {
+      data.sp = enrichWithStatus(data.sp, 'communes');
+    }
+  }, [schoolsData, enrichWithStatus]);
 
   const zc = zoneCounts;
   const levelTable = { district: 'districts', region: 'regions', departement: 'departements', 'sous-prefecture': 'communes' };
