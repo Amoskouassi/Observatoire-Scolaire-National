@@ -738,8 +738,10 @@ export default function Explorer() {
   const enrichWithStatus = useCallback((geoData, level) => {
     if (!schoolsData || !geoData) return geoData;
     const codeKey = level === 'districts' ? 'district_code' : level === 'regions' ? 'region_code' : level === 'depts' ? 'departement_code' : 'commune_code';
+    const zoneCodeKey = urlLevel === 'district' ? 'district_code' : urlLevel === 'region' ? 'region_code' : urlLevel === 'departement' ? 'departement_code' : 'commune_code';
     const statusMap = {};
     for (const f of schoolsData.features) {
+      if (showPointsFromDashboard.current && urlCode && f.properties[zoneCodeKey] !== urlCode) continue;
       const code = f.properties[codeKey];
       const st = f.properties.collect_status;
       if (!code) continue;
@@ -755,12 +757,14 @@ export default function Explorer() {
         return { ...f, properties: { ...f.properties, status } };
       }),
     };
-  }, [schoolsData]);
+  }, [schoolsData, urlLevel, urlCode]);
 
   useEffect(() => {
     if (!mapInst.current?.getLayer('ecoles-points') || !schoolsData) return;
+    const zoneCodeKey = urlLevel === 'district' ? 'district_code' : urlLevel === 'region' ? 'region_code' : urlLevel === 'departement' ? 'departement_code' : 'commune_code';
     const filtered = schoolsData.features.filter(f => {
       const p = f.properties;
+      if (showPointsFromDashboard.current && urlCode && p[zoneCodeKey] !== urlCode) return false;
       if (filters.collect_status.length && !filters.collect_status.includes(p.collect_status)) return false;
       if (filters.milieu.length && !filters.milieu.includes(p.milieu_implantation)) return false;
       if (filters.niveau.length && !filters.niveau.includes(p.niveau_enseignement)) return false;
@@ -787,7 +791,7 @@ export default function Explorer() {
     if (showPointsFromDashboard.current && currentLevelRef.current !== 'sous-prefecture') {
       mapInst.current.setLayoutProperty('ecoles-points', 'visibility', 'visible');
     }
-  }, [filters, schoolsData]);
+  }, [filters, schoolsData, urlLevel, urlCode]);
 
   useEffect(() => {
     const map = mapInst.current;
