@@ -663,10 +663,12 @@ export default function Explorer() {
       });
 
       syncLabels();
-      loadSchools();
+
+      const schoolsPromise = loadSchools();
       setTimeout(() => setLoading(false), 600);
 
       const autoDrillToZone = async (targetLevel, targetCode) => {
+        await schoolsPromise;
         const geoData = geoDataRef.current;
         const findFeat = (geoKey, code) => {
           const g = geoData[geoKey];
@@ -730,7 +732,7 @@ export default function Explorer() {
   }, []);
 
   const loadSchools = useCallback(async () => {
-    try { const d = await api.getSchools(); setSchoolsData(d); } catch {}
+    try { const d = await api.getSchools(); setSchoolsData(d); return d; } catch { return null; }
   }, [setSchoolsData]);
 
   const enrichWithStatus = useCallback((geoData, level) => {
@@ -782,6 +784,9 @@ export default function Explorer() {
       return true;
     });
     mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filtered });
+    if (showPointsFromDashboard.current && currentLevelRef.current !== 'sous-prefecture') {
+      mapInst.current.setLayoutProperty('ecoles-points', 'visibility', 'visible');
+    }
   }, [filters, schoolsData]);
 
   useEffect(() => {
@@ -789,18 +794,31 @@ export default function Explorer() {
     if (!map || !schoolsData) return;
     const data = geoDataRef.current;
     if (data.districts) {
-      const enriched = enrichWithStatus(data.districts, 'districts');
-      data.districts = enriched;
-      map.getSource('districts')?.setData(enriched);
+      data.districts = enrichWithStatus(data.districts, 'districts');
+      if (currentLevelRef.current === 'district') {
+        map.getSource('districts')?.setData(data.districts);
+      }
     }
     if (data.regions) {
       data.regions = enrichWithStatus(data.regions, 'regions');
+      if (currentLevelRef.current === 'region' && selDistRef.current) {
+        const filtered = { type: 'FeatureCollection', features: data.regions.features.filter(f => f.properties.district === selDistRef.current) };
+        map.getSource('regions')?.setData(filtered);
+      }
     }
     if (data.depts) {
       data.depts = enrichWithStatus(data.depts, 'depts');
+      if (currentLevelRef.current === 'departement' && selRegRef.current) {
+        const filtered = { type: 'FeatureCollection', features: data.depts.features.filter(f => f.properties.region === selRegRef.current) };
+        map.getSource('depts')?.setData(filtered);
+      }
     }
     if (data.sp) {
       data.sp = enrichWithStatus(data.sp, 'communes');
+      if (currentLevelRef.current === 'sous-prefecture' && selDeptRef.current) {
+        const filtered = { type: 'FeatureCollection', features: data.sp.features.filter(f => f.properties.departement === selDeptRef.current) };
+        map.getSource('sp')?.setData(filtered);
+      }
     }
   }, [schoolsData, enrichWithStatus]);
 
