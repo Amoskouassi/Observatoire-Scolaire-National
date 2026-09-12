@@ -80,7 +80,16 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
     if (error) throw error;
 
     // Si une école existe, mettre à jour son inventaire + photo
-    if (req.body.ecole_id) {
+    let ecoleId = req.body.ecole_id;
+    if (!ecoleId && req.body.code_mena && !req.body.code_mena.startsWith('TEMP-')) {
+      const { data: ecole } = await supabase
+        .from('ecoles')
+        .select('id')
+        .eq('code_mena', req.body.code_mena)
+        .single();
+      if (ecole) ecoleId = ecole.id;
+    }
+    if (ecoleId) {
       const updateData = {
         inventaire_classes: req.body.inventaire_classes,
         updated_at: new Date().toISOString(),
@@ -93,7 +102,7 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
       await supabase
         .from('ecoles')
         .update(updateData)
-        .eq('id', req.body.ecole_id);
+        .eq('id', ecoleId);
     }
 
     res.status(201).json({ id: data.id, status: 'submitted' });
