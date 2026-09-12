@@ -8,7 +8,7 @@ router.get('/poster/:schoolId', async (req, res, next) => {
   try {
     const { data: ecole, error } = await supabase
       .from('ecoles')
-      .select('*')
+      .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, longitude, latitude, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, eleves_total, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at, photo_url')
       .eq('id', req.params.schoolId)
       .single();
 
