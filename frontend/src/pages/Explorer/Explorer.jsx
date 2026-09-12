@@ -232,11 +232,14 @@ export default function Explorer() {
   const geoDataRef = useRef({ districts: null, regions: null, depts: null, sp: null });
   const labelsRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
   const urlAppliedRef = useRef(false);
+  const showPointsFromDashboard = useRef(false);
 
   useEffect(() => {
     if (urlAppliedRef.current) return;
     const statusParam = searchParams.get('status');
     const filterParam = searchParams.get('filter');
+    const showPoints = searchParams.get('show_points');
+    if (showPoints === '1') showPointsFromDashboard.current = true;
     if (statusParam) {
       setFilter('collect_status', [statusParam]);
     }
@@ -299,6 +302,7 @@ export default function Explorer() {
       setVis(['regions-fill', 'regions-outline'], 'visible');
       setVis(['depts-fill', 'depts-outline'], 'none');
       setVis(['sp-fill', 'sp-outline'], 'none');
+      setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
 
       nextLevel = 'region';
 
@@ -320,6 +324,7 @@ export default function Explorer() {
       setVis(['regions-outline'], 'visible');
       setVis(['depts-fill', 'depts-outline'], 'visible');
       setVis(['sp-fill', 'sp-outline'], 'none');
+      setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
 
       nextLevel = 'departement';
 
@@ -338,6 +343,7 @@ export default function Explorer() {
       setVis(['depts-fill'], 'none');
       setVis(['depts-outline'], 'visible');
       setVis(['sp-fill', 'sp-outline'], 'visible');
+      setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
 
       nextLevel = 'sous-prefecture';
     } else if (level === 'sous-prefecture') {
@@ -382,7 +388,7 @@ export default function Explorer() {
     const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
 
     if (currentLevelRef.current === 'sous-prefecture') {
-      setVis(['ecoles-points'], 'none');
+      if (!showPointsFromDashboard.current) setVis(['ecoles-points'], 'none');
       if (data.sp) map.getSource('sp')?.setData(data.sp);
       const parentRegion = selRegRef.current;
       if (parentRegion && data.depts) {
