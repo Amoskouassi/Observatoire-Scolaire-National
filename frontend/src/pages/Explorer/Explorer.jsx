@@ -233,6 +233,7 @@ export default function Explorer() {
   const geoDataRef = useRef({ districts: null, regions: null, depts: null, sp: null });
   const labelsRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
   const urlAppliedRef = useRef(false);
+  const schoolsDataRef = useRef(null);
 
   useEffect(() => {
     if (urlAppliedRef.current) return;
@@ -709,52 +710,29 @@ export default function Explorer() {
     mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filtered });
   }, [filters, schoolsData]);
 
-  const zoneLookupMap = { district: 'by_district', region: 'by_region', departement: 'by_departement', 'sous-prefecture': 'by_commune' };
-  const parentLookupMap = { region: 'by_district', departement: 'by_region', 'sous-prefecture': 'by_departement' };
-  const parentKeyMap = { region: 'district', departement: 'region', 'sous-prefecture': 'departement' };
-  const codeFieldMap = { district: 'district_code', region: 'region_code', departement: 'departement_code', 'sous-prefecture': 'commune_code' };
+  const zc = zoneCounts;
+  const levelTable = { district: 'districts', region: 'regions', departement: 'departements', 'sous-prefecture': 'communes' };
+  const currentTable = zc ? zc[levelTable[currentLevel]] || {} : {};
 
-  let scopedCounts = {};
-  let totalSchools = 0, totalStudents = 0, totalGirls = 0, totalBoys = 0;
+  const parentName = { region: breadcrumb.district, departement: breadcrumb.region, 'sous-prefecture': breadcrumb.dept }[currentLevel];
+  const parentGeoKey = { region: 'districts', departement: 'regions', 'sous-prefecture': 'depts' }[currentLevel];
+  const parentCountKey = { region: 'districts', departement: 'regions', 'sous-prefecture': 'departements' }[currentLevel];
+  const parentCode = parentName && geoDataRef.current[parentGeoKey]
+    ? (geoDataRef.current[parentGeoKey].features.find(f => f.properties.name === parentName)?.properties.code || null)
+    : null;
 
-  if (zoneCounts) {
-    const table = zoneLookupMap[currentLevel];
-    scopedCounts = zoneCounts[table] || {};
+  const scope = currentLevel === 'district'
+    ? zc?.national
+    : (parentCode && zc ? zc[parentCountKey]?.[parentCode] : null);
 
-    if (currentLevel === 'district') {
-      totalSchools = zoneCounts.national?.schools || 0;
-      totalStudents = zoneCounts.national?.students || 0;
-      totalGirls = zoneCounts.national?.girls || 0;
-      totalBoys = zoneCounts.national?.boys || 0;
-    } else {
-      const parentTable = parentLookupMap[currentLevel];
-      const parentField = parentKeyMap[currentLevel];
-      const parentName = breadcrumb[parentField];
-      if (parentName && geoDataRef.current) {
-        const geoKey = parentField === 'district' ? 'districts' : parentField === 'region' ? 'regions' : 'depts';
-        const feat = geoDataRef.current[geoKey]?.features?.find(f => f.properties.name === parentName);
-        if (feat) {
-          const parentCounts = zoneCounts[parentTable]?.[feat.properties.code];
-          if (parentCounts) {
-            totalSchools = parentCounts.schools;
-            totalStudents = parentCounts.students;
-            totalGirls = parentCounts.girls;
-            totalBoys = parentCounts.boys;
-          }
-        }
-      }
-    }
-  }
+  const totalSchools = scope?.schools || 0;
+  const totalStudents = scope?.students || 0;
+  const totalGirls = scope?.girls || 0;
+  const totalBoys = scope?.boys || 0;
 
   const zoneSchoolStats = {};
-  if (zoneCounts) {
-    const table = zoneLookupMap[currentLevel];
-    const rawCounts = zoneCounts[table] || {};
-    for (const z of zones) {
-      if (rawCounts[z.code]) {
-        zoneSchoolStats[z.code] = rawCounts[z.code];
-      }
-    }
+  for (const z of zones) {
+    if (currentTable[z.code]) zoneSchoolStats[z.code] = currentTable[z.code];
   }
 
   const maxSchools = Math.max(...zones.map(z => (zoneSchoolStats[z.code]?.schools || 0)), 1);
