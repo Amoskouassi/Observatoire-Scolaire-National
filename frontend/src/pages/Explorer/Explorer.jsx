@@ -218,7 +218,7 @@ export default function Explorer() {
   const { level: urlLevel, code: urlCode } = useParams();
   const [searchParams] = useSearchParams();
   const { filters, setFilter, resetFilters, advancedFiltersOpen, toggleAdvancedFilters, isPremium, schoolsData, setSchoolsData } = useMapStore();
-  const { role } = useAuthStore();
+  const { role, user } = useAuthStore();
   const [selected, setSelected] = useState(null);
   const [currentLevel, setCurrentLevel] = useState('district');
   const [zones, setZones] = useState([]);
@@ -646,6 +646,26 @@ export default function Explorer() {
       syncLabels();
       loadSchools();
       setTimeout(() => setLoading(false), 600);
+
+      if (user?.district_code || user?.region_code || user?.departement_code || user?.commune_code) {
+        const zoneCode = user.commune_code || user.departement_code || user.region_code || user.district_code;
+        const zoneLevel = user.commune_code ? 'sp' : user.departement_code ? 'depts' : user.region_code ? 'regions' : 'districts';
+        const geoData = geoDataRef.current[zoneLevel];
+        if (geoData) {
+          const feature = geoData.features.find(f => f.properties.code === zoneCode || f.properties.name === zoneCode);
+          if (feature) {
+            const bbox = getBBox(feature.geometry);
+            if (bbox) {
+              const dLng = (bbox[1][0] - bbox[0][0]) * 0.2;
+              const dLat = (bbox[1][1] - bbox[0][1]) * 0.2;
+              map.fitBounds(
+                [[bbox[0][0] - dLng, bbox[0][1] - dLat], [bbox[1][0] + dLng, bbox[1][1] + dLat]],
+                { padding: 40, duration: 1200 }
+              );
+            }
+          }
+        }
+      }
     });
 
     mapInst.current = map;
