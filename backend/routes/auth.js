@@ -87,12 +87,11 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: { nom, prenom, role },
-      },
+      email_confirm: true,
+      user_metadata: { nom, prenom, role },
     });
 
     if (authError) {
