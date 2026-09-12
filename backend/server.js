@@ -84,6 +84,23 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Diagnostic endpoint
+app.get('/api/debug', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('ecoles').select('id').limit(1);
+    res.json({
+      supabase: error ? { error: error.message, code: error.code } : { ok: true, count: data?.length },
+      env: {
+        hasUrl: !!process.env.SUPABASE_URL,
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_KEY,
+        hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
+      },
+    });
+  } catch (e) {
+    res.json({ error: e.message });
+  }
+});
+
 // Error handling
 app.use((err, req, res, next) => {
   if (err instanceof ZodError) {
@@ -96,9 +113,7 @@ app.use((err, req, res, next) => {
   logger.error(err.message, { stack: err.stack, path: req.path });
 
   res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'production'
-      ? 'Erreur interne du serveur'
-      : err.message,
+    error: err.message || 'Erreur interne du serveur',
   });
 });
 
