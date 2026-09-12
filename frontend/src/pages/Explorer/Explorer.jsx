@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapStore } from '../../stores/mapStore';
@@ -214,10 +214,9 @@ export default function Explorer() {
   const mapRef = useRef(null);
   const mapInst = useRef(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   const { level: urlLevel, code: urlCode } = useParams();
   const [searchParams] = useSearchParams();
-  const { filters, setFilter, resetFilters, advancedFiltersOpen, toggleAdvancedFilters, isPremium, schoolsData, setSchoolsData } = useMapStore();
+  const { filters, setFilter, resetFilters, advancedFiltersOpen, toggleAdvancedFilters, schoolsData, setSchoolsData } = useMapStore();
   const { role, user } = useAuthStore();
   const [selected, setSelected] = useState(null);
   const [currentLevel, setCurrentLevel] = useState('district');
@@ -233,7 +232,6 @@ export default function Explorer() {
   const geoDataRef = useRef({ districts: null, regions: null, depts: null, sp: null });
   const labelsRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
   const urlAppliedRef = useRef(false);
-  const schoolsDataRef = useRef(null);
 
   useEffect(() => {
     if (urlAppliedRef.current) return;
@@ -258,13 +256,18 @@ export default function Explorer() {
   }, []);
 
   const showZoneDetail = useCallback((level, props) => {
+    const zs = zoneSchoolStats[props.code] || {};
     setSelected({
       name: props.name,
       code: props.code,
       level,
       status: props.status,
+      schools: zs.schools || 0,
+      students: zs.students || 0,
+      girls: zs.girls || 0,
+      boys: zs.boys || 0,
     });
-  }, []);
+  }, [zoneSchoolStats]);
 
   const drillDown = useCallback((level, name) => {
     const map = mapInst.current;
@@ -334,6 +337,18 @@ export default function Explorer() {
       setVis(['sp-fill', 'sp-outline'], 'visible');
 
       nextLevel = 'sous-prefecture';
+    } else if (level === 'sous-prefecture') {
+      const spFeat = data.sp?.features?.find(f => f.properties.name === name);
+      if (spFeat) {
+        map.getSource('sp')?.setData({ type: 'FeatureCollection', features: [spFeat] });
+        if (spFeat.geometry) {
+          drillingRef.current = true;
+          fitBBox(map, spFeat.geometry, 0.05);
+          setTimeout(() => { drillingRef.current = false; }, 900);
+        }
+      }
+      showZoneDetail('sous-prefecture', spFeat?.properties || { name });
+      return;
     } else {
       return;
     }
@@ -363,7 +378,6 @@ export default function Explorer() {
     const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
 
     if (currentLevelRef.current === 'sous-prefecture') {
-      const data = geoDataRef.current;
       if (data.sp) map.getSource('sp')?.setData(data.sp);
       const parentRegion = selRegRef.current;
       if (parentRegion && data.depts) {
@@ -617,19 +631,7 @@ export default function Explorer() {
           if (zf?.length) drillDown('departement', zf[0].properties.name);
         } else if (level === 'sous-prefecture') {
           const zf = map.queryRenderedFeatures(e.point, { layers: ['sp-fill', 'sp-outline'] });
-          if (zf?.length) {
-            const spName = zf[0].properties.name;
-            const spFeat = geoDataRef.current.sp?.features?.find(f => f.properties?.name === spName);
-            if (spFeat) {
-              map.getSource('sp')?.setData({ type: 'FeatureCollection', features: [spFeat] });
-            }
-            showZoneDetail(level, zf[0].properties);
-            if (spFeat?.geometry) {
-              drillingRef.current = true;
-              fitBBox(map, spFeat.geometry, 0.05);
-              setTimeout(() => { drillingRef.current = false; }, 900);
-            }
-          }
+          if (zf?.length) drillDown('sous-prefecture', zf[0].properties.name);
         }
       });
 
@@ -1003,7 +1005,7 @@ export default function Explorer() {
                 .map((z, i) => {
                 const zs = zoneSchoolStats[z.code] || { schools: z.schools || 0, students: z.students || 0, girls: z.girls || 0, boys: z.boys || 0 };
                 return (
-                <button key={i} onClick={() => currentLevel === 'sous-prefecture' ? showZoneDetail(currentLevel, { ...z, ...zs }) : drillDown(currentLevel, z.name)}
+                <button key={i} onClick={() => drillDown(currentLevel, z.name)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white hover:bg-white hover:shadow-sm transition-all duration-200 text-left group border border-transparent hover:border-[#E8611A]/10">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
                     style={{ backgroundColor: `${COLORS[z.status] || COLORS.pending}12`, color: COLORS[z.status] || COLORS.pending }}>
