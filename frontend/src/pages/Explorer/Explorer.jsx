@@ -712,18 +712,16 @@ export default function Explorer() {
     const level = currentLevelRef.current;
 
     let scoped = allSchools;
-    if (level === 'region' && selDistRef.current) {
-      const distFeat = geo.districts?.features?.find(f => f.properties.name === selDistRef.current);
-      const distCode = distFeat?.properties.code;
-      if (distCode) scoped = allSchools.filter(f => f.properties.district_code === distCode);
-    } else if (level === 'departement' && selRegRef.current) {
-      const regFeat = geo.regions?.features?.find(f => f.properties.name === selRegRef.current);
-      const regCode = regFeat?.properties.code;
-      if (regCode) scoped = allSchools.filter(f => f.properties.region_code === regCode);
-    } else if (level === 'sous-prefecture' && selDeptRef.current) {
-      const deptFeat = geo.depts?.features?.find(f => f.properties.name === selDeptRef.current);
-      const deptCode = deptFeat?.properties.code;
-      if (deptCode) scoped = allSchools.filter(f => f.properties.departement_code === deptCode);
+
+    if (level === 'region' && breadcrumb.district) {
+      const distFeat = geo.districts?.features?.find(f => f.properties.name === breadcrumb.district);
+      if (distFeat) scoped = allSchools.filter(f => f.properties.district_code === distFeat.properties.code);
+    } else if (level === 'departement' && breadcrumb.region) {
+      const regFeat = geo.regions?.features?.find(f => f.properties.name === breadcrumb.region);
+      if (regFeat) scoped = allSchools.filter(f => f.properties.region_code === regFeat.properties.code);
+    } else if (level === 'sous-prefecture' && breadcrumb.dept) {
+      const deptFeat = geo.depts?.features?.find(f => f.properties.name === breadcrumb.dept);
+      if (deptFeat) scoped = allSchools.filter(f => f.properties.departement_code === deptFeat.properties.code);
     }
 
     const totals = { schools: scoped.length, students: 0, girls: 0, boys: 0 };
@@ -733,8 +731,7 @@ export default function Explorer() {
       const p = f.properties;
       const g = p.nombre_filles || 0;
       const b = p.nombre_garcons || 0;
-      const t = g + b;
-      totals.students += t;
+      totals.students += g + b;
       totals.girls += g;
       totals.boys += b;
 
@@ -743,14 +740,14 @@ export default function Explorer() {
       if (zKey) {
         if (!byZone[zKey]) byZone[zKey] = { schools: 0, students: 0, girls: 0, boys: 0 };
         byZone[zKey].schools++;
-        byZone[zKey].students += t;
+        byZone[zKey].students += g + b;
         byZone[zKey].girls += g;
         byZone[zKey].boys += b;
       }
     }
 
     return { totals, byZone };
-  }, [schoolsData]);
+  }, [schoolsData, breadcrumb]);
 
   const { totals: schoolStats, byZone: zoneSchoolStats } = computeZoneStats();
 
