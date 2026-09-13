@@ -446,21 +446,16 @@ export default function Collecte() {
                 ]} />
               </Field>
               <Field label="Q10 — Code Matricule MENA">
-                <SearchableSelect
+                <input
                   value={f.code_mena}
-                  onChange={v => {
-                    u('code_mena', v);
-                    const ecole = ecoles.find(e => e.code === v);
-                    if (ecole) {
-                      u('nom_ecole', ecole.name);
-                    }
-                  }}
-                  options={ecoles.map(e => ({ value: e.code, label: `${e.code} — ${e.name}` }))}
-                  placeholder="Rechercher une école par code ou nom..."
+                  onChange={e => u('code_mena', e.target.value)}
+                  className={inputCls}
+                  placeholder="Ex: CI280101001"
                   disabled={f.statut_juridique === 'communaute'}
                 />
+                <p className="text-[10px] text-[#94A3B8] mt-1">Demandez ce code au directeur de l'établissement</p>
                 {f.statut_juridique === 'communaute' && (
-                  <p className="text-[10px] text-[#94A3B8] mt-1">Code TEMP auto-généré à la soumission</p>
+                  <p className="text-[10px] text-[#E8611A] mt-0.5">Code TEMP auto-généré à la soumission</p>
                 )}
               </Field>
               <Field label="Q11 — Niveau d'enseignement">
