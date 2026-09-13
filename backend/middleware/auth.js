@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { supabase } from '../server.js';
+import { config } from '../config/index.js';
 
 export async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -11,30 +12,28 @@ export async function authMiddleware(req, res, next) {
   const token = authHeader.split(' ')[1];
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const decoded = jwt.verify(token, config.jwt.secret);
 
-    if (error || !user) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, email, role, commune_code, region_code, district_code, departement_code')
+      .eq('id', decoded.userId)
+      .single();
+
+    if (profileError || !profile) {
       return res.status(401).json({ error: 'Token invalide' });
     }
 
-    // Récupérer le rôle depuis la table profiles
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, commune_code, region_code')
-      .eq('id', user.id)
-      .single();
-
     req.user = {
-      id: user.id,
-      email: user.email,
-      role: profile?.role || 'enqueteur',
-      communeCode: profile?.commune_code,
-      regionCode: profile?.region_code,
+      id: profile.id,
+      email: profile.email,
+      role: profile.role || 'enqueteur',
+      communeCode: profile.commune_code,
+      regionCode: profile.region_code,
     };
-
     next();
   } catch (err) {
-    return res.status(401).json({ error: 'Authentification échouée' });
+    return res.status(401).json({ error: 'Token invalide ou expiré' });
   }
 }
 
