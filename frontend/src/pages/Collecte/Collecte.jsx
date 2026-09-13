@@ -180,7 +180,7 @@ export default function Collecte() {
 
   const filteredCommunes = sel.departement
     ? zones.communes.filter(c => c.departement === sel.departement.name)
-    : [];
+    : zones.communes;
 
   const u = (k, v) => setF(p => ({ ...p, [k]: v }));
 
@@ -413,8 +413,7 @@ export default function Collecte() {
                     u('sous_prefecture', obj?.name || '');
                   }}
                   options={filteredCommunes}
-                  placeholder={sel.departement ? 'Sélectionner une sous-préfecture...' : 'Sélectionner d\'abord un département'}
-                  disabled={!sel.departement}
+                  placeholder="Sélectionner une sous-préfecture..."
                   searchPlaceholder="Rechercher une sous-préfecture..."
                 />
               </Field>
