@@ -97,6 +97,15 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
         collect_status: 'collected',
         last_collecte_at: req.body.date_collecte,
       };
+      if (req.body.eau_potable != null) updateData.eau_potable = req.body.eau_potable;
+      if (req.body.ecole_electrifiee != null) updateData.electricite = req.body.ecole_electrifiee;
+      if (req.body.nb_latrines != null) updateData.toilettes_filles_fonctionnelles = req.body.nb_latrines > 0;
+      if (req.body.nb_latrines != null) updateData.nb_latrines = req.body.nb_latrines;
+      if (req.body.materiaux_batiment) updateData.materiaux_precaires = [req.body.materiaux_batiment];
+      if (req.body.nb_enseignants_presents != null) updateData.enseignants_presents = req.body.nb_enseignants_presents;
+      if (req.body.inventaire_classes && req.body.inventaire_classes.length > 0) {
+        updateData.besoin_bancs = req.body.inventaire_classes.reduce((sum, c) => sum + (c.besoin_bancs || 0), 0);
+      }
       if (req.body.photos && req.body.photos.length > 0) {
         updateData.photo_url = req.body.photos[0].url;
       }
