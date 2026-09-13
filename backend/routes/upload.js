@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import multer from 'multer';
-import sharp from 'sharp';
 import { config } from '../config/index.js';
 import { supabase } from '../server.js';
 
@@ -18,23 +17,18 @@ const upload = multer({
   },
 });
 
-// Upload et compression d'image → Supabase Storage
 router.post('/', upload.single('photo'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Aucun fichier fourni' });
     }
 
-    const compressed = await sharp(req.file.buffer)
-      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: config.upload.compressionQuality * 100 })
-      .toBuffer();
-
-    const filename = `${Date.now()}-${req.file.originalname.replace(/\.[^.]+$/, '.jpg')}`;
+    const ext = req.file.mimetype === 'image/png' ? 'png' : 'jpg';
+    const filename = `${Date.now()}-${req.file.originalname.replace(/\.[^.]+$/, '')}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from('photos')
-      .upload(filename, compressed, { contentType: 'image/jpeg', upsert: false });
+      .upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
 
     if (uploadError) {
       return res.status(500).json({ error: `Erreur upload: ${uploadError.message}` });
@@ -44,8 +38,8 @@ router.post('/', upload.single('photo'), async (req, res, next) => {
 
     res.json({
       filename,
-      size: compressed.length,
-      type: 'image/jpeg',
+      size: req.file.size,
+      type: req.file.mimetype,
       url: urlData.publicUrl,
     });
   } catch (err) {
