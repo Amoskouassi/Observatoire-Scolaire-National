@@ -70,14 +70,14 @@ function SearchableSelect({ value, onChange, options, placeholder, disabled, sea
         <span className="material-symbols-outlined text-[16px] text-[#94A3B8]">expand_more</span>
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-[#CBD5E1] rounded-xl shadow-lg max-h-60 overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full bg-white border border-[#CBD5E1] rounded-xl shadow-lg">
           <div className="p-2 border-b border-[#CBD5E1]/30">
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder={searchPlaceholder || 'Rechercher...'}
               className="w-full bg-[#F1F5F9] rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#E8611A]"
               autoFocus />
           </div>
-          <div className="overflow-y-auto max-h-48">
+          <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
             {filtered.length === 0 ? (
               <div className="px-3 py-4 text-xs text-[#94A3B8] text-center">Aucun résultat</div>
             ) : (
