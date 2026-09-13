@@ -331,13 +331,7 @@ export default function Collecte() {
         date_collecte: new Date().toISOString(),
       });
       await refreshSchools();
-      const targetLevel = sel.commune ? 'sous-prefecture' : sel.departement ? 'departement' : sel.region ? 'region' : sel.district ? 'district' : null;
-      const targetCode = sel.commune?.code || sel.departement?.code || sel.region?.code || sel.district?.code;
-      if (targetLevel && targetCode) {
-        navigate(`/explorer/${targetLevel}/${targetCode}?show_points=1`);
-      } else {
-        setSubmitted(true);
-      }
+      setSubmitted(true);
     } catch (e) {
       setError(e.message || 'Erreur lors de la soumission');
     } finally {

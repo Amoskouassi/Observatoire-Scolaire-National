@@ -114,6 +114,38 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
         .update(updateData)
         .eq('id', ecoleId);
       if (updateErr) console.error('Erreur update école:', updateErr.message);
+    } else if (req.body.latitude && req.body.longitude) {
+      const newEcole = {
+        code_mena: req.body.code_mena || 'TEMP-' + Date.now(),
+        nom_etablissement: req.body.nom_ecole || 'École collectée',
+        statut: req.body.statut_juridique || 'public',
+        niveau_enseignement: req.body.niveau_enseignement || 'primaire',
+        milieu_implantation: req.body.milieu || 'rural',
+        longitude: req.body.longitude,
+        latitude: req.body.latitude,
+        commune_code: req.body.sous_prefecture ? req.body.sous_prefecture : 'INCONNU',
+        departement_code: req.body.departement || null,
+        region_code: req.body.region || null,
+        district_code: req.body.district || null,
+        collect_status: 'collected',
+        last_collecte_at: req.body.date_collecte,
+        inventaire_classes: req.body.inventaire_classes || [],
+        enseignants_presents: req.body.nb_enseignants_presents || 0,
+        eau_potable: req.body.eau_potable || false,
+        electricite: req.body.ecole_electrifiee || false,
+        toilettes_filles_fonctionnelles: (req.body.nb_latrines || 0) > 0,
+        nb_latrines: req.body.nb_latrines || 0,
+        materiaux_precaires: req.body.materiaux_batiment ? [req.body.materiaux_batiment] : [],
+        besoin_bancs: req.body.inventaire_classes ? req.body.inventaire_classes.reduce((sum, c) => sum + (c.besoin_bancs || 0), 0) : 0,
+        photo_url: req.body.photos?.[0]?.url || null,
+      };
+      const { data: created, error: createErr } = await supabase
+        .from('ecoles')
+        .insert(newEcole)
+        .select('id')
+        .single();
+      if (createErr) console.error('Erreur création école:', createErr.message);
+      else ecoleId = created.id;
     }
 
     res.status(201).json({ id: data.id, status: 'submitted' });
