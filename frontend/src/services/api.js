@@ -22,7 +22,8 @@ class ApiService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || error.message || `HTTP ${response.status}`);
+      const detail = error.details?.map(d => `${d.field}: ${d.message}`).join(', ');
+      throw new Error(detail || error.error || error.message || `HTTP ${response.status}`);
     }
 
     return response.json();
