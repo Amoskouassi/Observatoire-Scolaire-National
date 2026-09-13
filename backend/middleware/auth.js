@@ -14,14 +14,21 @@ export async function authMiddleware(req, res, next) {
   try {
     const decoded = jwt.verify(token, config.jwt.secret);
 
+    if (!decoded.userId) {
+      return res.status(401).json({ error: 'Token invalide: userId manquant' });
+    }
+
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, email, role, commune_code, region_code, district_code, departement_code')
       .eq('id', decoded.userId)
       .single();
 
-    if (profileError || !profile) {
-      return res.status(401).json({ error: 'Token invalide' });
+    if (profileError) {
+      return res.status(401).json({ error: 'Token invalide', detail: profileError.message });
+    }
+    if (!profile) {
+      return res.status(401).json({ error: 'Token invalide: profil introuvable pour userId ' + decoded.userId });
     }
 
     req.user = {
@@ -33,7 +40,7 @@ export async function authMiddleware(req, res, next) {
     };
     next();
   } catch (err) {
-    return res.status(401).json({ error: 'Token invalide ou expiré' });
+    return res.status(401).json({ error: 'Token invalide ou expiré', detail: err.message });
   }
 }
 
