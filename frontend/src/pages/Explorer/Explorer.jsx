@@ -235,7 +235,6 @@ export default function Explorer() {
   const showPointsFromDashboard = useRef(false);
 
   useEffect(() => {
-    if (urlAppliedRef.current) return;
     const statusParam = searchParams.get('status');
     const filterParam = searchParams.get('filter');
     const showPoints = searchParams.get('show_points');
@@ -255,10 +254,15 @@ export default function Explorer() {
     if (filterParam === 'manque_bancs') setFilter('manque_bancs', true);
     if (filterParam === 'materiaux_precaires') setFilter('materiaux_precaires', true);
     if (filterParam === 'manque_enseignants') setFilter('manque_enseignants', true);
+    if (filterParam === 'critical') {
+      setFilter('sans_eau', true);
+      setFilter('sans_toilettes', true);
+      setFilter('sans_electricite', true);
+    }
     if (urlLevel && urlCode) {
       urlAppliedRef.current = true;
     }
-  }, [urlLevel, urlCode, searchParams, setFilter]);
+  }, [urlLevel, urlCode, searchParams.toString()]);
   const drillingRef = useRef(false);
   const syncViewRef = useRef(null);
   const zoneSchoolStatsRef = useRef({});
@@ -775,11 +779,12 @@ export default function Explorer() {
       if (filters.milieu.length && !filters.milieu.includes(p.milieu_implantation)) return false;
       if (filters.niveau.length && !filters.niveau.includes(p.niveau_enseignement)) return false;
       if (filters.statut.length && !filters.statut.includes(p.statut)) return false;
-      if (filters.manque_bancs && (!p.besoin_bancs || p.besoin_bancs <= 0)) return false;
-      if (filters.sans_toilettes && p.toilettes_filles_fonctionnelles !== false) return false;
-      if (filters.sans_eau && p.eau_potable !== false) return false;
-      if (filters.sans_electricite && p.electricite !== false) return false;
-      if (filters.manque_enseignants && (!p.enseignants_presents || p.enseignants_presents > 0)) return false;
+      if (filters.manque_bancs && (p.besoin_bancs > 0)) return false;
+      if (filters.sans_toilettes && (p.toilettes_filles_fonctionnelles === true)) return false;
+      if (filters.sans_eau && (p.eau_potable === true)) return false;
+      if (filters.sans_electricite && (p.electricite === true)) return false;
+      if (filters.manque_enseignants && (p.enseignants_presents > 0)) return false;
+      if (filters.materiaux_precaires && (!p.materiaux_precaires || p.materiaux_precaires.length === 0)) return false;
       if (filters.materiaux_precaires && (!p.materiaux_precaires || p.materiaux_precaires.length === 0)) return false;
       if (filters.taux_filles_min != null) {
         const total = (p.nombre_filles || 0) + (p.nombre_garcons || 0);
