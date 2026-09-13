@@ -148,6 +148,40 @@ class ApiService {
   getZoneCounts() {
     return this.request('/dashboard/zone-counts');
   }
+
+  getMyZone() {
+    return this.request('/dashboard/my-zone');
+  }
+
+  getNationalStats() {
+    return this.request('/dashboard/national-stats');
+  }
+
+  getHistorical(anneeScolaire) {
+    return this.request(`/dashboard/historical?annee_scolaire=${encodeURIComponent(anneeScolaire)}`);
+  }
+
+  getCollecteHistory() {
+    return this.request('/dashboard/collecte-history');
+  }
+
+  getCommuneRanking() {
+    return this.request('/dashboard/commune-ranking');
+  }
+
+  getAlerts(zoneLevel, zoneCode) {
+    const params = new URLSearchParams();
+    if (zoneLevel) params.set('zone_level', zoneLevel);
+    if (zoneCode) params.set('zone_code', zoneCode);
+    return this.request(`/dashboard/alerts?${params.toString()}`);
+  }
+
+  saveSnapshot(data) {
+    return this.request('/dashboard/snapshots', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const api = new ApiService();

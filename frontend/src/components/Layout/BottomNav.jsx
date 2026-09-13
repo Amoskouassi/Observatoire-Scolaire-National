@@ -4,7 +4,6 @@ const NAV = [
   { path: '/explorer', icon: 'map', label: 'Carte' },
   { path: '/espace-decideur', icon: 'bar_chart', label: 'Décideurs' },
   { path: '/collecte', icon: 'edit_location', label: 'Collecte' },
-  { path: '/ecole/demo', icon: 'school', label: 'École' },
 ];
 
 export default function BottomNav() {

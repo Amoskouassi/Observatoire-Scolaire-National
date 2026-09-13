@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { supabase } from '../server.js';
 import { validateRequest } from '../middleware/validate.js';
+import { sendMail, collecteReceivedEmail } from '../services/email.js';
 
 const router = Router();
 
@@ -107,6 +108,29 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
     }
 
     res.status(201).json({ id: data.id, status: 'submitted' });
+
+    // Notification email aux décideurs de la zone
+    try {
+      const enqProfile = await supabase.from('profiles').select('nom, prenom').eq('id', req.user.id).single();
+      const enqNom = enqProfile.data ? `${enqProfile.data.prenom} ${enqProfile.data.nom}` : 'Enquêteur';
+      const nomEcole = req.body.nom_ecole || req.body.code_mena || 'École';
+      const emailContent = collecteReceivedEmail(nomEcole, enqNom);
+
+      const decRoleMap = { mairie: 'mairie', president_region: 'president_region', ministre: 'ministre' };
+      const zoneCol = { mairie: 'commune_code', president_region: 'region_code', ministre: 'district_code' };
+
+      for (const [role, col] of Object.entries(zoneCol)) {
+        const zoneVal = req.body[col.replace('_code', '') === 'commune' ? 'sous_prefecture' : col.replace('_code', '')];
+        if (zoneVal) {
+          const { data: decs } = await supabase.from('profiles').select('email').eq('role', role);
+          if (decs?.length) {
+            for (const dec of decs) {
+              if (dec.email) sendMail({ to: dec.email, ...emailContent }).catch(() => {});
+            }
+          }
+        }
+      }
+    } catch (e) { /* notification best-effort */ }
   } catch (err) {
     next(err);
   }
