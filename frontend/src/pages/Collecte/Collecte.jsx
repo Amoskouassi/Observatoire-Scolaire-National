@@ -38,7 +38,7 @@ const labelCls = "text-[11px] font-bold text-[#6B7280] uppercase block mb-1";
 const selectCls = "w-full bg-white border border-[#CBD5E1] rounded-lg p-2.5 text-sm focus:border-[#E8611A] outline-none appearance-none bg-no-repeat bg-[right_10px_center] bg-[length:16px]";
 const selectStyle = { backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E\")" };
 
-function SearchableSelect({ value, onChange, options, placeholder, disabled, searchPlaceholder, renderOption }) {
+function SearchableSelect({ value, onChange, options, placeholder, disabled, searchPlaceholder }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef(null);
@@ -59,7 +59,7 @@ function SearchableSelect({ value, onChange, options, placeholder, disabled, sea
   });
 
   const selectedLabel = options.find(o => (typeof o === 'string' ? o : o.code) === value);
-  const displayValue = selectedLabel ? (typeof selectedLabel === 'string' ? selectedLabel : (renderOption ? renderOption(selectedLabel) : selectedLabel.name || '')) : '';
+  const displayValue = selectedLabel ? (typeof selectedLabel === 'string' ? selectedLabel : selectedLabel.name) : '';
 
   return (
     <div className="relative" ref={ref}>
@@ -79,13 +79,13 @@ function SearchableSelect({ value, onChange, options, placeholder, disabled, sea
               className="w-full bg-[#F1F5F9] rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#E8611A]"
               autoFocus />
           </div>
-          <div className="overflow-y-auto max-h-72">
+          <div className="overflow-y-auto max-h-48">
             {filtered.length === 0 ? (
               <div className="px-3 py-4 text-xs text-[#94A3B8] text-center">Aucun résultat</div>
             ) : (
               filtered.map(o => {
                 const code = typeof o === 'string' ? o : o.code;
-                const name = typeof o === 'string' ? o : (renderOption ? renderOption(o) : (o.name || o.label || ''));
+                const name = typeof o === 'string' ? o : o.name || o.label;
                 return (
                   <button key={code} type="button"
                     onClick={() => { onChange(code, o); setOpen(false); setSearch(''); }}
@@ -408,7 +408,6 @@ export default function Collecte() {
                 />
               </Field>
               <Field label="Q4 — Sous-Préfecture / Commune">
-                <p className="text-[10px] text-[#94A3B8] mb-1">{filteredCommunes.length} sous-préfecture{filteredCommunes.length > 1 ? 's' : ''}</p>
                 <SearchableSelect
                   value={sel.commune?.code || ''}
                   onChange={(code, obj) => {
@@ -416,8 +415,7 @@ export default function Collecte() {
                     u('sous_prefecture', obj?.name || '');
                   }}
                   options={filteredCommunes}
-                  renderOption={(o) => `${o.code} — ${o.name}`}
-                  placeholder={sel.departement ? `Sous-préfectures de ${sel.departement.name}` : 'Toutes les sous-préfectures (510)'}
+                  placeholder={sel.departement ? `Sous-préfectures de ${sel.departement.name}` : 'Toutes les sous-préfectures'}
                   searchPlaceholder="Rechercher par nom ou code..."
                 />
               </Field>
