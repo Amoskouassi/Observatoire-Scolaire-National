@@ -53,7 +53,9 @@ function SearchableSelect({ value, onChange, options, placeholder, disabled, sea
 
   const filtered = options.filter(o => {
     const name = (typeof o === 'string' ? o : o.name || o.label || '').toLowerCase();
-    return name.includes(search.toLowerCase());
+    const code = (typeof o === 'string' ? '' : o.code || '').toLowerCase();
+    const s = search.toLowerCase();
+    return name.includes(s) || code.includes(s);
   });
 
   const selectedLabel = options.find(o => (typeof o === 'string' ? o : o.code) === value);
@@ -180,7 +182,7 @@ export default function Collecte() {
 
   const filteredCommunes = sel.departement
     ? zones.communes.filter(c => c.departement === sel.departement.name)
-    : [];
+    : zones.communes;
 
   const u = (k, v) => setF(p => ({ ...p, [k]: v }));
 
@@ -413,9 +415,8 @@ export default function Collecte() {
                     u('sous_prefecture', obj?.name || '');
                   }}
                   options={filteredCommunes}
-                  placeholder={sel.departement ? 'Sélectionner une sous-préfecture...' : 'Sélectionner d\'abord un département'}
-                  disabled={!sel.departement}
-                  searchPlaceholder="Rechercher une sous-préfecture..."
+                  placeholder={sel.departement ? `Sous-préfectures de ${sel.departement.name}` : 'Toutes les sous-préfectures'}
+                  searchPlaceholder="Rechercher par nom ou code..."
                 />
               </Field>
               <Field label="Q5 — Localité / Village / Quartier">
