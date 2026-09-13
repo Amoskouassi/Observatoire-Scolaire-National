@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import { api } from '../services/api';
 
-export const useMapStore = create((set) => ({
+export const useMapStore = create((set, get) => ({
   currentLevel: 'country',
   currentFeature: null,
   currentParent: null,
@@ -54,4 +55,16 @@ export const useMapStore = create((set) => ({
 
   setSchoolsData: (data) => set({ schoolsData: data }),
   setSchoolsLoading: (loading) => set({ schoolsLoading: loading }),
+
+  refreshSchools: async () => {
+    set({ schoolsLoading: true });
+    try {
+      const d = await api.getSchools();
+      set({ schoolsData: d, schoolsLoading: false });
+      return d;
+    } catch {
+      set({ schoolsLoading: false });
+      return null;
+    }
+  },
 }));

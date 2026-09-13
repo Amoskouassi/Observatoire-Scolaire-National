@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
+import { useMapStore } from '../../stores/mapStore';
 import { api } from '../../services/api';
 
 const TABS = [
@@ -150,6 +151,7 @@ function RadioGroup({ value, onChange, options }) {
 export default function Collecte() {
   const navigate = useNavigate();
   const { token } = useAuthStore();
+  const refreshSchools = useMapStore(s => s.refreshSchools);
   const [step, setStep] = useState(1);
   const [f, setF] = useState(initialState);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -328,6 +330,7 @@ export default function Collecte() {
         commentaires: s(f.commentaires),
         date_collecte: new Date().toISOString(),
       });
+      refreshSchools();
       setSubmitted(true);
     } catch (e) {
       setError(e.message || 'Erreur lors de la soumission');
