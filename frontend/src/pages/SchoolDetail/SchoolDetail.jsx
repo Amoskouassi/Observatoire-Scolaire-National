@@ -31,8 +31,8 @@ export default function SchoolDetail() {
   if (loading) return <div className="h-full bg-[#F4EFE6] flex items-center justify-center"><div className="w-12 h-12 rounded-full border-4 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>;
   if (!school) return <div className="h-full bg-[#F4EFE6] flex flex-col items-center justify-center gap-3"><span className="text-4xl">🏫</span><h2 className="text-lg font-bold text-[#0D1B2A]">Non trouvée</h2><Link to="/explorer" className="text-[#E8611A] underline text-sm font-bold">Retour</Link></div>;
 
-  const total = school.nombre_filles + school.nombre_garcons;
-  const pctF = total > 0 ? Math.round((school.nombre_filles / total) * 100) : 0;
+  const total = (school.nombre_filles || 0) + (school.nombre_garcons || 0);
+  const pctF = total > 0 ? Math.round(((school.nombre_filles || 0) / total) * 100) : 0;
 
   return (
     <div className="h-full overflow-auto bg-[#F4EFE6]">
@@ -118,7 +118,7 @@ export default function SchoolDetail() {
               <span className="flex items-center gap-1.5 text-sm font-bold text-[#1E293B]">
                 <span className="material-symbols-outlined text-[#E8611A] text-[18px]">balance</span> Parité
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-[#e7eeff] text-[10px] font-bold text-[#0D1B2A]">IPG: {(school.nombre_garcons / school.nombre_filles).toFixed(2)}</span>
+              <span className="px-2 py-0.5 rounded-full bg-[#e7eeff] text-[10px] font-bold text-[#0D1B2A]">IPG: {school.nombre_filles > 0 ? (school.nombre_garcons / school.nombre_filles).toFixed(2) : '—'}</span>
             </div>
             <div className="w-full h-4 rounded-full bg-[#e7eeff] overflow-hidden flex p-0.5 gap-0.5">
               <div className="h-full rounded-l-full bg-[#E8611A] flex items-center justify-center text-[9px] font-bold text-white" style={{ width: `${pctF}%` }}>{pctF}%</div>

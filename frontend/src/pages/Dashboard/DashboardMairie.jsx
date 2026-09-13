@@ -895,7 +895,7 @@ export default function DashboardMairie() {
           <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
             <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Classement des communes</h3>
             <div className="space-y-1">
-              {communeRanking
+              {[...communeRanking]
                 .sort((a, b) => b.taux_collecte - a.taux_collecte)
                 .slice(0, 10)
                 .map((c, i) => (

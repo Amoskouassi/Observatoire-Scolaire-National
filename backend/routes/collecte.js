@@ -25,7 +25,7 @@ const collecteSchema = z.object({
   voie_acces: z.enum(['goudron', 'piste_praticable', 'piste_saisonniere']).nullish(),
   nom_ecole: z.string().nullish(),
   statut_juridique: z.enum(['public', 'prive_laic', 'prive_confessionnel', 'communaute']).nullish(),
-  niveau_enseignement: z.enum(['primaire', 'secondaire', 'superieur']).nullish(),
+  niveau_enseignement: z.enum(['primaire', 'secondaire', 'maternelle', 'superieur']).nullish(),
   annee_creation: z.number().int().min(1900).max(2030).nullish(),
   annee_scolaire: z.string().nullish(),
 

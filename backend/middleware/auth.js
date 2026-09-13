@@ -44,6 +44,8 @@ export async function authMiddleware(req, res, next) {
       role: decoded.role || profile?.role || 'enqueteur',
       communeCode: profile?.commune_code || null,
       regionCode: profile?.region_code || null,
+      districtCode: profile?.district_code || null,
+      departementCode: profile?.departement_code || null,
     };
 
     next();

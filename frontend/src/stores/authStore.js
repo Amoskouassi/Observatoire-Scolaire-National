@@ -27,7 +27,7 @@ export const useAuthStore = create((set) => ({
       const data = await api.request('/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      set({ user: data.user, token, role: data.user.role || role, loading: false });
+      set({ user: data?.user || null, token, role: data?.user?.role || role, loading: false });
     } catch {
       localStorage.removeItem('osn_token');
       localStorage.removeItem('osn_role');

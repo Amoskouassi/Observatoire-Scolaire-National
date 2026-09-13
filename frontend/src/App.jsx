@@ -17,7 +17,7 @@ import NotFound from './pages/NotFound/NotFound';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role, loading } = useAuthStore();
-  if (loading) return <div className="h-screen flex items-center justify-center bg-[#F4EFE6]"><div className="w-10 h-10 rounded-full border-3 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-[#F4EFE6]"><div className="w-10 h-10 rounded-full border-4 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>;
   if (!user) return <Navigate to="/login" replace />;
   if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/" replace />;
   return children;

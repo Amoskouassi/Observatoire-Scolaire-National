@@ -231,7 +231,6 @@ export default function Explorer() {
   const currentLevelRef = useRef('district');
   const geoDataRef = useRef({ districts: null, regions: null, depts: null, sp: null });
   const labelsRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
-  const urlAppliedRef = useRef(false);
   const showPointsFromDashboard = useRef(false);
 
   useEffect(() => {
@@ -243,6 +242,7 @@ export default function Explorer() {
     const statutParam = searchParams.get('statut');
     const hasDashboardParams = showPoints === '1' || statusParam || filterParam || milieuParam || niveauParam || statutParam;
     if (showPoints === '1') showPointsFromDashboard.current = true;
+    else showPointsFromDashboard.current = false;
     if (hasDashboardParams) resetFilters();
     if (statusParam) setFilter('collect_status', [statusParam]);
     if (milieuParam) setFilter('milieu', [milieuParam]);
@@ -258,9 +258,6 @@ export default function Explorer() {
       setFilter('sans_eau', true);
       setFilter('sans_toilettes', true);
       setFilter('sans_electricite', true);
-    }
-    if (urlLevel && urlCode) {
-      urlAppliedRef.current = true;
     }
   }, [urlLevel, urlCode, searchParams.toString()]);
   const drillingRef = useRef(false);
@@ -366,6 +363,9 @@ export default function Explorer() {
           setTimeout(() => { drillingRef.current = false; }, 900);
         }
       }
+      setZones([]);
+      setCurrentLevel('sous-prefecture');
+      currentLevelRef.current = 'sous-prefecture';
       setVis(['ecoles-points'], 'visible');
       showZoneDetail('sous-prefecture', spFeat?.properties || { name });
       return;
@@ -780,11 +780,11 @@ export default function Explorer() {
       if (filters.niveau.length && !filters.niveau.includes(p.niveau_enseignement)) return false;
       if (filters.statut.length && !filters.statut.includes(p.statut)) return false;
       if (filters.manque_bancs && (!p.besoin_bancs || p.besoin_bancs <= 0)) return false;
-      if (filters.sans_toilettes && (p.toilettes_filles_fonctionnelles === true)) return false;
-      if (filters.sans_eau && (p.eau_potable === true)) return false;
-      if (filters.sans_electricite && (p.electricite === true)) return false;
+      if (filters.sans_toilettes && p.toilettes_filles_fonctionnelles) return false;
+      if (filters.sans_eau && p.eau_potable) return false;
+      if (filters.sans_electricite && p.electricite) return false;
       if (filters.manque_enseignants && (p.enseignants_presents > 0)) return false;
-      if (filters.materiaux_precaires && (!p.materiaux_precaires || p.materiaux_precaires.length === 0)) return false;
+      if (filters.materiaux_precaires && (!p.materiaux_precaires || (Array.isArray(p.materiaux_precaires) ? p.materiaux_precaires.length === 0 : !p.materiaux_precaires))) return false;
       if (filters.taux_filles_min != null) {
         const total = (p.nombre_filles || 0) + (p.nombre_garcons || 0);
         const pct = total > 0 ? (p.nombre_filles / total) * 100 : 0;
@@ -891,7 +891,7 @@ export default function Explorer() {
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2">
             <button onClick={resetFilters}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-bold shrink-0 shadow-sm transition ${filters.collect_status.length === 0 && filters.milieu.length === 0 && filters.niveau.length === 0 ? 'bg-[#E8611A] text-white' : 'bg-white/90 backdrop-blur text-[#475569] border border-[#CBD5E1]/20 hover:bg-white'}`}>
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold shrink-0 shadow-sm transition ${filters.collect_status.length === 0 && filters.milieu.length === 0 && filters.niveau.length === 0 && filters.statut.length === 0 && !filters.sans_eau && !filters.sans_toilettes && !filters.sans_electricite && !filters.manque_bancs && !filters.manque_enseignants && !filters.materiaux_precaires ? 'bg-[#E8611A] text-white' : 'bg-white/90 backdrop-blur text-[#475569] border border-[#CBD5E1]/20 hover:bg-white'}`}>
               Tous
             </button>
             {[
@@ -1189,9 +1189,9 @@ function ZoneDetail({ zone, level }) {
     api.getDashboardStats(apiLevel, zone.code).then(d => { setDetail(d); setLoading(false); }).catch(() => setLoading(false));
   }, [zone.code, level]);
 
-  const totalStudents = zone.students || (detail?.total_ecoles ? 0 : 0);
-  const girls = zone.girls || 0;
-  const boys = zone.boys || 0;
+  const totalStudents = zone.students || detail?.total_eleves || 0;
+  const girls = zone.girls || detail?.total_filles || 0;
+  const boys = zone.boys || detail?.total_garcons || 0;
 
   if (loading) {
     return <div className="flex items-center justify-center py-8"><div className="w-6 h-6 rounded-full border-2 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>;

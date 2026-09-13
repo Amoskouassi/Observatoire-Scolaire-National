@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
 import { signInWithGoogle } from '../../services/supabase';
@@ -155,7 +155,7 @@ export default function Login() {
           </div>
           <button type="submit" className="btn-primary w-full" disabled={loading}>{loading ? 'Connexion...' : 'Connexion'}</button>
         </form>
-        <p className="text-center text-xs text-[#6B7280] mt-4">Pas de compte ? <a href="/register" className="text-[#E8611A] underline font-bold">S'inscrire</a></p>
+        <p className="text-center text-xs text-[#6B7280] mt-4">Pas de compte ? <Link to="/register" className="text-[#E8611A] underline font-bold">S'inscrire</Link></p>
       </div>
     </div>
   );

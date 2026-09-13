@@ -52,7 +52,7 @@ const registerSchema = z.object({
   password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
   nom: z.string().min(2, 'Nom trop court'),
   prenom: z.string().min(2, 'Prénom trop court'),
-  role: z.enum(['mairie', 'institution', 'enqueteur', 'president_region', 'ministre', 'directeur_afrique', 'partenaire', 'chercheur']),
+  role: z.enum(['admin', 'mairie', 'institution', 'enqueteur', 'president_region', 'ministre', 'directeur_afrique', 'partenaire', 'chercheur']),
   organisation: z.string().optional(),
   commune_code: z.string().optional(),
   region_code: z.string().optional(),

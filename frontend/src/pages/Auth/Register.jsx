@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
 import { signInWithGoogle } from '../../services/supabase';
@@ -292,7 +293,7 @@ export default function Register() {
         </form>
 
         <p className="text-center text-xs text-[#6B7280] mt-4">
-          Déjà inscrit ? <a href="/login" className="text-[#E8611A] underline font-bold">Connexion</a>
+          Déjà inscrit ? <Link to="/login" className="text-[#E8611A] underline font-bold">Connexion</Link>
         </p>
       </div>
     </div>
