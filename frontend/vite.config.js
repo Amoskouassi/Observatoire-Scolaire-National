@@ -15,8 +15,6 @@ export default defineConfig({
       '@utils': resolve(__dirname, 'src/utils'),
       '@styles': resolve(__dirname, 'src/styles'),
       '@assets': resolve(__dirname, 'src/assets'),
-      'jspdf': resolve(__dirname, '../node_modules/jspdf/dist/jspdf.es.min.js'),
-      'html2canvas': resolve(__dirname, '../node_modules/html2canvas/dist/html2canvas.es.js'),
     },
   },
   server: {
