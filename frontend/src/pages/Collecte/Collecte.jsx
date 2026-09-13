@@ -42,6 +42,8 @@ function SearchableSelect({ value, onChange, options, placeholder, disabled, sea
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef(null);
+  const btnRef = useRef(null);
+  const [dropdownStyle, setDropdownStyle] = useState({});
 
   useEffect(() => {
     const handler = (e) => {
@@ -50,6 +52,19 @@ function SearchableSelect({ value, onChange, options, placeholder, disabled, sea
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    if (open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+  }, [open]);
 
   const filtered = options.filter(o => {
     const name = (typeof o === 'string' ? o : o.name || o.label || '').toLowerCase();
@@ -61,7 +76,7 @@ function SearchableSelect({ value, onChange, options, placeholder, disabled, sea
 
   return (
     <div className="relative" ref={ref}>
-      <button type="button" onClick={() => !disabled && setOpen(!open)}
+      <button type="button" ref={btnRef} onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
         className={`w-full bg-white border border-[#CBD5E1] rounded-lg p-2.5 text-sm text-left flex items-center justify-between transition ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#E8611A]/50 cursor-pointer'} ${open ? 'border-[#E8611A]' : ''}`}>
         <span className={displayValue ? 'text-[#0D1B2A]' : 'text-[#94A3B8]'}>
@@ -70,14 +85,14 @@ function SearchableSelect({ value, onChange, options, placeholder, disabled, sea
         <span className="material-symbols-outlined text-[16px] text-[#94A3B8]">expand_more</span>
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-[#CBD5E1] rounded-xl shadow-lg">
+        <div style={dropdownStyle} className="bg-white border border-[#CBD5E1] rounded-xl shadow-lg">
           <div className="p-2 border-b border-[#CBD5E1]/30">
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder={searchPlaceholder || 'Rechercher...'}
               className="w-full bg-[#F1F5F9] rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#E8611A]"
               autoFocus />
           </div>
-          <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
+          <div className="overflow-y-auto" style={{ maxHeight: '50vh' }}>
             {filtered.length === 0 ? (
               <div className="px-3 py-4 text-xs text-[#94A3B8] text-center">Aucun résultat</div>
             ) : (
@@ -180,7 +195,7 @@ export default function Collecte() {
 
   const filteredCommunes = sel.departement
     ? zones.communes.filter(c => c.departement === sel.departement.name)
-    : zones.communes;
+    : [];
 
   const u = (k, v) => setF(p => ({ ...p, [k]: v }));
 
@@ -413,7 +428,8 @@ export default function Collecte() {
                     u('sous_prefecture', obj?.name || '');
                   }}
                   options={filteredCommunes}
-                  placeholder="Sélectionner une sous-préfecture..."
+                  placeholder={sel.departement ? 'Sélectionner une sous-préfecture...' : 'Sélectionner d\'abord un département'}
+                  disabled={!sel.departement}
                   searchPlaceholder="Rechercher une sous-préfecture..."
                 />
               </Field>
