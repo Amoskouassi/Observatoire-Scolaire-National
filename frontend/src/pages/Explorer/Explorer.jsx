@@ -232,6 +232,7 @@ export default function Explorer() {
   const geoDataRef = useRef({ districts: null, regions: null, depts: null, sp: null });
   const labelsRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
   const showPointsFromDashboard = useRef(false);
+  const zoomingBackRef = useRef(false);
 
   useEffect(() => {
     const statusParam = searchParams.get('status');
@@ -658,17 +659,22 @@ export default function Explorer() {
       });
 
       map.on('zoomend', () => {
-        if (drillingRef.current) return;
+        if (drillingRef.current || zoomingBackRef.current) return;
         const z = map.getZoom();
         const level = currentLevelRef.current;
-        const data = geoDataRef.current;
 
         if (level === 'region' && z < 7) {
+          zoomingBackRef.current = true;
           handleBack();
+          setTimeout(() => { zoomingBackRef.current = false; }, 500);
         } else if (level === 'departement' && z < 8) {
+          zoomingBackRef.current = true;
           handleBack();
+          setTimeout(() => { zoomingBackRef.current = false; }, 500);
         } else if (level === 'sous-prefecture' && z < 10) {
+          zoomingBackRef.current = true;
           handleBack();
+          setTimeout(() => { zoomingBackRef.current = false; }, 500);
         }
       });
 
@@ -703,8 +709,7 @@ export default function Explorer() {
             const regFeat = findFeat('regions', regName);
             const distName = regFeat?.properties.district;
             if (distName) { drillDown('district', distName); await new Promise(r => setTimeout(r, 900)); }
-            drillDown('region', regName);
-            await new Promise(r => setTimeout(r, 900));
+            if (regName) { drillDown('region', regName); await new Promise(r => setTimeout(r, 900)); }
             drillDown('departement', feat.properties.name);
           }
         } else if (targetLevel === 'commune' || targetLevel === 'sous-prefecture') {
@@ -712,14 +717,12 @@ export default function Explorer() {
           if (feat) {
             const deptName = feat.properties.departement;
             const deptFeat = findFeat('depts', deptName);
-            const regName = deptFeat?.properties.region;
+            const regName = deptFeat?.properties.region || feat.properties.region;
             const regFeat = findFeat('regions', regName);
             const distName = regFeat?.properties.district;
             if (distName) { drillDown('district', distName); await new Promise(r => setTimeout(r, 900)); }
-            drillDown('region', regName);
-            await new Promise(r => setTimeout(r, 900));
-            drillDown('departement', deptName);
-            await new Promise(r => setTimeout(r, 900));
+            if (regName) { drillDown('region', regName); await new Promise(r => setTimeout(r, 900)); }
+            if (deptName) { drillDown('departement', deptName); await new Promise(r => setTimeout(r, 900)); }
             drillDown('sous-prefecture', feat.properties.name);
           }
         }

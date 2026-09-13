@@ -21,14 +21,16 @@ export default function SchoolDetail() {
   const { id } = useParams();
   const [school, setSchool] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const data = id === 'demo' ? DEMO : null;
     if (data) { setSchool(data); setLoading(false); return; }
-    api.getSchool(id).then(setSchool).catch(() => setSchool(DEMO)).finally(() => setLoading(false));
+    api.getSchool(id).then(setSchool).catch(() => setError(true)).finally(() => setLoading(false));
   }, [id]);
 
   if (loading) return <div className="h-full bg-[#F4EFE6] flex items-center justify-center"><div className="w-12 h-12 rounded-full border-4 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>;
+  if (error) return <div className="h-full bg-[#F4EFE6] flex flex-col items-center justify-center gap-3"><span className="text-4xl">⚠️</span><h2 className="text-lg font-bold text-[#0D1B2A]">Erreur de chargement</h2><Link to="/explorer" className="text-[#E8611A] underline text-sm font-bold">Retour</Link></div>;
   if (!school) return <div className="h-full bg-[#F4EFE6] flex flex-col items-center justify-center gap-3"><span className="text-4xl">🏫</span><h2 className="text-lg font-bold text-[#0D1B2A]">Non trouvée</h2><Link to="/explorer" className="text-[#E8611A] underline text-sm font-bold">Retour</Link></div>;
 
   const total = (school.nombre_filles || 0) + (school.nombre_garcons || 0);

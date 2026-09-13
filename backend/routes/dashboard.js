@@ -337,7 +337,6 @@ router.post('/snapshots', async (req, res, next) => {
 // Historique des collectes par année scolaire
 router.get('/collecte-history', async (req, res, next) => {
   try {
-    const { zone_level, zone_code } = req.query;
     let query = supabaseAdmin.from('collectes').select('id, created_at, date_collecte, enqueteur_id, ecole_id, ecoles(nom_etablissement, code_mena, commune_code, region_code, district_code)');
     const { data, error } = await query.order('date_collecte', { ascending: false }).limit(500);
     if (error) throw error;
