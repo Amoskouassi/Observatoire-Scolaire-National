@@ -241,10 +241,10 @@ export default function Explorer() {
     const milieuParam = searchParams.get('milieu');
     const niveauParam = searchParams.get('niveau');
     const statutParam = searchParams.get('statut');
+    const hasDashboardParams = showPoints === '1' || statusParam || filterParam || milieuParam || niveauParam || statutParam;
     if (showPoints === '1') showPointsFromDashboard.current = true;
-    if (statusParam) {
-      setFilter('collect_status', [statusParam]);
-    }
+    if (hasDashboardParams) resetFilters();
+    if (statusParam) setFilter('collect_status', [statusParam]);
     if (milieuParam) setFilter('milieu', [milieuParam]);
     if (niveauParam) setFilter('niveau', [niveauParam]);
     if (statutParam) setFilter('statut', [statutParam]);

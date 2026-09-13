@@ -330,8 +330,14 @@ export default function Collecte() {
         commentaires: s(f.commentaires),
         date_collecte: new Date().toISOString(),
       });
-      refreshSchools();
-      setSubmitted(true);
+      await refreshSchools();
+      const targetLevel = sel.commune ? 'sous-prefecture' : sel.departement ? 'departement' : sel.region ? 'region' : sel.district ? 'district' : null;
+      const targetCode = sel.commune?.code || sel.departement?.code || sel.region?.code || sel.district?.code;
+      if (targetLevel && targetCode) {
+        navigate(`/explorer/${targetLevel}/${targetCode}?show_points=1`);
+      } else {
+        setSubmitted(true);
+      }
     } catch (e) {
       setError(e.message || 'Erreur lors de la soumission');
     } finally {
@@ -346,7 +352,7 @@ export default function Collecte() {
           <span className="material-symbols-outlined text-[32px] text-[#0B7A3E]">check_circle</span>
         </div>
         <h2 className="text-lg font-extrabold text-[#0D1B2A] text-center">Collecte envoyée !</h2>
-        <p className="text-xs text-[#6B7280] text-center">Les données de {f.nom_ecole} ont été enregistrées.</p>
+        <p className="text-xs text-[#6B7280] text-center">Les données de {f.nom_ecole || f.code_mena} ont été enregistrées.</p>
         <button onClick={() => navigate('/explorer')} className="px-6 py-2.5 bg-[#E8611A] text-white text-sm font-bold rounded-xl">Retour à la carte</button>
       </div>
     );
