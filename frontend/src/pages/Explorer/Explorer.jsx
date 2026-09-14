@@ -689,7 +689,7 @@ export default function Explorer() {
           },
           layout: { visibility: 'none' },
         });
-        map.addLayer({ id: 'depts-outline', type: 'line', source: 'depts', paint: { 'line-color': '#94A3B8', 'line-width': 0.5, 'line-opacity': 0.5 }, layout: { visibility: 'none' } });
+        map.addLayer({ id: 'depts-outline', type: 'line', source: 'depts', paint: { 'line-color': '#64748B', 'line-width': 1.2, 'line-opacity': 0.8 }, layout: { visibility: 'none' } });
         for (const f of deptsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
@@ -711,7 +711,7 @@ export default function Explorer() {
           },
           layout: { visibility: 'none' },
         });
-        map.addLayer({ id: 'sp-outline', type: 'line', source: 'sp', paint: { 'line-color': '#94A3B8', 'line-width': 0.4, 'line-opacity': 0.4 }, layout: { visibility: 'none' } });
+        map.addLayer({ id: 'sp-outline', type: 'line', source: 'sp', paint: { 'line-color': '#94A3B8', 'line-width': 0.8, 'line-opacity': 0.7 }, layout: { visibility: 'none' } });
         for (const f of spData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
