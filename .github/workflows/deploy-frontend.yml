@@ -7,6 +7,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
 
     steps:
       - name: Checkout
@@ -18,18 +21,18 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        working-directory: frontend
         run: npm install
-
-      - name: Build
-        working-directory: frontend
-        run: npm run build
 
       - name: Install Vercel CLI
         run: npm install -g vercel
 
+      - name: Link Vercel project
+        run: vercel link --yes --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
       - name: Deploy to Vercel
-        working-directory: frontend
         run: vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
