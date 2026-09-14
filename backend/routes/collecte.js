@@ -131,6 +131,9 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
         .single();
       if (!ecoleErr && ecole) ecoleId = ecole.id;
     }
+    let createErr = null;
+    let newEcoleDebug = null;
+
     if (ecoleId) {
       const updateData = {
         inventaire_classes: req.body.inventaire_classes,
@@ -179,19 +182,21 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
         besoin_bancs: req.body.inventaire_classes ? req.body.inventaire_classes.reduce((sum, c) => sum + (c.besoin_bancs || 0), 0) : 0,
         photo_url: req.body.photos?.[0]?.url || null,
       };
-      const { data: created, error: createErr } = await supabase
+      newEcoleDebug = newEcole;
+      const { data: created, error: createErrInner } = await supabase
         .from('ecoles')
         .insert(newEcole)
         .select('id')
         .single();
-      if (createErr) {
+      if (createErrInner) {
+        createErr = createErrInner;
         console.error('Erreur création école:', createErr.message, createErr);
       } else {
         ecoleId = created.id;
       }
     }
 
-    res.status(201).json({ id: data.id, status: 'submitted', ecole_id: ecoleId || null });
+    res.status(201).json({ id: data.id, status: 'submitted', ecole_id: ecoleId || null, _ecole_error: createErr?.message || null, _newEcole: newEcoleDebug });
 
     // Notification email aux décideurs de la zone
     try {
