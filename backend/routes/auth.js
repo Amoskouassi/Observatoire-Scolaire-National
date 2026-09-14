@@ -397,7 +397,7 @@ router.post('/forgot-password', validateRequest(forgotSchema), async (req, res, 
   try {
     const { email } = req.body;
     await supabaseAdmin.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-frontend.vercel.app'}/login`,
+      redirectTo: `${process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-fron.vercel.app'}/login`,
     });
     res.json({ message: 'Si cet email est enregistré, un lien de réinitialisation a été envoyé.' });
   } catch (err) {
