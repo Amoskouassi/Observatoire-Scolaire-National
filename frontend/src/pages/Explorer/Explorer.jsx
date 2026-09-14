@@ -558,23 +558,23 @@ export default function Explorer() {
       style: {
         version: 8,
         sources: {
-          'carto-light': {
+          'osm': {
             type: 'raster',
             tiles: [
-              'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-              'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-              'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+              'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
             ],
             tileSize: 256,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             maxzoom: 19,
           },
         },
         layers: [{
-          id: 'carto-light',
+          id: 'osm',
           type: 'raster',
-          source: 'carto-light',
-          paint: { 'raster-opacity': 0.9 },
+          source: 'osm',
+          paint: { 'raster-opacity': 0.7 },
         }],
       },
       center: [-5.5, 7.0],
