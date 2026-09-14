@@ -201,7 +201,11 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
       const enqProfile = await supabase.from('profiles').select('nom, prenom').eq('id', req.user.id).single();
       const enqNom = enqProfile.data ? `${enqProfile.data.prenom} ${enqProfile.data.nom}` : 'Enquêteur';
       const nomEcole = req.body.nom_ecole || req.body.code_mena || 'École';
-      const emailContent = collecteReceivedEmail(nomEcole, enqNom);
+      const emailContent = collecteReceivedEmail(nomEcole, enqNom, {
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
+        ecoleId: ecoleId,
+      });
 
       const decRoleMap = { mairie: 'mairie', president_region: 'president_region', ministre: 'ministre' };
       const zoneCol = { mairie: 'commune_code', president_region: 'region_code', ministre: 'district_code' };

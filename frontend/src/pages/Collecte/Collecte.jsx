@@ -158,6 +158,7 @@ export default function Collecte() {
   const [gpsAddress, setGpsAddress] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedEcoleId, setSubmittedEcoleId] = useState(null);
   const [error, setError] = useState(null);
   const photoRef = useRef(null);
 
@@ -284,7 +285,7 @@ export default function Collecte() {
 
       const s = (v) => v || null;
 
-      await api.submitCollecte({
+      const res = await api.submitCollecte({
         code_mena: f.code_mena || 'TEMP-' + Date.now(),
         ecole_id: null,
         district: sel.district?.name || null,
@@ -334,6 +335,7 @@ export default function Collecte() {
         commentaires: s(f.commentaires),
         date_collecte: new Date().toISOString(),
       });
+      setSubmittedEcoleId(res?.ecole_id || null);
       await refreshSchools();
       setSubmitted(true);
     } catch (e) {
@@ -351,7 +353,16 @@ export default function Collecte() {
         </div>
         <h2 className="text-lg font-extrabold text-[#0D1B2A] text-center">Collecte envoyée !</h2>
         <p className="text-xs text-[#6B7280] text-center">Les données de {f.nom_ecole || f.code_mena} ont été enregistrées.</p>
-        <button onClick={() => navigate('/explorer')} className="px-6 py-2.5 bg-[#E8611A] text-white text-sm font-bold rounded-xl">Retour à la carte</button>
+        <button onClick={() => {
+          const params = new URLSearchParams();
+          if (f.latitude && f.longitude) {
+            params.set('lat', f.latitude);
+            params.set('lng', f.longitude);
+            params.set('show_points', '1');
+          }
+          if (submittedEcoleId) params.set('school_id', submittedEcoleId);
+          navigate(`/explorer?${params.toString()}`);
+        }} className="px-6 py-2.5 bg-[#E8611A] text-white text-sm font-bold rounded-xl">Voir sur la carte</button>
       </div>
     );
   }

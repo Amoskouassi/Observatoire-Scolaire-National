@@ -241,8 +241,11 @@ export default function Explorer() {
     const milieuParam = searchParams.get('milieu');
     const niveauParam = searchParams.get('niveau');
     const statutParam = searchParams.get('statut');
-    const hasDashboardParams = showPoints === '1' || statusParam || filterParam || milieuParam || niveauParam || statutParam;
-    if (showPoints === '1') showPointsFromDashboard.current = true;
+    const focusLat = searchParams.get('lat');
+    const focusLng = searchParams.get('lng');
+    const focusSchoolId = searchParams.get('school_id');
+    const hasDashboardParams = showPoints === '1' || statusParam || filterParam || milieuParam || niveauParam || statutParam || focusLat || focusLng;
+    if (showPoints === '1' || focusLat) showPointsFromDashboard.current = true;
     else showPointsFromDashboard.current = false;
     if (hasDashboardParams) resetFilters();
     if (statusParam) setFilter('collect_status', [statusParam]);
@@ -731,7 +734,28 @@ export default function Explorer() {
       const urlTargetLevel = urlLevel || null;
       const urlTargetCode = urlCode || null;
 
-      if (urlTargetLevel && urlTargetCode) {
+      const focusLatParam = searchParams.get('lat');
+      const focusLngParam = searchParams.get('lng');
+      const focusSchoolIdParam = searchParams.get('school_id');
+
+      if (focusLatParam && focusLngParam) {
+        const lat = parseFloat(focusLatParam);
+        const lng = parseFloat(focusLngParam);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          schoolsPromise.then(() => {
+            setTimeout(() => {
+              map.flyTo({ center: [lng, lat], zoom: 16, duration: 1500 });
+              showPointsFromDashboard.current = true;
+              const ecolesLayer = map.getLayer('ecoles-points');
+              if (ecolesLayer) map.setLayoutProperty('ecoles-points', 'visibility', 'visible');
+              if (focusSchoolIdParam && schoolsData?.features) {
+                const feat = schoolsData.features.find(f => f.properties.id === focusSchoolIdParam);
+                if (feat) setSelectedSchool(feat.properties);
+              }
+            }, 500);
+          });
+        }
+      } else if (urlTargetLevel && urlTargetCode) {
         autoDrillToZone(urlTargetLevel, urlTargetCode);
       } else if (user?.commune_code || user?.departement_code || user?.region_code || user?.district_code) {
         const zoneLevel = user.commune_code ? 'commune' : user.departement_code ? 'departement' : user.region_code ? 'region' : 'district';

@@ -84,7 +84,16 @@ export function welcomeEmail(nom, prenom) {
   };
 }
 
-export function collecteReceivedEmail(nomEcole, enqueteurNom) {
+export function collecteReceivedEmail(nomEcole, enqueteurNom, { latitude, longitude, ecoleId } = {}) {
+  const params = new URLSearchParams();
+  if (latitude && longitude) {
+    params.set('lat', latitude);
+    params.set('lng', longitude);
+    params.set('show_points', '1');
+  }
+  if (ecoleId) params.set('school_id', ecoleId);
+  const qs = params.toString();
+  const mapUrl = `${FRONTEND_URL}/explorer${qs ? `?${qs}` : ''}`;
   return {
     subject: `Nouvelle collecte : ${nomEcole}`,
     html: `
@@ -96,7 +105,7 @@ export function collecteReceivedEmail(nomEcole, enqueteurNom) {
           <p style="color:#475569;font-size:14px;line-height:1.6">
             <strong>${enqueteurNom}</strong> a soumis une collecte pour <strong>${nomEcole}</strong>.
           </p>
-          <a href="${FRONTEND_URL}/explorer"
+          <a href="${mapUrl}"
              style="display:inline-block;background:#0B7A3E;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;margin-top:16px">
             Voir sur la carte
           </a>
