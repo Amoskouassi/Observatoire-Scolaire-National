@@ -154,12 +154,13 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
         .from('ecoles')
         .update(updateData)
         .eq('id', ecoleId);
-      if (updateErr) console.error('Erreur update école:', updateErr.message);
+      if (updateErr) console.error('Erreur update école:', updateErr.message, updateErr);
     } else if (req.body.latitude && req.body.longitude) {
+      const STATUT_MAP = { communaute: 'communautaire_non_reconnue' };
       const newEcole = {
         code_mena: req.body.code_mena || 'TEMP-' + Date.now(),
         nom_etablissement: req.body.nom_ecole || 'École collectée',
-        statut: req.body.statut_juridique || 'public',
+        statut: STATUT_MAP[req.body.statut_juridique] || req.body.statut_juridique || 'public',
         niveau_enseignement: req.body.niveau_enseignement || 'primaire',
         milieu_implantation: req.body.milieu || 'rural',
         longitude: req.body.longitude,
@@ -185,11 +186,14 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
         .insert(newEcole)
         .select('id')
         .single();
-      if (createErr) console.error('Erreur création école:', createErr.message);
-      else ecoleId = created.id;
+      if (createErr) {
+        console.error('Erreur création école:', createErr.message, createErr);
+      } else {
+        ecoleId = created.id;
+      }
     }
 
-    res.status(201).json({ id: data.id, status: 'submitted' });
+    res.status(201).json({ id: data.id, status: 'submitted', ecole_id: ecoleId || null });
 
     // Notification email aux décideurs de la zone
     try {
