@@ -34,7 +34,7 @@
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-.maplibregl-canvas { background-color: #0D1B2A !important; }
-.maplibregl-ctrl-group { border-radius: 8px !important; overflow: hidden; border: 1px solid rgba(255,255,255,0.1) !important; background: rgba(13,27,42,0.85) !important; backdrop-filter: blur(8px) !important; }
+.maplibregl-canvas { background-color: #F4EFE6 !important; }
+.maplibregl-ctrl-group { border-radius: 8px !important; overflow: hidden; border: 1px solid rgba(0,0,0,0.1) !important; background: rgba(255,255,255,0.9) !important; backdrop-filter: blur(8px) !important; }
 .maplibregl-ctrl-group button { width: 32px !important; height: 32px !important; }
-.maplibregl-ctrl-group button + button { border-top: 1px solid rgba(255,255,255,0.1) !important; }
+.maplibregl-ctrl-group button + button { border-top: 1px solid rgba(0,0,0,0.1) !important; }

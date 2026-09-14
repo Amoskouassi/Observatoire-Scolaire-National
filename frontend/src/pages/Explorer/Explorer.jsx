@@ -574,7 +574,7 @@ export default function Explorer() {
           id: 'osm',
           type: 'raster',
           source: 'osm',
-          paint: { 'raster-opacity': 0.7 },
+          paint: { 'raster-opacity': 0.85 },
         }],
       },
       center: [-5.5, 7.0],
