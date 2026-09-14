@@ -141,7 +141,6 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
       if (req.body.eau_potable != null) updateData.eau_potable = req.body.eau_potable;
       if (req.body.ecole_electrifiee != null) updateData.electricite = req.body.ecole_electrifiee;
       if (req.body.nb_latrines != null) updateData.toilettes_filles_fonctionnelles = req.body.nb_latrines > 0;
-      if (req.body.nb_latrines != null) updateData.nb_latrines = req.body.nb_latrines;
       if (req.body.materiaux_batiment) updateData.materiaux_precaires = [req.body.materiaux_batiment];
       if (req.body.nb_enseignants_presents != null) updateData.enseignants_presents = req.body.nb_enseignants_presents;
       if (req.body.inventaire_classes && req.body.inventaire_classes.length > 0) {
@@ -176,7 +175,6 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
         eau_potable: req.body.eau_potable || false,
         electricite: req.body.ecole_electrifiee || false,
         toilettes_filles_fonctionnelles: (req.body.nb_latrines || 0) > 0,
-        nb_latrines: req.body.nb_latrines || 0,
         materiaux_precaires: req.body.materiaux_batiment ? [req.body.materiaux_batiment] : [],
         besoin_bancs: req.body.inventaire_classes ? req.body.inventaire_classes.reduce((sum, c) => sum + (c.besoin_bancs || 0), 0) : 0,
         photo_url: req.body.photos?.[0]?.url || null,
