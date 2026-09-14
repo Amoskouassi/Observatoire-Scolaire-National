@@ -1,6 +1,7 @@
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const FROM = process.env.SMTP_FROM || 'Observatoire Scolaire <amoskouassi41@gmail.com>';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-fron.vercel.app';
 
 export async function sendMail({ to, subject, html, text }) {
   try {
@@ -73,7 +74,7 @@ export function welcomeEmail(nom, prenom) {
           <p style="color:#475569;font-size:14px;line-height:1.6">
             Votre compte a été créé avec succès.
           </p>
-          <a href="${process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-frontend.vercel.app'}/login"
+          <a href="${FRONTEND_URL}/login"
              style="display:inline-block;background:#E8611A;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;margin-top:16px">
             Se connecter
           </a>
@@ -95,7 +96,7 @@ export function collecteReceivedEmail(nomEcole, enqueteurNom) {
           <p style="color:#475569;font-size:14px;line-height:1.6">
             <strong>${enqueteurNom}</strong> a soumis une collecte pour <strong>${nomEcole}</strong>.
           </p>
-          <a href="${process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-frontend.vercel.app'}/explorer"
+          <a href="${FRONTEND_URL}/explorer"
              style="display:inline-block;background:#0B7A3E;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;margin-top:16px">
             Voir sur la carte
           </a>
@@ -118,7 +119,7 @@ export function collecteValidationEmail(nomEcole, statut) {
           <p style="color:#475569;font-size:14px;line-height:1.6">
             La collecte pour <strong>${nomEcole}</strong> a été ${isAccepted ? 'validée' : 'rejetée'} par un administrateur.
           </p>
-          <a href="${process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-frontend.vercel.app'}/explorer"
+          <a href="${FRONTEND_URL}/explorer"
              style="display:inline-block;background:#E8611A;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;margin-top:16px">
             Voir les résultats
           </a>
