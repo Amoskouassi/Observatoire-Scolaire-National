@@ -77,6 +77,9 @@ const authLimiter = rateLimit({
   message: { error: 'Trop de tentatives de connexion.' },
 });
 app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/verify-code', authLimiter);
+app.use('/api/auth/resend-code', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 
 // Routes

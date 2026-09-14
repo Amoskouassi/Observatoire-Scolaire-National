@@ -115,9 +115,10 @@ router.put('/:id', authMiddleware, requireRole('admin', 'enqueteur'), validateRe
       }
     }
 
+    const { commune_code, departement_code, region_code, district_code, ...safeBody } = req.body;
     const { data, error } = await supabase
       .from('ecoles')
-      .update({ ...req.body, updated_at: new Date().toISOString() })
+      .update({ ...safeBody, updated_at: new Date().toISOString() })
       .eq('id', req.params.id)
       .select()
       .single();

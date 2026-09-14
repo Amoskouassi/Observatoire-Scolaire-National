@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { supabase } from '../server.js';
+import { requireRole } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validate.js';
 import { sendMail, collecteReceivedEmail } from '../services/email.js';
 
@@ -228,7 +229,7 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
 });
 
 // Historique des collectes (pour admin)
-router.get('/historique', async (req, res, next) => {
+router.get('/historique', requireRole('admin', 'ministre'), async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from('collectes')
