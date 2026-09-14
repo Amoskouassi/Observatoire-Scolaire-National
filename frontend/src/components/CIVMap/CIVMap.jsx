@@ -45,15 +45,15 @@ export default function CIVMap() {
 
         {/* Zanzan */}
         <g className="cursor-pointer">
-          <circle cx="315" cy="160" fill="#0B7A3E" fillOpacity="0.25" r="12" />
-          <circle cx="315" cy="160" fill="#0B7A3E" r="6" stroke="#FAF8F3" strokeWidth="1.5" />
+          <circle cx="315" cy="160" fill="#00796B" fillOpacity="0.25" r="12" />
+          <circle cx="315" cy="160" fill="#00796B" r="6" stroke="#FAF8F3" strokeWidth="1.5" />
           <rect fill="#0D1B2A" fillOpacity="0.9" height="18" rx="9" width="70" x="280" y="132" />
           <text fill="#96f7ad" fontFamily="Inter" fontSize="8" fontWeight="600" textAnchor="middle" x="315" y="145">Zanzan 74%</text>
         </g>
 
         {/* Bouaké */}
         <g className="cursor-pointer">
-          <circle cx="200" cy="165" fill="#0B7A3E" r="6" stroke="#FAF8F3" strokeWidth="1.5" />
+          <circle cx="200" cy="165" fill="#00796B" r="6" stroke="#FAF8F3" strokeWidth="1.5" />
           <rect fill="#0D1B2A" fillOpacity="0.85" height="16" rx="8" width="60" x="170" y="174" />
           <text fill="#FAF8F3" fontFamily="Inter" fontSize="7.5" fontWeight="600" textAnchor="middle" x="200" y="186">Bouaké</text>
         </g>
@@ -72,7 +72,7 @@ export default function CIVMap() {
 
         {/* Daloa */}
         <g className="cursor-pointer">
-          <circle cx="155" cy="210" fill="#0B7A3E" r="5" stroke="#FAF8F3" strokeWidth="1.5" />
+          <circle cx="155" cy="210" fill="#00796B" r="5" stroke="#FAF8F3" strokeWidth="1.5" />
         </g>
       </svg>
 

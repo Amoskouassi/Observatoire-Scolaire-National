@@ -5,7 +5,7 @@ import { useMapStore } from '../../stores/mapStore';
 import { api } from '../../services/api';
 
 const TABS = [
-  { id: 1, label: 'Géographie', icon: 'location_on', color: '#0B7A3E' },
+  { id: 1, label: 'Géographie', icon: 'location_on', color: '#00796B' },
   { id: 2, label: 'Inventaire', icon: 'table_chart', color: '#0D1B2A' },
   { id: 3, label: 'Enseignants', icon: 'groups', color: '#0D1B2A' },
   { id: 4, label: 'Hygiène', icon: 'water_drop', color: '#E8611A' },
@@ -120,7 +120,7 @@ function YesNon({ value, onChange, label }) {
   return (
     <div className="flex gap-2">
       <button type="button" onClick={() => onChange(true)}
-        className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${value === true ? 'bg-[#0B7A3E] text-white border-[#0B7A3E]' : 'bg-white text-[#475569] border-[#CBD5E1] hover:border-[#0B7A3E]/30'}`}>
+        className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${value === true ? 'bg-[#00796B] text-white border-[#00796B]' : 'bg-white text-[#475569] border-[#CBD5E1] hover:border-[#00796B]/30'}`}>
         Oui
       </button>
       <button type="button" onClick={() => onChange(false)}
@@ -348,8 +348,8 @@ export default function Collecte() {
   if (submitted) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-[#F4EFE6] gap-4 px-6">
-        <div className="w-16 h-16 rounded-full bg-[#0B7A3E]/10 flex items-center justify-center">
-          <span className="material-symbols-outlined text-[32px] text-[#0B7A3E]">check_circle</span>
+        <div className="w-16 h-16 rounded-full bg-[#00796B]/10 flex items-center justify-center">
+          <span className="material-symbols-outlined text-[32px] text-[#00796B]">check_circle</span>
         </div>
         <h2 className="text-lg font-extrabold text-[#0D1B2A] text-center">Collecte envoyée !</h2>
         <p className="text-xs text-[#6B7280] text-center">Les données de {f.nom_ecole || f.code_mena} ont été enregistrées.</p>
@@ -398,7 +398,7 @@ export default function Collecte() {
 
         {step === 1 && (
           <div className="space-y-4 animate-fade-in-up">
-            <Section title="Cascade géographique" color="#0B7A3E">
+            <Section title="Cascade géographique" color="#00796B">
               <Field label="Q1 — District">
                 <SearchableSelect
                   value={sel.district?.code || ''}
@@ -697,7 +697,7 @@ export default function Collecte() {
                 {f.latitude ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-[11px]">
-                      <span className="material-symbols-outlined text-[14px] text-[#0B7A3E]">check_circle</span>
+                      <span className="material-symbols-outlined text-[14px] text-[#00796B]">check_circle</span>
                       <span className="text-[#0D1B2A] font-mono">{f.latitude.toFixed(5)}, {f.longitude.toFixed(5)}</span>
                       <span className="text-[#94A3B8]">±{Math.round(f.gps精度 || 0)}m</span>
                     </div>
@@ -769,7 +769,7 @@ export default function Collecte() {
           </button>
         ) : (
           <button onClick={handleSubmit} disabled={submitting}
-            className="px-5 sm:px-6 py-2.5 rounded-xl bg-[#0B7A3E] text-white text-xs font-bold shadow-sm hover:bg-[#096832] transition flex items-center gap-2 disabled:opacity-50">
+            className="px-5 sm:px-6 py-2.5 rounded-xl bg-[#00796B] text-white text-xs font-bold shadow-sm hover:bg-[#00574A] transition flex items-center gap-2 disabled:opacity-50">
             {submitting ? (
               <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Envoi...</>
             ) : (

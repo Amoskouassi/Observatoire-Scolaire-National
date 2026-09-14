@@ -52,7 +52,7 @@ export default function SchoolDetail() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0D1B2A]/90 via-transparent to-transparent" />
           <div className="absolute top-3 left-3 right-3 flex justify-between">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FAF8F3]/90 backdrop-blur text-[10px] font-bold text-[#0D1B2A]">
-              <span className="material-symbols-outlined text-[13px] text-[#0B7A3E]">verified</span> Données DRENA 2024
+              <span className="material-symbols-outlined text-[13px] text-[#00796B]">verified</span> Données DRENA 2024
             </span>
             <button className="w-8 h-8 rounded-full bg-[#FAF8F3]/80 backdrop-blur flex items-center justify-center">
               <span className="material-symbols-outlined text-[18px] text-[#0D1B2A]">bookmark_border</span>
@@ -81,7 +81,7 @@ export default function SchoolDetail() {
             <div className="p-3 rounded-xl bg-[#FAF8F3] shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
               <div className="flex items-center justify-between text-[#6B7280]">
                 <span className="text-[11px] font-bold uppercase">Effectif</span>
-                <span className="material-symbols-outlined text-[18px] text-[#0B7A3E]">groups</span>
+                <span className="material-symbols-outlined text-[18px] text-[#00796B]">groups</span>
               </div>
               <span className="text-[1.875rem] font-black text-[#1E293B] tabular-nums mt-1 block">{total}</span>
               <span className="text-[10px] text-[#6B7280]">vs rentrée 2023</span>
@@ -124,11 +124,11 @@ export default function SchoolDetail() {
             </div>
             <div className="w-full h-4 rounded-full bg-[#e7eeff] overflow-hidden flex p-0.5 gap-0.5">
               <div className="h-full rounded-l-full bg-[#E8611A] flex items-center justify-center text-[9px] font-bold text-white" style={{ width: `${pctF}%` }}>{pctF}%</div>
-              <div className="h-full rounded-r-full bg-[#0B7A3E] flex items-center justify-center text-[9px] font-bold text-white" style={{ width: `${100 - pctF}%` }}>{100 - pctF}%</div>
+              <div className="h-full rounded-r-full bg-[#00796B] flex items-center justify-center text-[9px] font-bold text-white" style={{ width: `${100 - pctF}%` }}>{100 - pctF}%</div>
             </div>
             <div className="flex justify-between text-xs font-bold mt-1.5">
               <span className="text-[#E8611A]">{school.nombre_filles} Filles ({pctF}%)</span>
-              <span className="text-[#0B7A3E]">{school.nombre_garcons} Garçons ({100 - pctF}%)</span>
+              <span className="text-[#00796B]">{school.nombre_garcons} Garçons ({100 - pctF}%)</span>
             </div>
           </div>
 
@@ -143,7 +143,7 @@ export default function SchoolDetail() {
                   <div key={i} className="flex items-center justify-between text-xs py-1.5 px-2 rounded-lg bg-[#F4EFE6]">
                     <span className="font-bold text-[#1E293B] w-10">{c.classe}</span>
                     <span className="text-[#6B7280]">👧{c.filles} 👦{c.garcons} 🪑{c.bancs_actifs}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${c.besoin_bancs > 0 ? 'bg-[#ffdad6] text-[#ba1a1a]' : 'bg-[#93f5ab] text-[#0B7A3E]'}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${c.besoin_bancs > 0 ? 'bg-[#ffdad6] text-[#ba1a1a]' : 'bg-[#93f5ab] text-[#00796B]'}`}>
                       {c.besoin_bancs > 0 ? `+${c.besoin_bancs}` : 'OK'}
                     </span>
                   </div>

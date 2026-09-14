@@ -51,8 +51,8 @@ export default function Header() {
         </Link>
         <div className="flex items-center gap-2">
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FAF8F3] shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-[#0B7A3E] animate-pulse" />
-            <span className="text-[11px] font-bold text-[#0B7A3E]">En ligne</span>
+            <span className="w-2 h-2 rounded-full bg-[#00796B] animate-pulse" />
+            <span className="text-[11px] font-bold text-[#00796B]">En ligne</span>
           </div>
           <div className="relative" ref={menuRef}>
             <button

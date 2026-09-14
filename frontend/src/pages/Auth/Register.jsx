@@ -155,8 +155,8 @@ export default function Register() {
             <strong className="text-[#0D1B2A]">{form.email}</strong>
           </p>
           {loginCode && (
-            <div className="bg-[#0B7A3E]/10 border border-[#0B7A3E]/20 rounded-lg p-3 mt-4">
-              <p className="text-[10px] font-bold text-[#0B7A3E] uppercase mb-1">🔑 Votre code enquêteur</p>
+            <div className="bg-[#00796B]/10 border border-[#00796B]/20 rounded-lg p-3 mt-4">
+              <p className="text-[10px] font-bold text-[#00796B] uppercase mb-1">🔑 Votre code enquêteur</p>
               <p className="text-lg font-mono font-bold text-[#0D1B2A] tracking-widest">{loginCode}</p>
               <p className="text-[10px] text-[#6B7280] mt-1">Conservez ce code. Il sert à se connecter via « Connexion par code ».</p>
             </div>

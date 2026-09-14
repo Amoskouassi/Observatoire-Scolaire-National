@@ -17,7 +17,7 @@ export default function Pricing() {
               <h3 className="text-xs font-bold text-[#E8611A] uppercase">{p.name}</h3>
               <div className="mt-2"><span className="text-[1.875rem] font-black text-[#0D1B2A]">{p.price}</span>{p.period && <span className="text-xs text-[#6B7280]">{p.period}</span>}</div>
               <ul className="mt-3 space-y-1.5">
-                {p.features.map((f) => <li key={f} className="flex items-start gap-2 text-xs text-[#1E293B]"><span className="text-[#0B7A3E]">✓</span>{f}</li>)}
+                {p.features.map((f) => <li key={f} className="flex items-start gap-2 text-xs text-[#1E293B]"><span className="text-[#00796B]">✓</span>{f}</li>)}
               </ul>
               <Link to="/register" className={`w-full mt-4 text-center block no-underline py-2.5 rounded-lg font-bold text-sm transition-all active:scale-[0.98] ${p.popular ? 'bg-[#E8611A] text-white' : 'bg-[#F4EFE6] text-[#1E293B] hover:bg-[#CBD5E1]/30'}`}>
                 {p.popular ? 'Demander une démo' : 'Choisir'}

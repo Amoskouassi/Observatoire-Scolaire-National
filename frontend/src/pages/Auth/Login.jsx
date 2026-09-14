@@ -69,7 +69,7 @@ export default function Login() {
           </div>
           {forgotSent ? (
             <div className="text-center space-y-4">
-              <div className="bg-[#E8F5E9] border border-[#0B7A3E]/20 text-[#0B7A3E] text-xs p-3 rounded-lg">
+              <div className="bg-[#E8F5E9] border border-[#00796B]/20 text-[#00796B] text-xs p-3 rounded-lg">
                 Si cet email est enregistré, vous recevrez un lien de réinitialisation.
               </div>
               <button onClick={() => { setShowForgot(false); setForgotSent(false); }}

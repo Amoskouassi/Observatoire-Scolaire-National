@@ -9,7 +9,7 @@ import { addCustomIcons, getIconForSchool } from '../../utils/schoolIcons';
 
 const COLORS = {
   collected: '#E8611A',
-  waiting: '#0B7A3E',
+  waiting: '#00796B',
   pending: '#CBD5E1',
 };
 
@@ -1084,7 +1084,7 @@ export default function Explorer() {
             </button>
             {[
               { key: 'collected', label: 'Collecte', color: '#E8611A' },
-              { key: 'waiting', label: 'En cours', color: '#0B7A3E' },
+              { key: 'waiting', label: 'En cours', color: '#00796B' },
               { key: 'pending', label: 'En attente', color: '#94A3B8' },
             ].map(f => {
               const active = filters.collect_status.includes(f.key);
@@ -1130,7 +1130,7 @@ export default function Explorer() {
                       return (
                         <button key={m}
                           onClick={() => setFilter('milieu', active ? filters.milieu.filter(v => v !== m) : [...filters.milieu, m])}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize transition ${active ? 'bg-[#0B7A3E] text-white' : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'}`}>
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize transition ${active ? 'bg-[#00796B] text-white' : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'}`}>
                           {m}
                         </button>
                       );
@@ -1218,7 +1218,7 @@ export default function Explorer() {
         <div className="absolute bottom-2 left-3 right-3 z-20 flex items-center justify-between px-3 py-2 rounded-xl bg-[#0D1B2A]/80 backdrop-blur-md text-white text-[10px] font-bold shadow-lg pointer-events-none border border-white/5">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#E8611A]" /> Collecte</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#0B7A3E]" /> En cours</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#00796B]" /> En cours</span>
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#94A3B8]" /> En attente</span>
           </div>
           <span className="text-[#E8611A] uppercase tracking-widest text-[9px]">SIG v2.4</span>
@@ -1305,11 +1305,11 @@ export default function Explorer() {
               </div>
               <div className="w-full h-2 bg-white rounded-full overflow-hidden flex">
                 <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500" style={{ width: `${pct}%` }} />
-                <div className="h-full bg-[#0B7A3E] rounded-r-full flex-1" />
+                <div className="h-full bg-[#00796B] rounded-r-full flex-1" />
               </div>
               <div className="flex justify-between text-[10px] font-bold mt-1.5">
                 <span className="text-[#E8611A]">{pct}% filles</span>
-                <span className="text-[#0B7A3E]">{100 - pct}% garçons</span>
+                <span className="text-[#00796B]">{100 - pct}% garçons</span>
               </div>
             </div>
           );
@@ -1412,8 +1412,8 @@ function ZoneDetail({ zone, level }) {
             <p className="text-2xl font-extrabold text-[#E8611A] tracking-tight mt-0.5">{girls.toLocaleString('fr-FR')}</p>
           </div>
           <div>
-            <p className="text-[10px] text-[#0B7A3E] font-bold uppercase tracking-wider">Garçons</p>
-            <p className="text-2xl font-extrabold text-[#0B7A3E] tracking-tight mt-0.5">{boys.toLocaleString('fr-FR')}</p>
+            <p className="text-[10px] text-[#00796B] font-bold uppercase tracking-wider">Garçons</p>
+            <p className="text-2xl font-extrabold text-[#00796B] tracking-tight mt-0.5">{boys.toLocaleString('fr-FR')}</p>
           </div>
         </div>
         <div className="mt-3">
@@ -1423,11 +1423,11 @@ function ZoneDetail({ zone, level }) {
           </div>
           <div className="w-full h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex">
             <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500" style={{ width: pct + '%' }} />
-            <div className="h-full bg-[#0B7A3E] rounded-r-full flex-1" />
+            <div className="h-full bg-[#00796B] rounded-r-full flex-1" />
           </div>
           <div className="flex justify-between text-[9px] font-bold mt-1">
             <span className="text-[#E8611A]">{pct}% filles</span>
-            <span className="text-[#0B7A3E]">{100 - pct}% garçons</span>
+            <span className="text-[#00796B]">{100 - pct}% garçons</span>
           </div>
         </div>
       </div>
@@ -1459,7 +1459,7 @@ function ZoneDetail({ zone, level }) {
                   { icon: 'water_drop', label: 'Sans eau', value: detail.infrastructure.sans_eau, color: '#1E88E5' },
                   { icon: 'bolt', label: 'Sans électricité', value: detail.infrastructure.sans_electricite, color: '#F9A825' },
                   { icon: 'construction', label: 'Matériaux précaires', value: detail.infrastructure.materiaux_precaires, color: '#E8611A' },
-                  { icon: 'chair', label: 'Bancs manquants', value: detail.infrastructure.besoin_bancs, color: '#0B7A3E' },
+                  { icon: 'chair', label: 'Bancs manquants', value: detail.infrastructure.besoin_bancs, color: '#00796B' },
                 ].map(i => (
                   <div key={i.label} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -1488,11 +1488,11 @@ function ZoneDetail({ zone, level }) {
                       </div>
                       <div className="w-full h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden flex">
                         <div className="h-full bg-[#E8611A] rounded-l-full" style={{ width: pctN + '%' }} />
-                        <div className="h-full bg-[#0B7A3E] rounded-r-full flex-1" />
+                        <div className="h-full bg-[#00796B] rounded-r-full flex-1" />
                       </div>
                       <div className="flex justify-between text-[9px] font-bold mt-0.5">
                         <span className="text-[#E8611A]">{data.filles} F ({pctN}%)</span>
-                        <span className="text-[#0B7A3E]">{data.garcons} G</span>
+                        <span className="text-[#00796B]">{data.garcons} G</span>
                       </div>
                     </div>
                   );
@@ -1533,7 +1533,7 @@ function SchoolFiche({ school, onBack, geoData }) {
 
   const STATUT_LABEL = { public: 'public', prive_laic: 'privé laïc', prive_confessionnel: 'privé confessionnel', communautaire_non_reconnue: 'communautaire non reconnu' };
   const NIVEAU_LABEL = { primaire: 'primaire', secondaire: 'secondaire' };
-  const STATUS_COLORS = { collected: '#E8611A', waiting: '#0B7A3E', pending: '#CBD5E1' };
+  const STATUS_COLORS = { collected: '#E8611A', waiting: '#00796B', pending: '#CBD5E1' };
 
   const findZoneName = (geoKey, code) => {
     if (!geoData || !geoData[geoKey] || !code) return null;
@@ -1598,13 +1598,13 @@ function SchoolFiche({ school, onBack, geoData }) {
               <p className="text-[9px] font-bold text-[#E8611A] uppercase">Filles {pctFilles}%</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-extrabold text-[#0B7A3E]">{(school.nombre_garcons || 0).toLocaleString('fr-FR')}</p>
-              <p className="text-[9px] font-bold text-[#0B7A3E] uppercase">Garçons {100 - pctFilles}%</p>
+              <p className="text-2xl font-extrabold text-[#00796B]">{(school.nombre_garcons || 0).toLocaleString('fr-FR')}</p>
+              <p className="text-[9px] font-bold text-[#00796B] uppercase">Garçons {100 - pctFilles}%</p>
             </div>
           </div>
           <div className="w-full h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex mt-3">
             <div className="h-full bg-[#E8611A] rounded-l-full transition-all" style={{ width: `${pctFilles}%` }} />
-            <div className="h-full bg-[#0B7A3E] rounded-r-full flex-1" />
+            <div className="h-full bg-[#00796B] rounded-r-full flex-1" />
           </div>
           <div className="flex items-center justify-between mt-2 text-[10px] font-bold">
             <span className="text-[#94A3B8]">{school.enseignants_presents || 0} enseignants · {school.salles_classe_total || 0} salles</span>
@@ -1622,7 +1622,7 @@ function SchoolFiche({ school, onBack, geoData }) {
             { label: 'Toilettes filles', ok: school.toilettes_filles_fonctionnelles, icon: 'wc' },
             { label: 'Bancs', ok: besoins === 0, icon: 'chair', extra: besoins > 0 ? `${besoins} besoins` : 'OK' },
           ].map(item => (
-            <div key={item.label} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-bold ${item.ok ? 'bg-[#0B7A3E]/8 text-[#0B7A3E]' : 'bg-[#ba1a1a]/8 text-[#ba1a1a]'}`}>
+            <div key={item.label} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-bold ${item.ok ? 'bg-[#00796B]/8 text-[#00796B]' : 'bg-[#ba1a1a]/8 text-[#ba1a1a]'}`}>
               <span className="material-symbols-outlined text-[14px]">{item.icon}</span>
               <span>{item.label}</span>
               {item.extra && <span className="ml-auto text-[9px]">{item.extra}</span>}
@@ -1652,7 +1652,7 @@ function SchoolFiche({ school, onBack, geoData }) {
               <div key={i} className="flex items-center text-[11px] font-medium text-[#0D1B2A] px-2 py-1.5 rounded-lg bg-[#F8F6F1]">
                 <span className="flex-1 font-bold">{cl.classe}</span>
                 <span className="w-10 text-center text-[#E8611A]">{cl.filles || 0}</span>
-                <span className="w-10 text-center text-[#0B7A3E]">{cl.garcons || 0}</span>
+                <span className="w-10 text-center text-[#00796B]">{cl.garcons || 0}</span>
                 <span className="w-10 text-center">{cl.bancs_actifs || 0}</span>
                 <span className="w-14 text-center font-bold text-[#ba1a1a]">{cl.besoin_bancs || 0}</span>
               </div>

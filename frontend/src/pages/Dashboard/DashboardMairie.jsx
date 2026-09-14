@@ -54,7 +54,7 @@ function Delta({ zone, national, higherBetter = true }) {
   if (diff === 0) return <span className="text-xs font-bold text-gray-400">=</span>;
   const isBetter = higherBetter ? diff > 0 : diff < 0;
   return (
-    <span className={`text-xs font-bold ${isBetter ? 'text-[#0B7A3E]' : 'text-[#ba1a1a]'}`}>
+    <span className={`text-xs font-bold ${isBetter ? 'text-[#00796B]' : 'text-[#ba1a1a]'}`}>
       {diff > 0 ? '▲' : '▼'}
     </span>
   );
@@ -528,7 +528,7 @@ export default function DashboardMairie() {
                   {e.delta != null ? (
                     <span
                       className={`text-xs font-bold ${
-                        e.delta > 0 ? 'text-[#0B7A3E]' : e.delta < 0 ? 'text-[#ba1a1a]' : 'text-gray-400'
+                        e.delta > 0 ? 'text-[#00796B]' : e.delta < 0 ? 'text-[#ba1a1a]' : 'text-gray-400'
                       }`}
                     >
                       {e.delta > 0 ? '▲' : e.delta < 0 ? '▼' : '='}
@@ -549,7 +549,7 @@ export default function DashboardMairie() {
         <div className="grid grid-cols-3 gap-2">
           {[
             { label: 'Élèves', value: stats.total_eleves.toLocaleString('fr-FR'), icon: 'groups', color: '#E8611A' },
-            { label: 'Écoles', value: stats.total_ecoles, icon: 'school', color: '#0B7A3E' },
+            { label: 'Écoles', value: stats.total_ecoles, icon: 'school', color: '#00796B' },
             { label: 'Enseignants', value: stats.total_enseignants, icon: 'person', color: '#475569' },
           ].map((k) => (
             <button
@@ -577,7 +577,7 @@ export default function DashboardMairie() {
               <span className="p-1.5 rounded-lg bg-[#e7eeff] text-[#0D1B2A]">
                 <span className="material-symbols-outlined text-[20px]">school</span>
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#0B7A3E]/10 text-[#0B7A3E]">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#00796B]/10 text-[#00796B]">
                 {tauxCollecte}% collecté
               </span>
             </div>
@@ -621,7 +621,7 @@ export default function DashboardMairie() {
                 className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                   stats.infrastructure.sans_eau > 0
                     ? 'bg-[#ba1a1a]/10 text-[#ba1a1a]'
-                    : 'bg-[#0B7A3E]/10 text-[#0B7A3E]'
+                    : 'bg-[#00796B]/10 text-[#00796B]'
                 }`}
               >
                 {stats.infrastructure.sans_eau > 0 ? 'Urgence' : 'OK'}
@@ -701,7 +701,7 @@ export default function DashboardMairie() {
           <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Statut de collecte</h3>
           <div className="space-y-2.5">
             {[
-              { label: 'Collectées', count: stats.by_status.collected, color: '#0B7A3E', filter: 'collected' },
+              { label: 'Collectées', count: stats.by_status.collected, color: '#00796B', filter: 'collected' },
               { label: 'En attente', count: stats.by_status.waiting, color: '#E8611A', filter: 'waiting' },
               { label: 'Non programmées', count: stats.by_status.pending, color: '#94A3B8', filter: 'pending' },
             ].map((s) => (
@@ -805,7 +805,7 @@ export default function DashboardMairie() {
                   />
                   <Legend wrapperStyle={{ fontSize: 10 }} />
                   <Bar dataKey="Collectes" fill="#E8611A" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Écoles visitées" fill="#0B7A3E" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Écoles visitées" fill="#00796B" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Enquêteurs" fill="#475569" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -817,7 +817,7 @@ export default function DashboardMairie() {
                   <p className="text-[10px] font-bold text-gray-500 uppercase">Collectes</p>
                 </div>
                 <div className="text-center bg-[#F4EFE6] rounded-lg p-2">
-                  <p className="text-sm font-black text-[#0B7A3E]">{currentHistory.ecoles_visitees}</p>
+                  <p className="text-sm font-black text-[#00796B]">{currentHistory.ecoles_visitees}</p>
                   <p className="text-[10px] font-bold text-gray-500 uppercase">Visitées</p>
                 </div>
                 <div className="text-center bg-[#F4EFE6] rounded-lg p-2">
@@ -846,12 +846,12 @@ export default function DashboardMairie() {
             </button>
             <button
               onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?milieu=rural&show_points=1`)}
-              className="text-center bg-[#F4EFE6] rounded-lg p-3 transition-colors hover:bg-[#0B7A3E]/5 cursor-pointer group"
+              className="text-center bg-[#F4EFE6] rounded-lg p-3 transition-colors hover:bg-[#00796B]/5 cursor-pointer group"
             >
-              <span className="material-symbols-outlined text-[#0B7A3E] text-[22px]">landscape</span>
+              <span className="material-symbols-outlined text-[#00796B] text-[22px]">landscape</span>
               <p className="text-lg font-black text-[#0D1B2A] mt-1">{stats.by_milieu.rural}</p>
               <p className="text-[10px] font-bold text-gray-500 uppercase">Rural</p>
-              <span className="material-symbols-outlined text-[12px] text-gray-300 group-hover:text-[#0B7A3E] transition-colors">
+              <span className="material-symbols-outlined text-[12px] text-gray-300 group-hover:text-[#00796B] transition-colors">
                 arrow_forward
               </span>
             </button>

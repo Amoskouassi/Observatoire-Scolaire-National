@@ -98,7 +98,7 @@ export function collecteReceivedEmail(nomEcole, enqueteurNom, { latitude, longit
     subject: `Nouvelle collecte : ${nomEcole}`,
     html: `
       <div style="font-family:Inter,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px">
-        <div style="background:#0B7A3E;color:white;padding:16px 24px;border-radius:12px 12px 0 0">
+        <div style="background:#00796B;color:white;padding:16px 24px;border-radius:12px 12px 0 0">
           <h1 style="margin:0;font-size:18px">📋 Collecte reçue</h1>
         </div>
         <div style="background:#FAF8F3;padding:24px;border-radius:0 0 12px 12px;border:1px solid #CBD5E1">
@@ -106,7 +106,7 @@ export function collecteReceivedEmail(nomEcole, enqueteurNom, { latitude, longit
             <strong>${enqueteurNom}</strong> a soumis une collecte pour <strong>${nomEcole}</strong>.
           </p>
           <a href="${mapUrl}"
-             style="display:inline-block;background:#0B7A3E;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;margin-top:16px">
+             style="display:inline-block;background:#00796B;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;margin-top:16px">
             Voir sur la carte
           </a>
         </div>
@@ -149,7 +149,7 @@ export function collecteValidationEmail(nomEcole, statut) {
     subject: `Collecte ${isAccepted ? 'validée' : 'rejetée'} : ${nomEcole}`,
     html: `
       <div style="font-family:Inter,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px">
-        <div style="background:${isAccepted ? '#0B7A3E' : '#ba1a1a'};color:white;padding:16px 24px;border-radius:12px 12px 0 0">
+        <div style="background:${isAccepted ? '#00796B' : '#ba1a1a'};color:white;padding:16px 24px;border-radius:12px 12px 0 0">
           <h1 style="margin:0;font-size:18px">${isAccepted ? '✅' : '❌'} Collecte ${isAccepted ? 'validée' : 'rejetée'}</h1>
         </div>
         <div style="background:#FAF8F3;padding:24px;border-radius:0 0 12px 12px;border:1px solid #CBD5E1">

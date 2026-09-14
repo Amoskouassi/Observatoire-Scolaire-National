@@ -7,7 +7,7 @@ export function addCustomIcons(map) {
     { name: 'secondaire-prive', shape: 'diamond', color: '#E65100' },
     { name: 'superieur', shape: 'hexagon', color: '#6A1B9A' },
     { name: 'confessionnel', shape: 'star', color: '#1A1A2E' },
-    { name: 'communautaire', shape: 'triangle', color: '#0B7A3E' },
+    { name: 'communautaire', shape: 'triangle', color: '#00796B' },
     { name: 'default', shape: 'circle', color: '#1565C0' },
   ];
 
