@@ -132,7 +132,6 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
       if (!ecoleErr && ecole) ecoleId = ecole.id;
     }
     let createErr = null;
-    let newEcoleDebug = null;
 
     if (ecoleId) {
       const updateData = {
@@ -182,7 +181,6 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
         besoin_bancs: req.body.inventaire_classes ? req.body.inventaire_classes.reduce((sum, c) => sum + (c.besoin_bancs || 0), 0) : 0,
         photo_url: req.body.photos?.[0]?.url || null,
       };
-      newEcoleDebug = newEcole;
       const { data: created, error: createErrInner } = await supabase
         .from('ecoles')
         .insert(newEcole)
@@ -196,7 +194,7 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
       }
     }
 
-    res.status(201).json({ id: data.id, status: 'submitted', ecole_id: ecoleId || null, _ecole_error: createErr?.message || null, _newEcole: newEcoleDebug });
+    res.status(201).json({ id: data.id, status: 'submitted', ecole_id: ecoleId || null });
 
     // Notification email aux décideurs de la zone
     try {
