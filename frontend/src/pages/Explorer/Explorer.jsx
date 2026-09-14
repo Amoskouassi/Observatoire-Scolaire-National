@@ -393,6 +393,97 @@ export default function Explorer() {
     }
   }, []);
 
+  const navigateToBreadcrumb = useCallback((targetLevel) => {
+    const map = mapInst.current;
+    if (!map) return;
+    const data = geoDataRef.current;
+    const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
+
+    setSelected(null);
+    setSelectedSchool(null);
+
+    if (targetLevel === 'district') {
+      selDistRef.current = null;
+      selRegRef.current = null;
+      selDeptRef.current = null;
+      setBreadcrumb({ district: null, region: null, dept: null });
+      if (data.districts) {
+        map.getSource('districts')?.setData(data.districts);
+        setZones(data.districts.features.map(f => f.properties));
+      }
+      if (data.regions) map.getSource('regions')?.setData(data.regions);
+      if (data.depts) map.getSource('depts')?.setData(data.depts);
+      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      setVis(['districts-fill', 'districts-outline'], 'visible');
+      setVis(['regions-fill', 'regions-outline'], 'none');
+      setVis(['depts-fill', 'depts-outline'], 'none');
+      setVis(['sp-fill', 'sp-outline'], 'none');
+      setVis(['ecoles-points'], 'none');
+      drillingRef.current = true;
+      map.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 800 });
+      setCurrentLevel('district');
+      currentLevelRef.current = 'district';
+      setTimeout(() => { drillingRef.current = false; }, 900);
+
+    } else if (targetLevel === 'region') {
+      const districtName = breadcrumb.district;
+      if (!districtName) return;
+      selDistRef.current = districtName;
+      selRegRef.current = null;
+      selDeptRef.current = null;
+      setBreadcrumb({ district: districtName, region: null, dept: null });
+      if (data.regions) {
+        const filtered = { type: 'FeatureCollection', features: data.regions.features.filter(f => f.properties.district === districtName) };
+        map.getSource('regions')?.setData(filtered);
+        setZones(filtered.features.map(f => f.properties));
+      }
+      if (data.depts) map.getSource('depts')?.setData(data.depts);
+      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      setVis(['districts-fill', 'districts-outline'], 'visible');
+      setVis(['regions-fill', 'regions-outline'], 'visible');
+      setVis(['depts-fill', 'depts-outline'], 'none');
+      setVis(['sp-fill', 'sp-outline'], 'none');
+      setVis(['ecoles-points'], 'none');
+      const distFeat = data.districts?.features?.find(f => f.properties.name === districtName);
+      if (distFeat?.geometry) {
+        drillingRef.current = true;
+        fitBBox(map, distFeat.geometry, 0.15);
+        setTimeout(() => { drillingRef.current = false; }, 800);
+      }
+      setCurrentLevel('region');
+      currentLevelRef.current = 'region';
+
+    } else if (targetLevel === 'departement') {
+      const regionName = breadcrumb.region;
+      if (!regionName) return;
+      const regionFeat = data.regions?.features?.find(f => f.properties.name === regionName);
+      selDistRef.current = regionFeat?.properties?.district || selDistRef.current;
+      selRegRef.current = regionName;
+      selDeptRef.current = null;
+      setBreadcrumb(prev => ({ ...prev, region: regionName, dept: null }));
+      if (data.depts) {
+        const filtered = { type: 'FeatureCollection', features: data.depts.features.filter(f => f.properties.region === regionName) };
+        map.getSource('depts')?.setData(filtered);
+        setZones(filtered.features.map(f => f.properties));
+      }
+      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      setVis(['regions-fill'], 'none');
+      setVis(['regions-outline'], 'visible');
+      setVis(['depts-fill', 'depts-outline'], 'visible');
+      setVis(['sp-fill', 'sp-outline'], 'none');
+      setVis(['ecoles-points'], 'none');
+      if (regionFeat?.geometry) {
+        drillingRef.current = true;
+        fitBBox(map, regionFeat.geometry, 0.15);
+        setTimeout(() => { drillingRef.current = false; }, 800);
+      }
+      setCurrentLevel('departement');
+      currentLevelRef.current = 'departement';
+    }
+
+    syncViewRef.current?.();
+  }, [breadcrumb]);
+
   const handleBack = useCallback(() => {
     setSelected(null);
     setSelectedSchool(null);
@@ -1070,17 +1161,20 @@ export default function Explorer() {
         <div className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-[#CBD5E1]/20">
           <div className="flex items-center gap-1.5 text-[11px] text-[#94A3B8] font-semibold mb-2 flex-wrap">
             <span className="material-symbols-outlined text-[14px] text-[#E8611A]">location_on</span>
-            <span className={currentLevel === 'district' ? 'text-[#E8611A] font-bold' : ''}>CI</span>
+            <button onClick={() => navigateToBreadcrumb('district')}
+              className={`hover:underline hover:text-[#E8611A] transition-colors ${currentLevel === 'district' ? 'text-[#E8611A] font-bold' : ''}`}>CI</button>
             {breadcrumb.district && (
               <>
                 <span className="material-symbols-outlined text-[10px] text-[#CBD5E1]">chevron_right</span>
-                <span className={currentLevel === 'region' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.district}</span>
+                <button onClick={() => navigateToBreadcrumb('region')}
+                  className={`hover:underline hover:text-[#E8611A] transition-colors ${currentLevel === 'region' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}`}>{breadcrumb.district}</button>
               </>
             )}
             {breadcrumb.region && (
               <>
                 <span className="material-symbols-outlined text-[10px] text-[#CBD5E1]">chevron_right</span>
-                <span className={currentLevel === 'departement' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}>{breadcrumb.region}</span>
+                <button onClick={() => navigateToBreadcrumb('departement')}
+                  className={`hover:underline hover:text-[#E8611A] transition-colors ${currentLevel === 'departement' ? 'text-[#E8611A] font-bold' : 'text-[#6B7280]'}`}>{breadcrumb.region}</button>
               </>
             )}
             {breadcrumb.dept && (
