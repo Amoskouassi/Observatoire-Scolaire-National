@@ -638,13 +638,17 @@ export default function Explorer() {
           id: 'districts-fill', type: 'fill', source: 'districts',
           paint: {
             'fill-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, COLORS.pending],
-            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.4, 0.2],
+            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.15, 0.06],
             'fill-opacity-transition': { duration: 200 },
           },
         });
         map.addLayer({
           id: 'districts-outline', type: 'line', source: 'districts',
-          paint: { 'line-color': '#0D1B2A', 'line-width': 1.5, 'line-opacity': 0.7 },
+          paint: {
+            'line-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, '#94A3B8'],
+            'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2.5, 1.5],
+            'line-opacity': 0.85,
+          },
         });
         for (const f of districtsData.features) {
           const centroid = getCentroid(f.geometry);
@@ -662,12 +666,20 @@ export default function Explorer() {
           id: 'regions-fill', type: 'fill', source: 'regions',
           paint: {
             'fill-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, COLORS.pending],
-            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.45, 0.25],
+            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.15, 0.06],
             'fill-opacity-transition': { duration: 200 },
           },
           layout: { visibility: 'none' },
         });
-        map.addLayer({ id: 'regions-outline', type: 'line', source: 'regions', paint: { 'line-color': '#475569', 'line-width': 0.8, 'line-opacity': 0.6 }, layout: { visibility: 'none' } });
+        map.addLayer({
+          id: 'regions-outline', type: 'line', source: 'regions',
+          paint: {
+            'line-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, '#94A3B8'],
+            'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2, 1],
+            'line-opacity': 0.8,
+          },
+          layout: { visibility: 'none' },
+        });
         for (const f of regionsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
@@ -684,12 +696,20 @@ export default function Explorer() {
           id: 'depts-fill', type: 'fill', source: 'depts',
           paint: {
             'fill-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, COLORS.pending],
-            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.5, 0.3],
+            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.15, 0.06],
             'fill-opacity-transition': { duration: 200 },
           },
           layout: { visibility: 'none' },
         });
-        map.addLayer({ id: 'depts-outline', type: 'line', source: 'depts', paint: { 'line-color': '#64748B', 'line-width': 1.2, 'line-opacity': 0.8 }, layout: { visibility: 'none' } });
+        map.addLayer({
+          id: 'depts-outline', type: 'line', source: 'depts',
+          paint: {
+            'line-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, '#94A3B8'],
+            'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2, 1],
+            'line-opacity': 0.8,
+          },
+          layout: { visibility: 'none' },
+        });
         for (const f of deptsData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
@@ -706,12 +726,20 @@ export default function Explorer() {
           id: 'sp-fill', type: 'fill', source: 'sp',
           paint: {
             'fill-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, COLORS.pending],
-            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.5, 0.3],
+            'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.15, 0.06],
             'fill-opacity-transition': { duration: 200 },
           },
           layout: { visibility: 'none' },
         });
-        map.addLayer({ id: 'sp-outline', type: 'line', source: 'sp', paint: { 'line-color': '#94A3B8', 'line-width': 0.8, 'line-opacity': 0.7 }, layout: { visibility: 'none' } });
+        map.addLayer({
+          id: 'sp-outline', type: 'line', source: 'sp',
+          paint: {
+            'line-color': ['match', ['get', 'status'], 'collected', COLORS.collected, 'waiting', COLORS.waiting, '#CBD5E1'],
+            'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 1.5, 0.8],
+            'line-opacity': 0.75,
+          },
+          layout: { visibility: 'none' },
+        });
         for (const f of spData.features) {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
