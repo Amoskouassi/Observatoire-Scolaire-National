@@ -3,16 +3,10 @@ name: Deploy Frontend to Vercel
 on:
   push:
     branches: [master]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/deploy-frontend.yml'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - name: Checkout
@@ -21,24 +15,22 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        working-directory: frontend
+        run: npm install
 
       - name: Build
+        working-directory: frontend
         run: npm run build
 
       - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Pull Vercel config
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        run: npm install -g vercel
 
       - name: Deploy to Vercel
-        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: frontend
+        run: vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
