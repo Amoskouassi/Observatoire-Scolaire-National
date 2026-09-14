@@ -110,7 +110,7 @@ app.use((err, req, res, next) => {
   logger.error(err.message, { stack: err.stack, path: req.path });
 
   res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'production' ? 'Erreur interne du serveur' : (err.message || 'Erreur interne du serveur'),
+    error: process.env.NODE_ENV !== 'development' ? 'Erreur interne du serveur' : (err.message || 'Erreur interne du serveur'),
   });
 });
 

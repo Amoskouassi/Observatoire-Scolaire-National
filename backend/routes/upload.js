@@ -31,7 +31,7 @@ router.post('/', upload.single('photo'), async (req, res, next) => {
       .upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
 
     if (uploadError) {
-      return res.status(500).json({ error: `Erreur upload: ${uploadError.message}` });
+      return res.status(500).json({ error: 'Erreur lors de l\'upload du fichier' });
     }
 
     const { data: urlData } = supabase.storage.from('photos').getPublicUrl(filename);

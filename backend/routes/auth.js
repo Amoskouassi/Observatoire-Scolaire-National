@@ -182,8 +182,12 @@ router.post('/verify-code', validateRequest(verifyCodeSchema), async (req, res, 
       .eq('email', email)
       .single();
 
+    if (!profile) {
+      return res.status(400).json({ error: 'Profil utilisateur introuvable' });
+    }
+
     const token = jwt.sign(
-      { userId: profile?.id, role: profile?.role || 'enqueteur' },
+      { userId: profile.id, role: profile.role },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn }
     );
@@ -191,16 +195,16 @@ router.post('/verify-code', validateRequest(verifyCodeSchema), async (req, res, 
     res.json({
       token,
       user: {
-        id: profile?.id,
+        id: profile.id,
         email,
-        nom: profile?.nom,
-        prenom: profile?.prenom,
-        role: profile?.role,
-        organisation: profile?.organisation,
-        commune_code: profile?.commune_code,
-        region_code: profile?.region_code,
-        district_code: profile?.district_code,
-        departement_code: profile?.departement_code,
+        nom: profile.nom,
+        prenom: profile.prenom,
+        role: profile.role,
+        organisation: profile.organisation,
+        commune_code: profile.commune_code,
+        region_code: profile.region_code,
+        district_code: profile.district_code,
+        departement_code: profile.departement_code,
       },
     });
   } catch (err) {
