@@ -125,7 +125,7 @@ export default function Register() {
     setVerifyLoading(true);
     try {
       const { token, user } = await api.verifyCode(form.email, codeStr);
-      login(user, token, user.role);
+      login(user, token);
       window.location.href = '/explorer';
     } catch (err) { setVerifyError(err.message); } finally { setVerifyLoading(false); }
   };

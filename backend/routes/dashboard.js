@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../server.js';
-import { config } from '../config/index.js';
+import { requireRole } from '../middleware/auth.js';
+import { validateRequest } from '../middleware/validate.js';
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -15,18 +16,10 @@ const router = Router();
 // Dashboard personalisé pour l'utilisateur connecté
 router.get('/my-zone', async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Non authentifié' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, config.jwt.secret);
-
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('*')
-      .eq('id', decoded.userId)
+      .eq('id', req.user.id)
       .single();
 
     if (profileError || !profile) {
@@ -313,16 +306,15 @@ router.get('/historical', async (req, res, next) => {
 });
 
 // Sauvegarder un snapshot
-router.post('/snapshots', async (req, res, next) => {
+const snapshotSchema = z.object({
+  zone_level: z.enum(['district', 'region', 'departement', 'commune']),
+  zone_code: z.string().min(1),
+  annee_scolaire: z.string().min(1),
+  stats: z.object({}).passthrough(),
+});
+
+router.post('/snapshots', requireRole('admin', 'ministre'), validateRequest(snapshotSchema), async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Non authentifié' });
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, config.jwt.secret);
-    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', decoded.userId).single();
-    if (!profile || !['admin', 'ministre'].includes(profile.role)) {
-      return res.status(403).json({ error: 'Accès réservé aux administrateurs' });
-    }
     const { zone_level, zone_code, annee_scolaire, stats } = req.body;
     const { data, error } = await supabaseAdmin
       .from('snapshots')

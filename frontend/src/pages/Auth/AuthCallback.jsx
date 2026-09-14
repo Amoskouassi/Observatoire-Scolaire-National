@@ -19,7 +19,7 @@ export default function AuthCallback() {
         }
 
         const { token: backendToken, user } = await api.googleCallback(data.session.access_token);
-        login(user, backendToken, user.role);
+        login(user, backendToken);
         navigate('/explorer');
       } catch {
         navigate('/login');

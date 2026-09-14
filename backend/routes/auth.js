@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../server.js';
@@ -16,7 +17,7 @@ const supabaseAdmin = createClient(
 const router = Router();
 
 function generateCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(crypto.randomInt(100000, 999999));
 }
 
 function verificationCodeEmail(prenom, code) {
@@ -52,7 +53,7 @@ const registerSchema = z.object({
   password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
   nom: z.string().min(2, 'Nom trop court'),
   prenom: z.string().min(2, 'Prénom trop court'),
-  role: z.enum(['admin', 'mairie', 'institution', 'enqueteur', 'president_region', 'ministre', 'directeur_afrique', 'partenaire', 'chercheur']),
+  role: z.enum(['enqueteur', 'mairie', 'president_region']),
   organisation: z.string().optional(),
   commune_code: z.string().optional(),
   region_code: z.string().optional(),
@@ -97,7 +98,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
     });
 
     if (authError) {
-      return res.status(400).json({ error: authError.message });
+      return res.status(400).json({ error: 'Erreur lors de la création du compte' });
     }
 
     const { error: profileError } = await supabaseAdmin
@@ -116,7 +117,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       });
 
     if (profileError) {
-      return res.status(500).json({ error: profileError.message || 'Erreur création profil' });
+      return res.status(500).json({ error: 'Erreur création profil' });
     }
 
     const code = generateCode();
@@ -349,7 +350,7 @@ router.post('/google-callback', async (req, res, next) => {
         });
 
       if (profileError) {
-        return res.status(500).json({ error: profileError.message });
+        return res.status(500).json({ error: 'Erreur création profil' });
       }
 
       const jwtToken = jwt.sign(

@@ -21,7 +21,7 @@ export default function Login() {
     setLoading(true);
     try {
       const result = await api.login(email, password);
-      login(result.user, result.token, result.user.role);
+      login(result.user, result.token);
       navigate('/explorer');
     } catch (err) {
       if (err.message?.includes('Email non confirmé')) {

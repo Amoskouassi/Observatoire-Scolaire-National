@@ -96,6 +96,25 @@ router.post('/', authMiddleware, requireRole('admin', 'enqueteur'), validateRequ
 // Modifier une école
 router.put('/:id', authMiddleware, requireRole('admin', 'enqueteur'), validateRequest(ecoleSchema.partial()), async (req, res, next) => {
   try {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('ecoles')
+      .select('commune_code, departement_code, region_code, district_code')
+      .eq('id', req.params.id)
+      .single();
+
+    if (fetchErr || !existing) {
+      return res.status(404).json({ error: 'École non trouvée' });
+    }
+
+    if (req.user.role !== 'admin') {
+      const userZones = [req.user.communeCode, req.user.departementCode, req.user.regionCode, req.user.districtCode].filter(Boolean);
+      const schoolZones = [existing.commune_code, existing.departement_code, existing.region_code, existing.district_code].filter(Boolean);
+      const hasAccess = userZones.some(uz => schoolZones.includes(uz));
+      if (!hasAccess) {
+        return res.status(403).json({ error: 'Accès non autorisé pour cette école' });
+      }
+    }
+
     const { data, error } = await supabase
       .from('ecoles')
       .update({ ...req.body, updated_at: new Date().toISOString() })

@@ -36,6 +36,11 @@ const logger = winston.createLogger({
   ],
 });
 
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET is not set. Exiting.');
+  process.exit(1);
+}
+
 // Supabase — always use service_role to bypass RLS
 export const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -47,7 +52,9 @@ export const supabase = createClient(
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGINS?.split(',') || 'http://localhost:5173',
+  origin: process.env.NODE_ENV === 'production'
+    ? (process.env.CORS_ORIGINS?.split(',') || [])
+    : (process.env.CORS_ORIGINS?.split(',') || 'http://localhost:5173'),
   credentials: true,
 }));
 app.use(compression());
@@ -70,36 +77,20 @@ const authLimiter = rateLimit({
   message: { error: 'Trop de tentatives de connexion.' },
 });
 app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/ecoles', ecoleRoutes);
-app.use('/api/admin-zones', adminZoneRoutes);
+app.use('/api/admin-zones', authMiddleware, adminZoneRoutes);
 app.use('/api/collecte', authMiddleware, collecteRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/plaidoyer', plaidoyerRoutes);
+app.use('/api/dashboard', authMiddleware, dashboardRoutes);
+app.use('/api/plaidoyer', authMiddleware, plaidoyerRoutes);
 app.use('/api/upload', authMiddleware, uploadRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Diagnostic endpoint
-app.get('/api/debug', async (req, res) => {
-  try {
-    const { data, error } = await supabase.from('ecoles').select('id').limit(1);
-    res.json({
-      supabase: error ? { error: error.message, code: error.code } : { ok: true, count: data?.length },
-      env: {
-        hasUrl: !!process.env.SUPABASE_URL,
-        hasServiceKey: !!process.env.SUPABASE_SERVICE_KEY,
-        hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
-      },
-    });
-  } catch (e) {
-    res.json({ error: e.message });
-  }
 });
 
 // Error handling
@@ -114,7 +105,7 @@ app.use((err, req, res, next) => {
   logger.error(err.message, { stack: err.stack, path: req.path });
 
   res.status(err.status || 500).json({
-    error: err.message || 'Erreur interne du serveur',
+    error: process.env.NODE_ENV === 'production' ? 'Erreur interne du serveur' : (err.message || 'Erreur interne du serveur'),
   });
 });
 
