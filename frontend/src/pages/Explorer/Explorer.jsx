@@ -561,9 +561,9 @@ export default function Explorer() {
           'carto-light': {
             type: 'raster',
             tiles: [
-              'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-              'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-              'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+              'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+              'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+              'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
             ],
             tileSize: 256,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -574,7 +574,7 @@ export default function Explorer() {
           id: 'carto-light',
           type: 'raster',
           source: 'carto-light',
-          paint: { 'raster-opacity': 0.85 },
+          paint: { 'raster-opacity': 0.9 },
         }],
       },
       center: [-5.5, 7.0],
