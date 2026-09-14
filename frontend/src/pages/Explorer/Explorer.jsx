@@ -557,8 +557,25 @@ export default function Explorer() {
       container: mapRef.current,
       style: {
         version: 8,
-        sources: {},
-        layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#F4EFE6' } }],
+        sources: {
+          'carto-light': {
+            type: 'raster',
+            tiles: [
+              'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+              'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+              'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+            ],
+            tileSize: 256,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+            maxzoom: 19,
+          },
+        },
+        layers: [{
+          id: 'carto-light',
+          type: 'raster',
+          source: 'carto-light',
+          paint: { 'raster-opacity': 0.85 },
+        }],
       },
       center: [-5.5, 7.0],
       zoom: 5.5,
