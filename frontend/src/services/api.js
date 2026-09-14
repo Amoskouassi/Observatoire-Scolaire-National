@@ -73,6 +73,20 @@ class ApiService {
     });
   }
 
+  codeLogin(login_code) {
+    return this.request('/auth/code-login', {
+      method: 'POST',
+      body: JSON.stringify({ login_code }),
+    });
+  }
+
+  verifyLoginCode(login_code, code) {
+    return this.request('/auth/verify-login-code', {
+      method: 'POST',
+      body: JSON.stringify({ login_code, code }),
+    });
+  }
+
   // Écoles
   getSchools(filters = {}) {
     const params = new URLSearchParams();

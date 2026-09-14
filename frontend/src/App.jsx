@@ -13,6 +13,7 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import VerifyEmail from './pages/Auth/VerifyEmail';
 import AuthCallback from './pages/Auth/AuthCallback';
+import CodeLoginPage from './pages/Auth/CodeLoginPage';
 import NotFound from './pages/NotFound/NotFound';
 
 function ProtectedRoute({ children, allowedRoles }) {
@@ -59,6 +60,7 @@ export default function App() {
 
           <Route path="/tarifs" element={<Pricing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/code-login" element={<CodeLoginPage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/auth/callback" element={<AuthCallback />} />

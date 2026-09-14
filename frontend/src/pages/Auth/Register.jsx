@@ -26,6 +26,7 @@ export default function Register() {
   const [verifyError, setVerifyError] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [loginCode, setLoginCode] = useState('');
   const { login } = useAuthStore();
 
   const [zones, setZones] = useState({ districts: [], regions: [], depts: [], communes: [] });
@@ -93,7 +94,8 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      await api.register(buildPayload());
+      const result = await api.register(buildPayload());
+      if (result.login_code) setLoginCode(result.login_code);
       setStep('verify');
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
@@ -152,6 +154,13 @@ export default function Register() {
             Un code à 6 chiffres a été envoyé à<br />
             <strong className="text-[#0D1B2A]">{form.email}</strong>
           </p>
+          {loginCode && (
+            <div className="bg-[#0B7A3E]/10 border border-[#0B7A3E]/20 rounded-lg p-3 mt-4">
+              <p className="text-[10px] font-bold text-[#0B7A3E] uppercase mb-1">🔑 Votre code enquêteur</p>
+              <p className="text-lg font-mono font-bold text-[#0D1B2A] tracking-widest">{loginCode}</p>
+              <p className="text-[10px] text-[#6B7280] mt-1">Conservez ce code. Il sert à se connecter via « Connexion par code ».</p>
+            </div>
+          )}
           <div className="flex justify-center gap-2.5 mt-6" onPaste={handleCodePaste}>
             {code.map((digit, i) => (
               <input key={i} data-index={i} type="text" inputMode="numeric" maxLength={1} value={digit}

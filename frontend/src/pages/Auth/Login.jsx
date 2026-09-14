@@ -156,6 +156,7 @@ export default function Login() {
           <button type="submit" className="btn-primary w-full" disabled={loading}>{loading ? 'Connexion...' : 'Connexion'}</button>
         </form>
         <p className="text-center text-xs text-[#6B7280] mt-4">Pas de compte ? <Link to="/register" className="text-[#E8611A] underline font-bold">S'inscrire</Link></p>
+        <p className="text-center text-xs text-[#6B7280] mt-2">Enquêteur ? <Link to="/code-login" className="text-[#E8611A] underline font-bold">Connexion par code</Link></p>
       </div>
     </div>
   );

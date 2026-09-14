@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../server.js';
 import { validateRequest } from '../middleware/validate.js';
 import { config } from '../config/index.js';
-import { sendMail, welcomeEmail } from '../services/email.js';
+import { sendMail, welcomeEmail, loginOtpEmail } from '../services/email.js';
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -101,6 +101,8 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       return res.status(400).json({ error: 'Erreur lors de la création du compte' });
     }
 
+    const loginCode = role === 'enqueteur' ? 'ENQ-' + crypto.randomBytes(2).toString('hex').toUpperCase() : null;
+
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
@@ -114,6 +116,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
         region_code: region_code || null,
         district_code: district_code || null,
         departement_code: departement_code || null,
+        ...(loginCode && { login_code: loginCode }),
       });
 
     if (profileError) {
@@ -136,6 +139,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
       message: 'Compte créé. Vérifiez votre boîte mail pour le code de confirmation.',
       email,
       needsVerification: true,
+      ...(loginCode && { login_code: loginCode }),
     });
   } catch (err) {
     next(err);
@@ -384,6 +388,121 @@ router.post('/google-callback', async (req, res, next) => {
         region_code: existingProfile.region_code,
         district_code: existingProfile.district_code,
         departement_code: existingProfile.departement_code,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Connexion par code enquêteur + OTP email
+const codeLoginSchema = z.object({ login_code: z.string().min(1) });
+
+router.post('/code-login', validateRequest(codeLoginSchema), async (req, res, next) => {
+  try {
+    const { login_code } = req.body;
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, email, nom, prenom, role, login_code')
+      .eq('login_code', login_code.toUpperCase().trim())
+      .single();
+
+    if (profileError || !profile) {
+      return res.status(401).json({ error: 'Code invalide' });
+    }
+
+    if (!profile.email) {
+      return res.status(400).json({ error: 'Aucun email associé à ce compte. Contactez un administrateur.' });
+    }
+
+    const code = generateCode();
+    const expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    await supabaseAdmin.from('verification_codes').insert({
+      email: profile.email,
+      code,
+      purpose: 'code_login',
+      expires_at,
+    });
+
+    sendMail({
+      to: profile.email,
+      ...loginOtpEmail(profile.prenom || profile.nom || '', code),
+    }).catch(() => {});
+
+    res.json({
+      message: 'Un code de connexion a été envoyé à votre email.',
+      email_masked: profile.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+const verifyLoginCodeSchema = z.object({
+  login_code: z.string().min(1),
+  code: z.string().length(6),
+});
+
+router.post('/verify-login-code', validateRequest(verifyLoginCodeSchema), async (req, res, next) => {
+  try {
+    const { login_code, code } = req.body;
+
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('id, email, nom, prenom, role, organisation, commune_code, region_code, district_code, departement_code')
+      .eq('login_code', login_code.toUpperCase().trim())
+      .single();
+
+    if (!profile) {
+      return res.status(401).json({ error: 'Code invalide' });
+    }
+
+    const { data: record, error: findError } = await supabaseAdmin
+      .from('verification_codes')
+      .select('*')
+      .eq('email', profile.email)
+      .eq('code', code)
+      .eq('purpose', 'code_login')
+      .eq('used', false)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (findError || !record) {
+      return res.status(400).json({ error: 'Code OTP invalide ou expiré' });
+    }
+
+    if (record.attempts >= record.max_attempts) {
+      return res.status(429).json({ error: 'Trop de tentatives. Demandez un nouveau code.' });
+    }
+
+    await supabaseAdmin
+      .from('verification_codes')
+      .update({ used: true })
+      .eq('id', record.id);
+
+    const token = jwt.sign(
+      { userId: profile.id, role: profile.role },
+      config.jwt.secret,
+      { expiresIn: config.jwt.expiresIn }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: profile.id,
+        email: profile.email,
+        nom: profile.nom,
+        prenom: profile.prenom,
+        role: profile.role,
+        organisation: profile.organisation,
+        commune_code: profile.commune_code,
+        region_code: profile.region_code,
+        district_code: profile.district_code,
+        departement_code: profile.departement_code,
       },
     });
   } catch (err) {

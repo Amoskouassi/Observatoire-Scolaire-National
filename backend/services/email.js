@@ -115,6 +115,34 @@ export function collecteReceivedEmail(nomEcole, enqueteurNom, { latitude, longit
   };
 }
 
+export function loginOtpEmail(prenom, code) {
+  return {
+    subject: 'Code de connexion — Observatoire Scolaire National',
+    html: `
+      <div style="font-family:Inter,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px">
+        <div style="background:#E8611A;color:white;padding:16px 24px;border-radius:12px 12px 0 0">
+          <h1 style="margin:0;font-size:18px">🇨🇮 Observatoire Scolaire National</h1>
+        </div>
+        <div style="background:#FAF8F3;padding:24px;border-radius:0 0 12px 12px;border:1px solid #CBD5E1">
+          <h2 style="color:#0D1B2A;margin-top:0">Bonjour ${prenom},</h2>
+          <p style="color:#475569;font-size:14px;line-height:1.6">
+            Voici votre code de connexion :
+          </p>
+          <div style="background:#0D1B2A;color:white;text-align:center;padding:20px;border-radius:12px;margin:20px 0">
+            <span style="font-size:36px;font-weight:900;letter-spacing:12px">${code}</span>
+          </div>
+          <p style="color:#94A3B8;font-size:12px;text-align:center">
+            Ce code expire dans 15 minutes.
+          </p>
+          <p style="color:#ba1a1a;font-size:12px;margin-top:16px;font-weight:bold">
+            Si vous n'avez pas demandé cette connexion, ignorez cet email.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+}
+
 export function collecteValidationEmail(nomEcole, statut) {
   const isAccepted = statut === 'validated';
   return {

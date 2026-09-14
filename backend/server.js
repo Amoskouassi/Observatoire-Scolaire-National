@@ -81,6 +81,8 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/verify-code', authLimiter);
 app.use('/api/auth/resend-code', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/code-login', authLimiter);
+app.use('/api/auth/verify-login-code', authLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
