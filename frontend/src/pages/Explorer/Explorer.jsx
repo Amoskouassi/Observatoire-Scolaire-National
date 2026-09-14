@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapStore } from '../../stores/mapStore';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
+import { addCustomIcons, getIconForSchool } from '../../utils/schoolIcons';
 
 const COLORS = {
   collected: '#E8611A',
@@ -568,6 +569,7 @@ export default function Explorer() {
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
+    addCustomIcons(map);
 
     const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
 
@@ -705,32 +707,35 @@ export default function Explorer() {
 
       map.addSource('ecoles', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({
-        id: 'ecoles-points', type: 'circle', source: 'ecoles',
-        paint: {
-          'circle-radius': 8,
-          'circle-color': [
-            'match', ['get', 'statut'],
-            'public', [
-              'match', ['get', 'niveau_enseignement'],
-              'primaire', '#1565C0',
-              'secondaire', '#B71C1C',
-              '#1565C0'
-            ],
-            'prive_laic', [
-              'match', ['get', 'niveau_enseignement'],
-              'primaire', '#42A5F5',
-              'secondaire', '#E65100',
-              '#42A5F5'
-            ],
-            'prive_confessionnel', '#1A1A2E',
-            'communautaire_non_reconnue', '#0B7A3E',
-            '#1565C0'
+        id: 'ecoles-points', type: 'symbol', source: 'ecoles',
+        layout: {
+          'visibility': 'none',
+          'icon-image': [
+            'match', ['get', 'niveau_enseignement'],
+            'prescolaire', 'maternelle',
+            'maternelle', 'maternelle',
+            [
+              'match', ['get', 'statut'],
+              'prive_confessionnel', 'confessionnel',
+              'communautaire_non_reconnue', 'communautaire',
+              'prive_laic', [
+                'match', ['get', 'niveau_enseignement'],
+                'primaire', 'primaire-prive',
+                'secondaire', 'secondaire-prive',
+                'primaire-prive'
+              ],
+              'public', [
+                'match', ['get', 'niveau_enseignement'],
+                'primaire', 'primaire-public',
+                'secondaire', 'secondaire-public',
+                'primaire-public'
+              ],
+              'primaire-public'
+            ]
           ],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#FAF8F3',
-          'circle-opacity': 0.9,
+          'icon-size': 1.2,
+          'icon-allow-overlap': true,
         },
-        layout: { visibility: 'none' },
       });
 
       const allFill = ['districts-fill', 'regions-fill', 'depts-fill', 'sp-fill'];
