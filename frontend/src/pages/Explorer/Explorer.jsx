@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapStore } from '../../stores/mapStore';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
+import { createSchoolMarker } from '../../utils/schoolMarkers';
 
 const COLORS = {
   collected: '#E8611A',
@@ -231,6 +232,7 @@ export default function Explorer() {
   const currentLevelRef = useRef('district');
   const geoDataRef = useRef({ districts: null, regions: null, depts: null, sp: null });
   const labelsRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
+  const schoolMarkersRef = useRef([]);
   const showPointsFromDashboard = useRef(false);
   const zoomingBackRef = useRef(false);
 
@@ -286,6 +288,39 @@ export default function Explorer() {
     });
   }, []);
 
+  const updateSchoolMarkers = useCallback(() => {
+    const map = mapInst.current;
+    if (!map || !schoolsData) return;
+    schoolMarkersRef.current.forEach(m => m.remove());
+    schoolMarkersRef.current = [];
+    const level = currentLevelRef.current;
+    if (!showPointsFromDashboard.current && level !== 'sous-prefecture') return;
+    const zoneCodeKey = urlLevel === 'district' ? 'district_code' : urlLevel === 'region' ? 'region_code' : urlLevel === 'departement' ? 'departement_code' : 'commune_code';
+    const filtered = schoolsData.features.filter(f => {
+      const p = f.properties;
+      if (showPointsFromDashboard.current && urlCode && p[zoneCodeKey] !== urlCode) return false;
+      if (filters.collect_status.length && !filters.collect_status.includes(p.collect_status)) return false;
+      if (filters.milieu.length && !filters.milieu.includes(p.milieu_implantation)) return false;
+      if (filters.niveau.length && !filters.niveau.includes(p.niveau_enseignement)) return false;
+      if (filters.statut.length && !filters.statut.includes(p.statut)) return false;
+      if (filters.manque_bancs && (!p.besoin_bancs || p.besoin_bancs <= 0)) return false;
+      if (filters.sans_toilettes && p.toilettes_filles_fonctionnelles) return false;
+      if (filters.sans_eau && p.eau_potable) return false;
+      if (filters.sans_electricite && p.electricite) return false;
+      if (filters.manque_enseignants && (p.enseignants_presents > 0)) return false;
+      if (filters.materiaux_precaires && (!p.materiaux_precaires || (Array.isArray(p.materiaux_precaires) ? p.materiaux_precaires.length === 0 : !p.materiaux_precaires))) return false;
+      return true;
+    });
+    filtered.forEach(f => {
+      const p = f.properties;
+      if (!p.longitude || !p.latitude) return;
+      const el = createSchoolMarker(p);
+      el.addEventListener('click', (e) => { e.stopPropagation(); setSelectedSchool(p); });
+      const marker = new maplibregl.Marker({ element: el }).setLngLat([p.longitude, p.latitude]).addTo(map);
+      schoolMarkersRef.current.push(marker);
+    });
+  }, [schoolsData, filters, urlLevel, urlCode]);
+
   const drillDown = useCallback((level, name) => {
     const map = mapInst.current;
     if (!map) return;
@@ -313,8 +348,6 @@ export default function Explorer() {
       setVis(['regions-fill', 'regions-outline'], 'visible');
       setVis(['depts-fill', 'depts-outline'], 'none');
       setVis(['sp-fill', 'sp-outline'], 'none');
-      setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
-
       nextLevel = 'region';
 
     } else if (level === 'region') {
@@ -335,8 +368,6 @@ export default function Explorer() {
       setVis(['regions-outline'], 'visible');
       setVis(['depts-fill', 'depts-outline'], 'visible');
       setVis(['sp-fill', 'sp-outline'], 'none');
-      setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
-
       nextLevel = 'departement';
 
     } else if (level === 'departement') {
@@ -354,8 +385,6 @@ export default function Explorer() {
       setVis(['depts-fill'], 'none');
       setVis(['depts-outline'], 'visible');
       setVis(['sp-fill', 'sp-outline'], 'visible');
-      setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
-
       nextLevel = 'sous-prefecture';
     } else if (level === 'sous-prefecture') {
       const spFeat = data.sp?.features?.find(f => f.properties.name === name);
@@ -370,7 +399,6 @@ export default function Explorer() {
       setZones([]);
       setCurrentLevel('sous-prefecture');
       currentLevelRef.current = 'sous-prefecture';
-      setVis(['ecoles-points'], 'visible');
       showZoneDetail('sous-prefecture', spFeat?.properties || { name });
       return;
     } else {
@@ -383,6 +411,7 @@ export default function Explorer() {
     currentLevelRef.current = nextLevel;
 
     syncViewRef.current?.();
+    updateSchoolMarkers();
 
     const parentData = level === 'district' ? data.districts : level === 'region' ? data.regions : data.depts;
     const feat = parentData?.features?.find(f => f.properties?.name === name);
@@ -418,7 +447,6 @@ export default function Explorer() {
       setVis(['regions-fill', 'regions-outline'], 'none');
       setVis(['depts-fill', 'depts-outline'], 'none');
       setVis(['sp-fill', 'sp-outline'], 'none');
-      setVis(['ecoles-points'], 'none');
       drillingRef.current = true;
       map.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 800 });
       setCurrentLevel('district');
@@ -443,7 +471,6 @@ export default function Explorer() {
       setVis(['regions-fill', 'regions-outline'], 'visible');
       setVis(['depts-fill', 'depts-outline'], 'none');
       setVis(['sp-fill', 'sp-outline'], 'none');
-      setVis(['ecoles-points'], 'none');
       const distFeat = data.districts?.features?.find(f => f.properties.name === districtName);
       if (distFeat?.geometry) {
         drillingRef.current = true;
@@ -471,7 +498,6 @@ export default function Explorer() {
       setVis(['regions-outline'], 'visible');
       setVis(['depts-fill', 'depts-outline'], 'visible');
       setVis(['sp-fill', 'sp-outline'], 'none');
-      setVis(['ecoles-points'], 'none');
       if (regionFeat?.geometry) {
         drillingRef.current = true;
         fitBBox(map, regionFeat.geometry, 0.15);
@@ -482,6 +508,7 @@ export default function Explorer() {
     }
 
     syncViewRef.current?.();
+    updateSchoolMarkers();
   }, [breadcrumb]);
 
   const handleBack = useCallback(() => {
@@ -493,7 +520,6 @@ export default function Explorer() {
     const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
 
     if (currentLevelRef.current === 'sous-prefecture') {
-      if (!showPointsFromDashboard.current) setVis(['ecoles-points'], 'none');
       if (data.sp) map.getSource('sp')?.setData(data.sp);
       const parentRegion = selRegRef.current;
       if (parentRegion && data.depts) {
@@ -544,6 +570,7 @@ export default function Explorer() {
     }
 
     syncViewRef.current?.();
+    updateSchoolMarkers();
   }, []);
 
   useEffect(() => {
@@ -703,16 +730,6 @@ export default function Explorer() {
         }
       }
 
-      map.addSource('ecoles', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-      map.addLayer({
-        id: 'ecoles-points', type: 'circle', source: 'ecoles',
-        paint: {
-          'circle-radius': ['step', ['get', 'eleves_total'], 5, 100, 7, 500, 10, 1000, 14],
-          'circle-color': '#E8611A', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#FAF8F3', 'circle-opacity': 0.85,
-        },
-        layout: { visibility: 'none' },
-      });
-
       const allFill = ['districts-fill', 'regions-fill', 'depts-fill', 'sp-fill'];
       let hId = null, hSrc = null;
       for (const lid of allFill) {
@@ -733,9 +750,6 @@ export default function Explorer() {
       }
 
       map.on('click', (e) => {
-        const sf = map.queryRenderedFeatures(e.point, { layers: ['ecoles-points'] });
-        if (sf?.length) { setSelectedSchool(sf[0].properties); return; }
-
         const level = currentLevelRef.current;
         if (level === 'district') {
           const zf = map.queryRenderedFeatures(e.point, { layers: ['districts-fill'] });
@@ -837,8 +851,7 @@ export default function Explorer() {
             setTimeout(() => {
               map.flyTo({ center: [lng, lat], zoom: 16, duration: 1500 });
               showPointsFromDashboard.current = true;
-              const ecolesLayer = map.getLayer('ecoles-points');
-              if (ecolesLayer) map.setLayoutProperty('ecoles-points', 'visibility', 'visible');
+              updateSchoolMarkers();
               if (focusSchoolIdParam && schoolsData?.features) {
                 const feat = schoolsData.features.find(f => f.properties.id === focusSchoolIdParam);
                 if (feat) setSelectedSchool(feat.properties);
@@ -887,39 +900,7 @@ export default function Explorer() {
     };
   }, [schoolsData, urlLevel, urlCode]);
 
-  useEffect(() => {
-    if (!mapInst.current?.getLayer('ecoles-points') || !schoolsData) return;
-    const zoneCodeKey = urlLevel === 'district' ? 'district_code' : urlLevel === 'region' ? 'region_code' : urlLevel === 'departement' ? 'departement_code' : 'commune_code';
-    const filtered = schoolsData.features.filter(f => {
-      const p = f.properties;
-      if (showPointsFromDashboard.current && urlCode && p[zoneCodeKey] !== urlCode) return false;
-      if (filters.collect_status.length && !filters.collect_status.includes(p.collect_status)) return false;
-      if (filters.milieu.length && !filters.milieu.includes(p.milieu_implantation)) return false;
-      if (filters.niveau.length && !filters.niveau.includes(p.niveau_enseignement)) return false;
-      if (filters.statut.length && !filters.statut.includes(p.statut)) return false;
-      if (filters.manque_bancs && (!p.besoin_bancs || p.besoin_bancs <= 0)) return false;
-      if (filters.sans_toilettes && p.toilettes_filles_fonctionnelles) return false;
-      if (filters.sans_eau && p.eau_potable) return false;
-      if (filters.sans_electricite && p.electricite) return false;
-      if (filters.manque_enseignants && (p.enseignants_presents > 0)) return false;
-      if (filters.materiaux_precaires && (!p.materiaux_precaires || (Array.isArray(p.materiaux_precaires) ? p.materiaux_precaires.length === 0 : !p.materiaux_precaires))) return false;
-      if (filters.taux_filles_min != null) {
-        const total = (p.nombre_filles || 0) + (p.nombre_garcons || 0);
-        const pct = total > 0 ? (p.nombre_filles / total) * 100 : 0;
-        if (pct < filters.taux_filles_min) return false;
-      }
-      if (filters.taux_filles_max != null) {
-        const total = (p.nombre_filles || 0) + (p.nombre_garcons || 0);
-        const pct = total > 0 ? (p.nombre_filles / total) * 100 : 0;
-        if (pct > filters.taux_filles_max) return false;
-      }
-      return true;
-    });
-    mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filtered });
-    if (showPointsFromDashboard.current && currentLevelRef.current !== 'sous-prefecture') {
-      mapInst.current.setLayoutProperty('ecoles-points', 'visibility', 'visible');
-    }
-  }, [filters, schoolsData, urlLevel, urlCode]);
+  useEffect(() => { updateSchoolMarkers(); }, [updateSchoolMarkers]);
 
   useEffect(() => {
     const map = mapInst.current;
