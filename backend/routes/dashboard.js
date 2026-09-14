@@ -207,6 +207,9 @@ router.get('/stats/:level/:code?', async (req, res, next) => {
 
     res.json({
       total_ecoles: data.length,
+      total_eleves: data.reduce((s, e) => s + (e.nombre_filles || 0) + (e.nombre_garcons || 0), 0),
+      total_filles: data.reduce((s, e) => s + (e.nombre_filles || 0), 0),
+      total_garcons: data.reduce((s, e) => s + (e.nombre_garcons || 0), 0),
       by_status: byStatus,
       monthly: monthlyData,
       infrastructure: infraStats,

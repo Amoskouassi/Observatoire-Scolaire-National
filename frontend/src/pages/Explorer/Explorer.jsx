@@ -1383,6 +1383,7 @@ function ZoneDetail({ zone, level }) {
   const totalStudents = zone.students || detail?.total_eleves || 0;
   const girls = zone.girls || detail?.total_filles || 0;
   const boys = zone.boys || detail?.total_garcons || 0;
+  const schoolCount = zone.schools || detail?.total_ecoles || 0;
 
   if (loading) {
     return <div className="flex items-center justify-center py-8"><div className="w-6 h-6 rounded-full border-2 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>;
@@ -1400,7 +1401,7 @@ function ZoneDetail({ zone, level }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Écoles</p>
-            <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{(zone.schools || 0).toLocaleString('fr-FR')}</p>
+            <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{schoolCount.toLocaleString('fr-FR')}</p>
           </div>
           <div>
             <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Élèves</p>
