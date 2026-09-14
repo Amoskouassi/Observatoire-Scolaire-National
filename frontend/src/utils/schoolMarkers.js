@@ -1,5 +1,3 @@
-let markerId = 0;
-
 function getColor(school) {
   const statut = (school.statut || '').toLowerCase();
   const niv = (school.niveau_enseignement || '').toLowerCase();
@@ -25,14 +23,26 @@ export function createSchoolMarker(school) {
   const color = getColor(school);
 
   const el = document.createElement('div');
-  el.style.cssText = 'width:28px;height:38px;cursor:pointer;transition:transform .15s ease;transform-origin:bottom center;';
-  el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" viewBox="0 0 28 38">
-    <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 24 14 24s14-13.5 14-24C28 6.27 21.73 0 14 0z" fill="${color}"/>
-    <circle cx="14" cy="13" r="8" fill="white"/>
-  </svg>`;
+  el.style.cssText = 'width:24px;height:34px;cursor:pointer;position:relative;';
+
+  el.innerHTML = `<div style="
+    width:24px;height:34px;
+    background:${color};
+    border-radius:50% 50% 50% 0;
+    transform:rotate(-45deg);
+    box-shadow:0 2px 6px rgba(0,0,0,0.3);
+    position:relative;
+  "><div style="
+    width:12px;height:12px;
+    background:white;
+    border-radius:50%;
+    position:absolute;
+    top:6px;left:6px;
+  "></div></div>`;
+
   el.title = school.nom_etablissement || '';
 
-  el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.2) translateY(-3px)'; });
+  el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.15) translateY(-2px)'; el.style.transition = 'transform .15s ease'; });
   el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
 
   return el;
