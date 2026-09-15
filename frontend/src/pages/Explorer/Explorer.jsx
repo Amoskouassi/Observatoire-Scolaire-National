@@ -607,9 +607,6 @@ export default function Explorer() {
       hideAll(labels.depts);
       hideAll(labels.sp);
 
-      const clustersVisible = map.getLayer('clusters-layer') && map.getLayoutProperty('clusters-layer', 'visibility') === 'visible';
-      if (clustersVisible) return;
-
       const level = currentLevelRef.current;
 
       if (level === 'district') {
@@ -1093,6 +1090,15 @@ export default function Explorer() {
       }
     }
   }, [schoolsData, enrichWithStatus]);
+
+  useEffect(() => {
+    if (zones.length > 0 || currentLevel !== 'district') return;
+    const data = geoDataRef.current;
+    if (data.districts?.features?.length) {
+      setZones(data.districts.features.map(f => f.properties));
+      syncViewRef.current?.();
+    }
+  }, [zones, currentLevel]);
 
   const zc = zoneCounts;
   const levelTable = { district: 'districts', region: 'regions', departement: 'departements', 'sous-prefecture': 'communes' };
