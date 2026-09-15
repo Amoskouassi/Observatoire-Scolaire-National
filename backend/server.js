@@ -40,6 +40,10 @@ if (!process.env.JWT_SECRET) {
   console.error('FATAL: JWT_SECRET is not set. Exiting.');
   process.exit(1);
 }
+if (process.env.JWT_SECRET.length < 32) {
+  console.error('FATAL: JWT_SECRET must be at least 32 characters. Exiting.');
+  process.exit(1);
+}
 
 // Supabase — always use service_role to bypass RLS
 export const supabase = createClient(
@@ -89,7 +93,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/ecoles', ecoleRoutes);
 app.use('/api/admin-zones', authMiddleware, adminZoneRoutes);
 app.use('/api/collecte', authMiddleware, collecteRoutes);
-app.use('/api/dashboard', authMiddleware, dashboardRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/plaidoyer', authMiddleware, plaidoyerRoutes);
 app.use('/api/upload', authMiddleware, uploadRoutes);
 

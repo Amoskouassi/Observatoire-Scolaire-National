@@ -3,6 +3,11 @@ const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const FROM = process.env.SMTP_FROM || 'Observatoire Scolaire <amoskouassi41@gmail.com>';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://observatoire-scolaire-national-fron.vercel.app';
 
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 export async function sendMail({ to, subject, html, text }) {
   try {
     const response = await fetch(BREVO_API_URL, {
@@ -42,7 +47,7 @@ export function verificationCodeEmail(prenom, code) {
           <h1 style="margin:0;font-size:18px">🇨🇮 Observatoire Scolaire National</h1>
         </div>
         <div style="background:#FAF8F3;padding:24px;border-radius:0 0 12px 12px;border:1px solid #CBD5E1">
-          <h2 style="color:#0D1B2A;margin-top:0">Bonjour ${prenom},</h2>
+          <h2 style="color:#0D1B2A;margin-top:0">Bonjour ${esc(prenom)},</h2>
           <p style="color:#475569;font-size:14px;line-height:1.6">
             Voici votre code de confirmation :
           </p>
@@ -70,7 +75,7 @@ export function welcomeEmail(nom, prenom) {
           <h1 style="margin:0;font-size:18px">🇨🇮 Observatoire Scolaire National</h1>
         </div>
         <div style="background:#FAF8F3;padding:24px;border-radius:0 0 12px 12px;border:1px solid #CBD5E1">
-          <h2 style="color:#0D1B2A;margin-top:0">Bonjour ${prenom} ${nom},</h2>
+          <h2 style="color:#0D1B2A;margin-top:0">Bonjour ${esc(prenom)} ${esc(nom)},</h2>
           <p style="color:#475569;font-size:14px;line-height:1.6">
             Votre compte a été créé avec succès.
           </p>
@@ -95,7 +100,7 @@ export function collecteReceivedEmail(nomEcole, enqueteurNom, { latitude, longit
   const qs = params.toString();
   const mapUrl = `${FRONTEND_URL}/explorer${qs ? `?${qs}` : ''}`;
   return {
-    subject: `Nouvelle collecte : ${nomEcole}`,
+    subject: `Nouvelle collecte : ${esc(nomEcole)}`,
     html: `
       <div style="font-family:Inter,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px">
         <div style="background:#00796B;color:white;padding:16px 24px;border-radius:12px 12px 0 0">
@@ -103,7 +108,7 @@ export function collecteReceivedEmail(nomEcole, enqueteurNom, { latitude, longit
         </div>
         <div style="background:#FAF8F3;padding:24px;border-radius:0 0 12px 12px;border:1px solid #CBD5E1">
           <p style="color:#475569;font-size:14px;line-height:1.6">
-            <strong>${enqueteurNom}</strong> a soumis une collecte pour <strong>${nomEcole}</strong>.
+            <strong>${esc(enqueteurNom)}</strong> a soumis une collecte pour <strong>${esc(nomEcole)}</strong>.
           </p>
           <a href="${mapUrl}"
              style="display:inline-block;background:#00796B;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;margin-top:16px">
@@ -124,7 +129,7 @@ export function loginOtpEmail(prenom, code) {
           <h1 style="margin:0;font-size:18px">🇨🇮 Observatoire Scolaire National</h1>
         </div>
         <div style="background:#FAF8F3;padding:24px;border-radius:0 0 12px 12px;border:1px solid #CBD5E1">
-          <h2 style="color:#0D1B2A;margin-top:0">Bonjour ${prenom},</h2>
+          <h2 style="color:#0D1B2A;margin-top:0">Bonjour ${esc(prenom)},</h2>
           <p style="color:#475569;font-size:14px;line-height:1.6">
             Voici votre code de connexion :
           </p>
@@ -146,7 +151,7 @@ export function loginOtpEmail(prenom, code) {
 export function collecteValidationEmail(nomEcole, statut) {
   const isAccepted = statut === 'validated';
   return {
-    subject: `Collecte ${isAccepted ? 'validée' : 'rejetée'} : ${nomEcole}`,
+    subject: `Collecte ${isAccepted ? 'validée' : 'rejetée'} : ${esc(nomEcole)}`,
     html: `
       <div style="font-family:Inter,system-ui,sans-serif;max-width:480px;margin:0 auto;padding:32px">
         <div style="background:${isAccepted ? '#00796B' : '#ba1a1a'};color:white;padding:16px 24px;border-radius:12px 12px 0 0">
@@ -154,7 +159,7 @@ export function collecteValidationEmail(nomEcole, statut) {
         </div>
         <div style="background:#FAF8F3;padding:24px;border-radius:0 0 12px 12px;border:1px solid #CBD5E1">
           <p style="color:#475569;font-size:14px;line-height:1.6">
-            La collecte pour <strong>${nomEcole}</strong> a été ${isAccepted ? 'validée' : 'rejetée'} par un administrateur.
+            La collecte pour <strong>${esc(nomEcole)}</strong> a été ${isAccepted ? 'validée' : 'rejetée'} par un administrateur.
           </p>
           <a href="${FRONTEND_URL}/explorer"
              style="display:inline-block;background:#E8611A;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;margin-top:16px">

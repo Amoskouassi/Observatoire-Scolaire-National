@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useMapStore } from '../../stores/mapStore';
+import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
 
 const TABS = [
@@ -329,8 +330,10 @@ export default function Collecte() {
       if (f.photo && ecoleId) {
         const fd = new FormData();
         fd.append('photo', f.photo);
+        const token = useAuthStore.getState().token;
         await fetch(`${api.baseUrl}/ecoles/${ecoleId}/photo`, {
           method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: fd,
         });
       }

@@ -1714,8 +1714,10 @@ function SchoolFiche({ school, onBack, geoData }) {
     try {
       const fd = new FormData();
       fd.append('photo', file);
+      const token = useAuthStore.getState().token;
       const res = await fetch(`${api.baseUrl}/ecoles/${school.id}/photo`, {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd,
       }).then(r => r.json());
       if (res.error) throw new Error(res.details || res.error);

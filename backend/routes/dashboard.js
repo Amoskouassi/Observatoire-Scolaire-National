@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../server.js';
 import { requireRole } from '../middleware/auth.js';
+import { authMiddleware } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validate.js';
 
 const supabaseAdmin = createClient(
@@ -14,7 +15,7 @@ const supabaseAdmin = createClient(
 const router = Router();
 
 // Dashboard personalisé pour l'utilisateur connecté
-router.get('/my-zone', async (req, res, next) => {
+router.get('/my-zone', authMiddleware, async (req, res, next) => {
   try {
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')

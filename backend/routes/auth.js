@@ -50,7 +50,11 @@ function verificationCodeEmail(prenom, code) {
 
 const registerSchema = z.object({
   email: z.string().email('Email invalide'),
-  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+  password: z.string()
+    .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
+    .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
+    .regex(/[a-z]/, 'Le mot de passe doit contenir au moins une minuscule')
+    .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre'),
   nom: z.string().min(2, 'Nom trop court'),
   prenom: z.string().min(2, 'Prénom trop court'),
   role: z.enum(['enqueteur', 'mairie', 'president_region']),
@@ -117,6 +121,7 @@ router.post('/register', validateRequest(registerSchema), async (req, res, next)
         district_code: district_code || null,
         departement_code: departement_code || null,
         ...(loginCode && { login_code: loginCode }),
+        ...(loginCode && { login_code_created_at: new Date().toISOString() }),
       });
 
     if (profileError) {
@@ -408,12 +413,20 @@ router.post('/code-login', validateRequest(codeLoginSchema), async (req, res, ne
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, nom, prenom, role, login_code')
+      .select('id, email, nom, prenom, role, login_code, login_code_created_at')
       .eq('login_code', login_code.toUpperCase().trim())
       .single();
 
     if (profileError || !profile) {
       return res.status(401).json({ error: 'Code invalide' });
+    }
+
+    if (profile.login_code_created_at) {
+      const created = new Date(profile.login_code_created_at);
+      const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+      if (Date.now() - created.getTime() > ninetyDays) {
+        return res.status(401).json({ error: 'Code expiré. Demandez un nouveau code à un administrateur.' });
+      }
     }
 
     if (!profile.email) {
