@@ -1039,10 +1039,18 @@ export default function Explorer() {
     ? zc?.national
     : (parentCode && zc ? zc[parentCountKey]?.[parentCode] : null);
 
-  const totalSchools = scope?.schools || 0;
-  const totalStudents = scope?.students || 0;
-  const totalGirls = scope?.girls || 0;
-  const totalBoys = scope?.boys || 0;
+  const fallbackScope = !scope ? {
+    schools: zones.reduce((s, z) => s + (zoneSchoolStats[z.code]?.schools || 0), 0) + (selected ? (zc?.communes?.[selected.code]?.schools || zoneSchoolStats[selected.code]?.schools || 0) : 0),
+    students: zones.reduce((s, z) => s + (zoneSchoolStats[z.code]?.students || 0), 0) + (selected ? (zc?.communes?.[selected.code]?.students || zoneSchoolStats[selected.code]?.students || 0) : 0),
+    girls: zones.reduce((s, z) => s + (zoneSchoolStats[z.code]?.girls || 0), 0) + (selected ? (zc?.communes?.[selected.code]?.girls || zoneSchoolStats[selected.code]?.girls || 0) : 0),
+    boys: zones.reduce((s, z) => s + (zoneSchoolStats[z.code]?.boys || 0), 0) + (selected ? (zc?.communes?.[selected.code]?.boys || zoneSchoolStats[selected.code]?.boys || 0) : 0),
+  } : null;
+
+  const effectiveScope = scope || fallbackScope;
+  const totalSchools = effectiveScope?.schools || 0;
+  const totalStudents = effectiveScope?.students || 0;
+  const totalGirls = effectiveScope?.girls || 0;
+  const totalBoys = effectiveScope?.boys || 0;
 
   const zoneSchoolStats = {};
   for (const z of zones) {
@@ -1281,7 +1289,7 @@ export default function Explorer() {
 
         <div className="px-5 py-4 grid grid-cols-3 gap-3 border-b border-[#CBD5E1]/20">
           {(() => {
-            const sel = selected ? (zoneSchoolStats[selected.code] || { schools: 0, students: 0, girls: 0, boys: 0 }) : null;
+            const sel = selected ? (zoneSchoolStats[selected.code] || zc?.communes?.[selected.code] || { schools: 0, students: 0, girls: 0, boys: 0 }) : null;
             const s = sel || { schools: totalSchools, students: totalStudents, girls: totalGirls, boys: totalBoys };
             const pctFilles = (s.girls + s.boys) > 0 ? Math.round(s.girls / (s.girls + s.boys) * 100) : 0;
             return (<>
@@ -1293,7 +1301,7 @@ export default function Explorer() {
         </div>
 
         {(() => {
-          const sel = selected ? (zoneSchoolStats[selected.code] || { girls: 0, boys: 0 }) : null;
+          const sel = selected ? (zoneSchoolStats[selected.code] || zc?.communes?.[selected.code] || { girls: 0, boys: 0 }) : null;
           const g = sel ? sel.girls : totalGirls;
           const b = sel ? sel.boys : totalBoys;
           if ((g + b) <= 0) return null;
