@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://observatoirebackend-production.up.railway.app/api';
 
 class ApiService {
   constructor() {
