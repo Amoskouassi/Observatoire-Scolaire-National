@@ -220,7 +220,7 @@ router.get('/stats/:level/:code?', async (req, res, next) => {
   }
 });
 
-router.get('/zone-counts', requireRole('admin', 'ministre', 'president_region'), async (req, res, next) => {
+router.get('/zone-counts', async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('ecoles')
