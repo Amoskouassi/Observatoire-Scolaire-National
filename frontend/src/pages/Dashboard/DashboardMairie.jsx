@@ -25,6 +25,13 @@ const ROLE_LABELS = {
 
 const ANNEES_SCOLAIRES = ['2025-2026', '2024-2025', '2023-2024'];
 
+const GEO_MAP = {
+  district: 'districts',
+  region: 'regions',
+  departement: 'depts',
+  commune: 'sous_prefectures',
+};
+
 function Jauge({ value, max, color = '#E8611A' }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
