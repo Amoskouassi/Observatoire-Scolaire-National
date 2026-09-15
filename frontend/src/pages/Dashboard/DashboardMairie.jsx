@@ -75,7 +75,7 @@ export default function DashboardMairie() {
   const [anneeScolaire, setAnneeScolaire] = useState('2025-2026');
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [categoryTab, setCategoryTab] = useState('statut');
-  const [bancsModal, setBancsModal] = useState(null);
+  const [rankingModal, setRankingModal] = useState(null);
 
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
@@ -549,13 +549,13 @@ export default function DashboardMairie() {
         {/* 6. Résumé rapide */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: 'Élèves', value: stats.total_eleves.toLocaleString('fr-FR'), icon: 'groups', color: '#E8611A' },
-            { label: 'Écoles', value: stats.total_ecoles, icon: 'school', color: '#00796B' },
-            { label: 'Enseignants', value: stats.total_enseignants, icon: 'person', color: '#475569' },
+            { label: 'Élèves', value: stats.total_eleves.toLocaleString('fr-FR'), icon: 'groups', color: '#E8611A', type: 'eleves' },
+            { label: 'Écoles', value: stats.total_ecoles, icon: 'school', color: '#00796B', type: 'ecoles' },
+            { label: 'Enseignants', value: stats.total_enseignants, icon: 'person', color: '#475569', type: 'enseignants' },
           ].map((k) => (
             <button
               key={k.label}
-              onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?show_points=1`)}
+              onClick={() => api.getSchoolRanking(zone.level, zone.code, k.type).then(d => setRankingModal(d)).catch(() => {})}
               className="bg-[#FAF8F3] rounded-xl p-3 text-center shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-colors hover:bg-[#E8611A]/5 cursor-pointer group"
             >
               <span className="material-symbols-outlined text-[20px]" style={{ color: k.color }}>{k.icon}</span>
@@ -571,7 +571,7 @@ export default function DashboardMairie() {
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-3">
           <button
-            onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?show_points=1`)}
+            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'eleves').then(d => setRankingModal(d)).catch(() => {})}
             className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
           >
             <div className="flex items-center justify-between mb-2">
@@ -605,7 +605,7 @@ export default function DashboardMairie() {
           </button>
 
           <button
-            onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?filter=sans_eau&show_points=1`)}
+            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'sans_eau').then(d => setRankingModal(d)).catch(() => {})}
             className={`p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer ${
               stats.infrastructure.sans_eau > 0 ? 'bg-[#ffdad6]/40' : 'bg-[#FAF8F3]'
             }`}
@@ -639,7 +639,7 @@ export default function DashboardMairie() {
           </button>
 
           <button
-            onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?show_points=1`)}
+            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'enseignants').then(d => setRankingModal(d)).catch(() => {})}
             className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
           >
             <div className="flex items-center justify-between mb-2">
@@ -763,13 +763,7 @@ export default function DashboardMairie() {
             {besoins.map((b) => (
               <button
                 key={b.label}
-                onClick={() => {
-                  if (b.filter === 'manque_bancs') {
-                    api.getBesoinsBancs(zone.level, zone.code).then(d => setBancsModal(d)).catch(() => {});
-                  } else {
-                    navigate(`/explorer/${zone.level}/${zone.code}?filter=${b.filter}&show_points=1`);
-                  }
-                }}
+                onClick={() => api.getSchoolRanking(zone.level, zone.code, b.filter).then(d => setRankingModal(d)).catch(() => {})}
                 className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-2 -m-2 transition-colors cursor-pointer group"
               >
                 <div className="flex items-center justify-between mb-1">
@@ -964,41 +958,46 @@ export default function DashboardMairie() {
         </div>
       </div>
 
-      {/* Modal Besoins en bancs */}
-      {bancsModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setBancsModal(null)}>
+      {/* Modal ranking écoles */}
+      {rankingModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setRankingModal(null)}>
           <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
-                <h3 className="text-sm font-bold text-[#0D1B2A]">Besoins en bancs</h3>
-                <p className="text-[11px] text-gray-400 mt-0.5">{bancsModal.total} écoles · {bancsModal.total_besoin} bancs manquants</p>
+                <h3 className="text-sm font-bold text-[#0D1B2A]">{rankingModal.title}</h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">{rankingModal.total} écoles</p>
               </div>
-              <button onClick={() => setBancsModal(null)} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
+              <button onClick={() => setRankingModal(null)} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px] text-gray-400">close</span>
               </button>
             </div>
             <div className="overflow-y-auto flex-1 px-5 py-3">
-              {bancsModal.schools.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-8">Aucune école avec des besoins en bancs</p>
+              {rankingModal.schools.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-8">Aucune école concernée</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {bancsModal.schools.map((e, i) => (
-                    <div key={e.id} className="flex items-center gap-3 bg-[#F4EFE6] rounded-xl p-3">
-                      <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0 ${i < 3 ? 'bg-[#E8611A] text-white' : 'bg-gray-200 text-gray-600'}`}>
-                        {i + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-bold text-[#0D1B2A] truncate">{e.nom}</p>
-                        <p className="text-[10px] text-gray-400">
-                          {e.niveau} · {e.milieu} · {e.eleves} élèves
-                        </p>
+                  {rankingModal.schools.map((e, i) => {
+                    const val = e[rankingModal.sortKey];
+                    return (
+                      <div key={e.id} className="flex items-center gap-3 bg-[#F4EFE6] rounded-xl p-3">
+                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0 ${i < 3 ? 'bg-[#E8611A] text-white' : 'bg-gray-200 text-gray-600'}`}>
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-bold text-[#0D1B2A] truncate">{e.nom}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {e.niveau} · {e.milieu} · {e.eleves} élèves
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-black text-[#7C3AED]">
+                            {typeof val === 'number' ? val.toLocaleString('fr-FR') : val}
+                          </p>
+                          <p className="text-[9px] text-gray-400">{rankingModal.title.toLowerCase()}</p>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-black text-[#7C3AED]">{e.besoin_bancs}</p>
-                        <p className="text-[9px] text-gray-400">bancs manquants</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

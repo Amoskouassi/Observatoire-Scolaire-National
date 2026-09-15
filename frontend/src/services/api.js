@@ -196,6 +196,10 @@ class ApiService {
     return this.request(`/dashboard/besoins-bancs/${level}/${code || ''}`);
   }
 
+  getSchoolRanking(level, code, type) {
+    return this.request(`/dashboard/school-ranking/${level}/${code || ''}?type=${type}`);
+  }
+
   saveSnapshot(data) {
     return this.request('/dashboard/snapshots', {
       method: 'POST',

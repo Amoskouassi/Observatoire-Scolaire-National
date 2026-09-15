@@ -256,7 +256,69 @@ router.get('/zone-counts', async (req, res, next) => {
   }
 });
 
-// Ranking des écoles par besoins en bancs
+// Ranking générique des écoles
+router.get('/school-ranking/:level/:code?', async (req, res, next) => {
+  try {
+    const { level, code } = req.params;
+    const type = req.query.type || 'eleves';
+    let query = supabaseAdmin
+      .from('ecoles')
+      .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, enseignants_presents, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes');
+
+    if (code) {
+      const columnMap = { district: 'district_code', region: 'region_code', departement: 'departement_code', commune: 'commune_code' };
+      if (columnMap[level]) query = query.eq(columnMap[level], code);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const schools = (data || []).map(e => {
+      const inv = e.inventaire_classes || [];
+      const besoin_bancs = inv.reduce((s, c) => s + (c.besoin_bancs || 0), 0);
+      const total_eleves = (e.nombre_filles || 0) + (e.nombre_garcons || 0);
+      return {
+        id: e.id,
+        code_mena: e.code_mena,
+        nom: e.nom_etablissement,
+        statut: e.statut,
+        niveau: e.niveau_enseignement,
+        milieu: e.milieu_implantation,
+        eleves: total_eleves,
+        filles: e.nombre_filles || 0,
+        garcons: e.nombre_garcons || 0,
+        enseignants: e.enseignants_presents || 0,
+        besoin_bancs,
+        sans_eau: !e.eau_potable,
+        sans_toilettes: !e.toilettes_filles_fonctionnelles,
+        sans_electricite: !e.electricite,
+        materiaux_precaires: e.materiaux_precaires?.length > 0,
+      };
+    });
+
+    let filtered = schools;
+    let sortKey = 'eleves';
+    let title = 'Élèves';
+    switch (type) {
+      case 'enseignants': sortKey = 'enseignants'; title = 'Enseignants'; filtered = schools.filter(e => e.enseignants > 0); break;
+      case 'ecoles': sortKey = 'eleves'; title = 'Écoles'; break;
+      case 'besoin_bancs': sortKey = 'besoin_bancs'; title = 'Besoins en bancs'; filtered = schools.filter(e => e.besoin_bancs > 0); break;
+      case 'sans_eau': sortKey = 'eleves'; title = 'Sans eau potable'; filtered = schools.filter(e => e.sans_eau); break;
+      case 'sans_toilettes': sortKey = 'eleves'; title = 'Sans toilettes'; filtered = schools.filter(e => e.sans_toilettes); break;
+      case 'sans_electricite': sortKey = 'eleves'; title = 'Sans électricité'; filtered = schools.filter(e => e.sans_electricite); break;
+      case 'materiaux': sortKey = 'eleves'; title = 'Matériaux précaires'; filtered = schools.filter(e => e.materiaux_precaires); break;
+      default: sortKey = 'eleves'; title = 'Élèves'; break;
+    }
+
+    filtered.sort((a, b) => b[sortKey] - a[sortKey]);
+
+    res.json({ schools: filtered, total: filtered.length, title, sortKey });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Ranking des écoles par besoins en bancs (legacy)
 router.get('/besoins-bancs/:level/:code?', async (req, res, next) => {
   try {
     const { level, code } = req.params;
