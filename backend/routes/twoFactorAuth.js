@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticator } from 'otplib';
+import { generateSecret, generateSync, verifySync, generateURI } from 'otplib';
 import QRCode from 'qrcode';
 import jwt from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
@@ -44,8 +44,8 @@ router.post('/setup', authMiddleware, async (req, res, next) => {
       return res.status(400).json({ error: 'La 2FA est déjà activée. Désactivez-la d\'abord.' });
     }
 
-    const secret = authenticator.generateSecret();
-    const otpauth = authenticator.keyuri(profile.email, 'Observatoire Scolaire National', secret);
+    const secret = generateSecret();
+    const otpauth = generateURI({ secret, issuerName: 'Observatoire Scolaire National', accountName: profile.email });
 
     const qrCodeDataUrl = await QRCode.toDataURL(otpauth);
 
@@ -87,7 +87,7 @@ router.post('/verify', authMiddleware, async (req, res, next) => {
       return res.status(400).json({ error: 'Aucun secret 2FA configuré. Lancez /setup d\'abord.' });
     }
 
-    const isValid = authenticator.verify({ token: code, secret: profile.two_factor_secret });
+    const isValid = verifySync({ token: code, secret: profile.two_factor_secret }).valid;
 
     if (!isValid) {
       return res.status(400).json({ error: 'Code invalide. Réessayez.' });
@@ -138,7 +138,7 @@ router.post('/validate', async (req, res, next) => {
       return res.status(400).json({ error: '2FA non configurée' });
     }
 
-    const isValid = authenticator.verify({ token: code, secret: profile.two_factor_secret });
+    const isValid = verifySync({ token: code, secret: profile.two_factor_secret }).valid;
 
     if (!isValid) {
       return res.status(401).json({ error: 'Code 2FA invalide' });
@@ -183,7 +183,6 @@ router.post('/disable', authMiddleware, async (req, res, next) => {
       return res.status(404).json({ error: 'Profil introuvable' });
     }
 
-    // Seul un admin peut désactiver la 2FA
     if (req.body.targetUserId && profile.role === 'admin') {
       const { error: updateError } = await supabaseAdmin
         .from('profiles')
@@ -194,7 +193,6 @@ router.post('/disable', authMiddleware, async (req, res, next) => {
       return res.json({ message: '2FA désactivée pour cet utilisateur' });
     }
 
-    // L'utilisateur peut se désactiver lui-même
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({ two_factor_enabled: false, two_factor_verified: false, two_factor_secret: null })
