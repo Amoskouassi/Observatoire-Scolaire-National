@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
+
 import { useMapStore } from '../../stores/mapStore';
 import { api } from '../../services/api';
 
@@ -150,7 +150,6 @@ function RadioGroup({ value, onChange, options }) {
 
 export default function Collecte() {
   const navigate = useNavigate();
-  const { token } = useAuthStore();
   const refreshSchools = useMapStore(s => s.refreshSchools);
   const [step, setStep] = useState(1);
   const [f, setF] = useState(initialState);
@@ -271,23 +270,6 @@ export default function Collecte() {
     setSubmitting(true);
     setError(null);
     try {
-      let photoUrl = null;
-      if (f.photo) {
-        const fd = new FormData();
-        fd.append('photo', f.photo);
-        const uploadRes = await fetch(`${api.baseUrl}/upload`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        }).then(r => r.json());
-        if (uploadRes.error) {
-          console.error('Upload error:', uploadRes.error, uploadRes.details);
-          setError('Photo non envoyée: ' + (uploadRes.details || uploadRes.error) + '. Données enregistrées sans photo.');
-        } else {
-          photoUrl = uploadRes.url || uploadRes.path;
-        }
-      }
-
       const s = (v) => v || null;
 
       const res = await api.submitCollecte({
@@ -336,11 +318,23 @@ export default function Collecte() {
         source_cantine: s(f.source_cantine),
         latitude: f.latitude,
         longitude: f.longitude,
-        photos: photoUrl ? [{ url: photoUrl, type: 'facade' }] : [],
+        photos: [],
         commentaires: s(f.commentaires),
         date_collecte: new Date().toISOString(),
       });
-      setSubmittedEcoleId(res?.ecole_id || null);
+
+      const ecoleId = res?.ecole_id;
+      setSubmittedEcoleId(ecoleId || null);
+
+      if (f.photo && ecoleId) {
+        const fd = new FormData();
+        fd.append('photo', f.photo);
+        await fetch(`${api.baseUrl}/ecoles/${ecoleId}/photo`, {
+          method: 'POST',
+          body: fd,
+        });
+      }
+
       await refreshSchools();
       setSubmitted(true);
     } catch (e) {
