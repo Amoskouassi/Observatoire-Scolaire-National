@@ -163,7 +163,7 @@ function createLabelEl(name) {
   const el = document.createElement('div');
   el.textContent = name;
   el.style.cssText = `
-    background: rgba(255,255,255,0.92);
+    background: white;
     color: #0D1B2A;
     padding: 3px 10px;
     border-radius: 8px;
@@ -176,7 +176,6 @@ function createLabelEl(name) {
     box-shadow: 0 1px 4px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
     line-height: 1.4;
     text-align: center;
-    backdrop-filter: blur(4px);
   `;
   return el;
 }
@@ -667,7 +666,7 @@ export default function Explorer() {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
           const el = createLabelEl(f.properties.name);
-          const marker = new maplibregl.Marker({ element: el }).setLngLat(centroid).addTo(map);
+          const marker = new maplibregl.Marker({ element: el, offset: [0, 28] }).setLngLat(centroid).addTo(map);
           el.style.display = '';
           labelsRef.current.districts.push({ marker, parentKey: null });
         }
@@ -697,7 +696,7 @@ export default function Explorer() {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
           const el = createLabelEl(f.properties.name);
-          const marker = new maplibregl.Marker({ element: el }).setLngLat(centroid).addTo(map);
+          const marker = new maplibregl.Marker({ element: el, offset: [0, 28] }).setLngLat(centroid).addTo(map);
           el.style.display = 'none';
           labelsRef.current.regions.push({ marker, parentKey: f.properties.district });
         }
@@ -727,7 +726,7 @@ export default function Explorer() {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
           const el = createLabelEl(f.properties.name);
-          const marker = new maplibregl.Marker({ element: el }).setLngLat(centroid).addTo(map);
+          const marker = new maplibregl.Marker({ element: el, offset: [0, 28] }).setLngLat(centroid).addTo(map);
           el.style.display = 'none';
           labelsRef.current.depts.push({ marker, parentKey: f.properties.region });
         }
@@ -757,7 +756,7 @@ export default function Explorer() {
           const centroid = getCentroid(f.geometry);
           if (!centroid) continue;
           const el = createLabelEl(f.properties.name);
-          const marker = new maplibregl.Marker({ element: el }).setLngLat(centroid).addTo(map);
+          const marker = new maplibregl.Marker({ element: el, offset: [0, 28] }).setLngLat(centroid).addTo(map);
           el.style.display = 'none';
           labelsRef.current.sp.push({ marker, parentKey: f.properties.departement });
         }
