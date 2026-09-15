@@ -339,7 +339,7 @@ export default function DashboardMairie() {
     { label: 'Sans toilettes', value: stats.infrastructure.sans_toilettes, color: '#E8611A', filter: 'sans_toilettes', icon: 'wc' },
     { label: 'Sans électricité', value: stats.infrastructure.sans_electricite, color: '#d97706', filter: 'sans_electricite', icon: 'bolt' },
     { label: 'Matériaux précaires', value: stats.infrastructure.materiaux_precaires, color: '#4B5563', filter: 'materiaux_precaires', icon: 'construction' },
-    { label: 'Manque bancs', value: stats.infrastructure.besoin_bancs, color: '#7C3AED', filter: 'manque_bancs', icon: 'table_chart' },
+    { label: 'Manque de bancs', value: stats.infrastructure.besoin_bancs, color: '#7C3AED', filter: 'manque_bancs', icon: 'table_chart', subtitle: `${stats.infrastructure.besoin_bancs_total || 0} bancs manquants` },
   ];
 
   const isAdmin = user?.role === 'admin' || user?.role === 'ministre';
@@ -555,7 +555,7 @@ export default function DashboardMairie() {
           ].map((k) => (
             <button
               key={k.label}
-              onClick={() => api.getSchoolRanking(zone.level, zone.code, k.type).then(d => setRankingModal(d)).catch(() => {})}
+              onClick={() => api.getSchoolRanking(zone.level, zone.code, k.type).then(d => setRankingModal({ ...d, filterType: k.type })).catch(() => {})}
               className="bg-[#FAF8F3] rounded-xl p-3 text-center shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-colors hover:bg-[#E8611A]/5 cursor-pointer group"
             >
               <span className="material-symbols-outlined text-[20px]" style={{ color: k.color }}>{k.icon}</span>
@@ -571,7 +571,7 @@ export default function DashboardMairie() {
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-3">
           <button
-            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'eleves').then(d => setRankingModal(d)).catch(() => {})}
+            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'eleves').then(d => setRankingModal({ ...d, filterType: 'eleves' })).catch(() => {})}
             className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
           >
             <div className="flex items-center justify-between mb-2">
@@ -605,7 +605,7 @@ export default function DashboardMairie() {
           </button>
 
           <button
-            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'sans_eau').then(d => setRankingModal(d)).catch(() => {})}
+            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'sans_eau').then(d => setRankingModal({ ...d, filterType: 'sans_eau' })).catch(() => {})}
             className={`p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer ${
               stats.infrastructure.sans_eau > 0 ? 'bg-[#ffdad6]/40' : 'bg-[#FAF8F3]'
             }`}
@@ -639,7 +639,7 @@ export default function DashboardMairie() {
           </button>
 
           <button
-            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'enseignants').then(d => setRankingModal(d)).catch(() => {})}
+            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'enseignants').then(d => setRankingModal({ ...d, filterType: 'enseignants' })).catch(() => {})}
             className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
           >
             <div className="flex items-center justify-between mb-2">
@@ -763,7 +763,7 @@ export default function DashboardMairie() {
             {besoins.map((b) => (
               <button
                 key={b.label}
-                onClick={() => api.getSchoolRanking(zone.level, zone.code, b.filter).then(d => setRankingModal(d)).catch(() => {})}
+                onClick={() => api.getSchoolRanking(zone.level, zone.code, b.filter).then(d => setRankingModal({ ...d, filterType: b.filter })).catch(() => {})}
                 className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-2 -m-2 transition-colors cursor-pointer group"
               >
                 <div className="flex items-center justify-between mb-1">
@@ -771,7 +771,12 @@ export default function DashboardMairie() {
                     <span className="material-symbols-outlined text-[14px] text-gray-400 group-hover:text-[#E8611A] transition-colors">
                       {b.icon}
                     </span>
-                    <span className="text-xs font-semibold text-gray-700">{b.label}</span>
+                    <div>
+                      <span className="text-xs font-semibold text-gray-700">{b.label}</span>
+                      {b.subtitle && (
+                        <p className="text-[10px] text-gray-400">{b.subtitle}</p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-xs" style={{ color: b.color }}>{b.value}</span>
@@ -1001,6 +1006,24 @@ export default function DashboardMairie() {
                 </div>
               )}
             </div>
+            {rankingModal.schools.length > 0 && (
+              <div className="px-5 py-3 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    const f = rankingModal.filterType;
+                    const params = new URLSearchParams({ show_points: '1' });
+                    if (['sans_eau', 'sans_toilettes', 'sans_electricite', 'materiaux_precaires', 'manque_bancs'].includes(f)) {
+                      params.set('filter', f);
+                    }
+                    navigate(`/explorer/${zone.level}/${zone.code}?${params.toString()}`);
+                    setRankingModal(null);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#E8611A] text-white text-xs font-bold shadow-[0_4px_24px_rgba(232,97,26,0.3)] hover:bg-[#d4550f] active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">map</span> Voir sur la carte
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -99,7 +99,11 @@ router.get('/my-zone', async (req, res, next) => {
         sans_eau: data.filter(e => !e.eau_potable).length,
         sans_electricite: data.filter(e => !e.electricite).length,
         materiaux_precaires: data.filter(e => e.materiaux_precaires?.length > 0).length,
-        besoin_bancs: data.reduce((s, e) => {
+        besoin_bancs: data.filter(e => {
+          const inv = e.inventaire_classes || [];
+          return inv.some(c => (c.besoin_bancs || 0) > 0);
+        }).length,
+        besoin_bancs_total: data.reduce((s, e) => {
           const inv = e.inventaire_classes || [];
           return s + inv.reduce((sum, c) => sum + (c.besoin_bancs || 0), 0);
         }, 0),
@@ -188,7 +192,11 @@ router.get('/stats/:level/:code?', async (req, res, next) => {
       sans_eau: data.filter((e) => !e.eau_potable).length,
       sans_electricite: data.filter((e) => !e.electricite).length,
       materiaux_precaires: data.filter((e) => e.materiaux_precaires?.length > 0).length,
-      besoin_bancs: data.reduce((sum, e) => {
+      besoin_bancs: data.filter((e) => {
+        const inv = e.inventaire_classes || [];
+        return inv.some(c => (c.besoin_bancs || 0) > 0);
+      }).length,
+      besoin_bancs_total: data.reduce((sum, e) => {
         const inv = e.inventaire_classes || [];
         return sum + inv.reduce((s, c) => s + (c.besoin_bancs || 0), 0);
       }, 0),
