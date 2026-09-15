@@ -273,10 +273,26 @@ router.post('/login', validateRequest(loginSchema), async (req, res, next) => {
 
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('role, nom, prenom, organisation, commune_code, region_code, district_code, departement_code')
+      .select('role, nom, prenom, organisation, commune_code, region_code, district_code, departement_code, two_factor_enabled, two_factor_verified')
       .eq('id', data.user.id)
       .single();
 
+    // Si 2FA activée et vérifiée, renvoyer un token partiel
+    if (profile?.two_factor_enabled && profile?.two_factor_verified) {
+      const partialToken = jwt.sign(
+        { userId: data.user.id, requires2fa: true },
+        config.jwt.secret,
+        { expiresIn: '5m' }
+      );
+
+      return res.json({
+        requires_2fa: true,
+        partial_token: partialToken,
+        email_masked: email.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
+      });
+    }
+
+    // Sinon, token complet
     const token = jwt.sign(
       { userId: data.user.id, role: profile?.role || 'enqueteur' },
       config.jwt.secret,
@@ -296,6 +312,7 @@ router.post('/login', validateRequest(loginSchema), async (req, res, next) => {
         region_code: profile?.region_code,
         district_code: profile?.district_code,
         departement_code: profile?.departement_code,
+        two_factor_enabled: profile?.two_factor_enabled || false,
       },
     });
   } catch (err) {
@@ -468,7 +485,7 @@ router.post('/verify-login-code', validateRequest(verifyLoginCodeSchema), async 
 
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, nom, prenom, role, organisation, commune_code, region_code, district_code, departement_code')
+      .select('id, email, nom, prenom, role, organisation, commune_code, region_code, district_code, departement_code, two_factor_enabled, two_factor_verified')
       .eq('login_code', login_code.toUpperCase().trim())
       .single();
 
@@ -501,6 +518,21 @@ router.post('/verify-login-code', validateRequest(verifyLoginCodeSchema), async 
       .update({ used: true })
       .eq('id', record.id);
 
+    // Si 2FA activée, renvoyer un token partiel
+    if (profile.two_factor_enabled && profile.two_factor_verified) {
+      const partialToken = jwt.sign(
+        { userId: profile.id, requires2fa: true },
+        config.jwt.secret,
+        { expiresIn: '5m' }
+      );
+
+      return res.json({
+        requires_2fa: true,
+        partial_token: partialToken,
+        email_masked: profile.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
+      });
+    }
+
     const token = jwt.sign(
       { userId: profile.id, role: profile.role },
       config.jwt.secret,
@@ -520,6 +552,7 @@ router.post('/verify-login-code', validateRequest(verifyLoginCodeSchema), async 
         region_code: profile.region_code,
         district_code: profile.district_code,
         departement_code: profile.departement_code,
+        two_factor_enabled: profile.two_factor_enabled || false,
       },
     });
   } catch (err) {

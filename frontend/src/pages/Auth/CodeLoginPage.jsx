@@ -34,6 +34,10 @@ export default function CodeLoginPage() {
     setLoading(true);
     try {
       const result = await api.verifyLoginCode(loginCode, otp);
+      if (result.requires_2fa) {
+        navigate('/verify-2fa', { state: { partial_token: result.partial_token, email_masked: result.email_masked } });
+        return;
+      }
       login(result.user, result.token);
       navigate('/explorer');
     } catch (err) {

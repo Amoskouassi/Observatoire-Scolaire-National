@@ -15,6 +15,7 @@ import collecteRoutes from './routes/collecte.js';
 import dashboardRoutes from './routes/dashboard.js';
 import plaidoyerRoutes from './routes/plaidoyer.js';
 import uploadRoutes from './routes/upload.js';
+import twoFactorAuthRoutes from './routes/twoFactorAuth.js';
 import { authMiddleware } from './middleware/auth.js';
 import { validateRequest } from './middleware/validate.js';
 
@@ -96,6 +97,7 @@ app.use('/api/collecte', authMiddleware, collecteRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/plaidoyer', authMiddleware, plaidoyerRoutes);
 app.use('/api/upload', authMiddleware, uploadRoutes);
+app.use('/api/2fa', twoFactorAuthRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
