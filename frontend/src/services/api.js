@@ -192,6 +192,10 @@ class ApiService {
     return this.request(`/dashboard/alerts?${params.toString()}`);
   }
 
+  getBesoinsBancs(level, code) {
+    return this.request(`/dashboard/besoins-bancs/${level}/${code || ''}`);
+  }
+
   saveSnapshot(data) {
     return this.request('/dashboard/snapshots', {
       method: 'POST',

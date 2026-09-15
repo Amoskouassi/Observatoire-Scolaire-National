@@ -256,6 +256,52 @@ router.get('/zone-counts', async (req, res, next) => {
   }
 });
 
+// Ranking des écoles par besoins en bancs
+router.get('/besoins-bancs/:level/:code?', async (req, res, next) => {
+  try {
+    const { level, code } = req.params;
+    let query = supabaseAdmin
+      .from('ecoles')
+      .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, inventaire_classes');
+
+    if (code) {
+      const columnMap = { district: 'district_code', region: 'region_code', departement: 'departement_code', commune: 'commune_code' };
+      if (columnMap[level]) query = query.eq(columnMap[level], code);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const schools = (data || [])
+      .map(e => {
+        const inv = e.inventaire_classes || [];
+        const besoin_bancs = inv.reduce((s, c) => s + (c.besoin_bancs || 0), 0);
+        const total_bancs = inv.reduce((s, c) => s + (c.nb_bancs || 0), 0);
+        const total_eleves = (e.nombre_filles || 0) + (e.nombre_garcons || 0);
+        return {
+          id: e.id,
+          code_mena: e.code_mena,
+          nom: e.nom_etablissement,
+          statut: e.statut,
+          niveau: e.niveau_enseignement,
+          milieu: e.milieu_implantation,
+          eleves: total_eleves,
+          filles: e.nombre_filles || 0,
+          garcons: e.nombre_garcons || 0,
+          besoin_bancs,
+          total_bancs,
+          classes: inv.length,
+        };
+      })
+      .filter(e => e.besoin_bancs > 0)
+      .sort((a, b) => b.besoin_bancs - a.besoin_bancs);
+
+    res.json({ schools, total: schools.length, total_besoin: schools.reduce((s, e) => s + e.besoin_bancs, 0) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Stats nationales pour comparaison
 router.get('/national-stats', requireRole('admin', 'ministre'), async (req, res, next) => {
   try {

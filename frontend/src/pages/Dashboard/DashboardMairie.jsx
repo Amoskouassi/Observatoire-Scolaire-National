@@ -75,6 +75,7 @@ export default function DashboardMairie() {
   const [anneeScolaire, setAnneeScolaire] = useState('2025-2026');
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [categoryTab, setCategoryTab] = useState('statut');
+  const [bancsModal, setBancsModal] = useState(null);
 
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
@@ -762,7 +763,13 @@ export default function DashboardMairie() {
             {besoins.map((b) => (
               <button
                 key={b.label}
-                onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?filter=${b.filter}&show_points=1`)}
+                onClick={() => {
+                  if (b.filter === 'manque_bancs') {
+                    api.getBesoinsBancs(zone.level, zone.code).then(d => setBancsModal(d)).catch(() => {});
+                  } else {
+                    navigate(`/explorer/${zone.level}/${zone.code}?filter=${b.filter}&show_points=1`);
+                  }
+                }}
                 className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-2 -m-2 transition-colors cursor-pointer group"
               >
                 <div className="flex items-center justify-between mb-1">
@@ -956,6 +963,48 @@ export default function DashboardMairie() {
           </button>
         </div>
       </div>
+
+      {/* Modal Besoins en bancs */}
+      {bancsModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setBancsModal(null)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="text-sm font-bold text-[#0D1B2A]">Besoins en bancs</h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">{bancsModal.total} écoles · {bancsModal.total_besoin} bancs manquants</p>
+              </div>
+              <button onClick={() => setBancsModal(null)} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[18px] text-gray-400">close</span>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-5 py-3">
+              {bancsModal.schools.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-8">Aucune école avec des besoins en bancs</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {bancsModal.schools.map((e, i) => (
+                    <div key={e.id} className="flex items-center gap-3 bg-[#F4EFE6] rounded-xl p-3">
+                      <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0 ${i < 3 ? 'bg-[#E8611A] text-white' : 'bg-gray-200 text-gray-600'}`}>
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-bold text-[#0D1B2A] truncate">{e.nom}</p>
+                        <p className="text-[10px] text-gray-400">
+                          {e.niveau} · {e.milieu} · {e.eleves} élèves
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-black text-[#7C3AED]">{e.besoin_bancs}</p>
+                        <p className="text-[9px] text-gray-400">bancs manquants</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
