@@ -1583,7 +1583,6 @@ function ZoneDetail({ zone, level }) {
 }
 
 function SchoolFiche({ school, onBack, geoData }) {
-  const { token } = useAuthStore();
   const [schoolPhoto, setSchoolPhoto] = useState(school.photo_url || null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoFileRef = useRef(null);
@@ -1629,28 +1628,19 @@ function SchoolFiche({ school, onBack, geoData }) {
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (!file || !token) return;
+    if (!file || !school.id) return;
     setUploadingPhoto(true);
     try {
       const fd = new FormData();
       fd.append('photo', file);
-      const uploadRes = await fetch(`${api.baseUrl}/upload`, {
+      const res = await fetch(`${api.baseUrl}/ecoles/${school.id}/photo`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
         body: fd,
       }).then(r => r.json());
-      if (uploadRes.error) throw new Error(uploadRes.details || uploadRes.error);
-      const photoUrl = uploadRes.url;
-      if (photoUrl && school.id) {
-        const putRes = await fetch(`${api.baseUrl}/ecoles/${school.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ photo_url: photoUrl }),
-        });
-        if (putRes.ok) {
-          setSchoolPhoto(photoUrl);
-          school.photo_url = photoUrl;
-        }
+      if (res.error) throw new Error(res.details || res.error);
+      if (res.photo_url) {
+        setSchoolPhoto(res.photo_url);
+        school.photo_url = res.photo_url;
       }
     } catch (err) {
       console.error('Photo upload error:', err);

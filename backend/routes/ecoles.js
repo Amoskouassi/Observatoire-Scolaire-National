@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import multer from 'multer';
 import { supabase } from '../server.js';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validate.js';
@@ -140,6 +141,65 @@ router.delete('/:id', authMiddleware, requireRole('admin'), async (req, res, nex
 
     if (error) throw error;
     res.json({ message: 'École supprimée' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Type de fichier non autorisé'));
+    }
+  },
+});
+
+router.post('/:id/photo', photoUpload.single('photo'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucun fichier fourni' });
+    }
+
+    const { data: ecole, error: fetchErr } = await supabase
+      .from('ecoles')
+      .select('id')
+      .eq('id', req.params.id)
+      .single();
+
+    if (fetchErr || !ecole) {
+      return res.status(404).json({ error: 'École non trouvée' });
+    }
+
+    const ext = req.file.mimetype === 'image/png' ? 'png' : 'jpg';
+    const filename = `ecole-${req.params.id}-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('photos')
+      .upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+
+    if (uploadError) {
+      console.error('Photo upload error:', JSON.stringify(uploadError));
+      return res.status(500).json({ error: 'Erreur upload', details: uploadError.message });
+    }
+
+    const { data: urlData } = supabase.storage.from('photos').getPublicUrl(filename);
+    const photoUrl = urlData.publicUrl;
+
+    const { error: updateErr } = await supabase
+      .from('ecoles')
+      .update({ photo_url: photoUrl, updated_at: new Date().toISOString() })
+      .eq('id', req.params.id);
+
+    if (updateErr) {
+      console.error('Photo update error:', JSON.stringify(updateErr));
+      return res.status(500).json({ error: 'Erreur mise à jour' });
+    }
+
+    res.json({ photo_url: photoUrl });
   } catch (err) {
     next(err);
   }
