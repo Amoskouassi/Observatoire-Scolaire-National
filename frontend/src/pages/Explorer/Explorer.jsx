@@ -608,6 +608,9 @@ export default function Explorer() {
       hideAll(labels.depts);
       hideAll(labels.sp);
 
+      const clustersVisible = map.getLayer('clusters-layer') && map.getLayoutProperty('clusters-layer', 'visibility') === 'visible';
+      if (clustersVisible) return;
+
       const level = currentLevelRef.current;
 
       if (level === 'district') {
@@ -1160,6 +1163,7 @@ export default function Explorer() {
     map.getSource('clusters')?.setData({ type: 'FeatureCollection', features });
     const showClusters = !showPointsFromDashboard.current;
     map.setLayoutProperty('clusters-layer', 'visibility', showClusters ? 'visible' : 'none');
+    syncViewRef.current?.();
   }, [zones, zoneSchoolStats, currentLevel]);
 
   const levelLabel = { district: 'Districts', region: 'Régions', departement: 'Départements', 'sous-prefecture': 'Sous-préfectures' };
