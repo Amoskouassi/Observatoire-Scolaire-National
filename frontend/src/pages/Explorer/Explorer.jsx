@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -980,10 +980,10 @@ export default function Explorer() {
     };
   }, [schoolsData, urlLevel, urlCode]);
 
-  useEffect(() => {
-    if (!mapInst.current?.getLayer('ecoles-points') || !schoolsData) return;
+  const filteredSchools = useMemo(() => {
+    if (!schoolsData) return [];
     const zoneCodeKey = urlLevel === 'district' ? 'district_code' : urlLevel === 'region' ? 'region_code' : urlLevel === 'departement' ? 'departement_code' : 'commune_code';
-    const filtered = schoolsData.features.filter(f => {
+    return schoolsData.features.filter(f => {
       const p = f.properties;
       if (showPointsFromDashboard.current && urlCode && p[zoneCodeKey] !== urlCode) return false;
       if (filters.collect_status.length && !filters.collect_status.includes(p.collect_status)) return false;
@@ -1008,11 +1008,17 @@ export default function Explorer() {
       }
       return true;
     });
-    mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filtered });
+  }, [filters, schoolsData, urlLevel, urlCode]);
+
+  const hasActiveFilters = filters.collect_status.length > 0 || filters.milieu.length > 0 || filters.niveau.length > 0 || filters.statut.length > 0 || filters.sans_eau || filters.sans_toilettes || filters.sans_electricite || filters.manque_bancs || filters.manque_enseignants || filters.materiaux_precaires || filters.taux_filles_min != null || filters.taux_filles_max != null;
+
+  useEffect(() => {
+    if (!mapInst.current?.getLayer('ecoles-points') || !schoolsData) return;
+    mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filteredSchools });
     if (showPointsFromDashboard.current && currentLevelRef.current !== 'sous-prefecture') {
       mapInst.current.setLayoutProperty('ecoles-points', 'visibility', 'visible');
     }
-  }, [filters, schoolsData, urlLevel, urlCode]);
+  }, [filteredSchools, schoolsData]);
 
   useEffect(() => {
     const map = mapInst.current;
@@ -1308,12 +1314,25 @@ export default function Explorer() {
             )}
           </div>
           <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'region' ? 'régions' : currentLevel === 'departement' ? 'départements' : 'sous-préfectures'} dans {breadcrumb.dept || breadcrumb.region || breadcrumb.district || 'Côte d\'Ivoire'}</p>
+          {hasActiveFilters && (
+            <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full bg-[#E8611A]/10 text-[#E8611A] text-[10px] font-bold">
+              <span className="material-symbols-outlined text-[10px]">filter_alt</span>
+              {filteredSchools.length} / {totalSchools} écoles
+            </span>
+          )}
         </div>
 
         <div className="px-5 py-4 grid grid-cols-3 gap-3 border-b border-[#CBD5E1]/20">
           {(() => {
             const sel = selected ? (zoneSchoolStats[selected.code] || zc?.communes?.[selected.code] || { schools: 0, students: 0, girls: 0, boys: 0 }) : null;
-            const s = sel || { schools: totalSchools, students: totalStudents, girls: totalGirls, boys: totalBoys };
+            let s = sel || { schools: totalSchools, students: totalStudents, girls: totalGirls, boys: totalBoys };
+            if (hasActiveFilters && !sel) {
+              const fSchools = filteredSchools.length;
+              const fStudents = filteredSchools.reduce((sum, f) => sum + (f.properties.nombre_filles || 0) + (f.properties.nombre_garcons || 0), 0);
+              const fGirls = filteredSchools.reduce((sum, f) => sum + (f.properties.nombre_filles || 0), 0);
+              const fBoys = filteredSchools.reduce((sum, f) => sum + (f.properties.nombre_garcons || 0), 0);
+              s = { schools: fSchools, students: fStudents, girls: fGirls, boys: fBoys };
+            }
             const pctFilles = (s.girls + s.boys) > 0 ? Math.round(s.girls / (s.girls + s.boys) * 100) : 0;
             return (<>
               <StatCard icon="school" label="Écoles" value={s.schools} />
@@ -1356,6 +1375,8 @@ export default function Explorer() {
               {sortedZones
                 .map((z, i) => {
                 const zs = zoneSchoolStats[z.code] || { schools: z.schools || 0, students: z.students || 0, girls: z.girls || 0, boys: z.boys || 0 };
+                const zoneCodeKey = currentLevel === 'district' ? 'district_code' : currentLevel === 'region' ? 'region_code' : currentLevel === 'departement' ? 'departement_code' : 'commune_code';
+                const filteredCount = hasActiveFilters ? filteredSchools.filter(f => f.properties[zoneCodeKey] === z.code).length : null;
                 return (
                 <button key={i} onClick={() => drillDown(currentLevel, z.name)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white hover:bg-white hover:shadow-sm transition-all duration-200 text-left group border border-transparent hover:border-[#E8611A]/10">
@@ -1365,10 +1386,16 @@ export default function Explorer() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-bold text-[#0D1B2A] truncate group-hover:text-[#E8611A] transition-colors">{z.name}</p>
-                    <p className="text-[10px] text-[#94A3B8] font-medium">{zs.schools.toLocaleString('fr-FR')} écoles · {zs.students ? Math.round(zs.students / 1000) + 'k élèves' : '—'}</p>
+                    <p className="text-[10px] text-[#94A3B8] font-medium">
+                      {hasActiveFilters ? (
+                        <>{filteredCount} / {zs.schools.toLocaleString('fr-FR')} écoles</>
+                      ) : (
+                        <>{zs.schools.toLocaleString('fr-FR')} écoles · {zs.students ? Math.round(zs.students / 1000) + 'k élèves' : '—'}</>
+                      )}
+                    </p>
                   </div>
                   <div className="w-14 h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden shrink-0">
-                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${((zs.schools || 0) / maxSchools) * 100}%`, backgroundColor: COLORS[z.status] || COLORS.pending }} />
+                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${((filteredCount != null ? filteredCount : zs.schools || 0) / maxSchools) * 100}%`, backgroundColor: COLORS[z.status] || COLORS.pending }} />
                   </div>
                 </button>
                 );
