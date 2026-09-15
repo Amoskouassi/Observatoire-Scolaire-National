@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
-import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const ZONE_LEVEL_LABELS = {
@@ -26,13 +24,6 @@ const ROLE_LABELS = {
 };
 
 const ANNEES_SCOLAIRES = ['2025-2026', '2024-2025', '2023-2024'];
-
-const GEO_MAP = {
-  district: 'districts',
-  region: 'regions',
-  departement: 'depts',
-  commune: 'sous_prefectures',
-};
 
 function Jauge({ value, max, color = '#E8611A' }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
@@ -77,9 +68,6 @@ export default function DashboardMairie() {
   const [categoryTab, setCategoryTab] = useState('statut');
   const [rankingModal, setRankingModal] = useState(null);
 
-  const mapContainer = useRef(null);
-  const mapRef = useRef(null);
-
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -123,72 +111,6 @@ export default function DashboardMairie() {
       });
     return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => {
-    if (!mapContainer.current || !data?.zone) return;
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
-    const { level, code } = data.zone;
-    const geoFile = GEO_MAP[level];
-    if (!geoFile) return;
-
-    const map = new maplibregl.Map({
-      container: mapContainer.current,
-      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-      scrollZoom: false,
-      boxZoom: false,
-      dragRotate: false,
-      keyboard: false,
-      doubleClickZoom: false,
-      touchZoomRotate: false,
-      attributionControl: false,
-      interactive: false,
-    });
-
-    map.on('load', async () => {
-      try {
-        const res = await fetch(`/${geoFile}.geojson`);
-        const geo = await res.json();
-        const features = (geo.features || []).filter(
-          (f) => f.properties.code === code || f.properties.name === code
-        );
-        if (features.length === 0) return;
-
-        map.addSource('zone-src', {
-          type: 'geojson',
-          data: { type: 'FeatureCollection', features },
-        });
-        map.addLayer({
-          id: 'zone-fill',
-          type: 'fill',
-          source: 'zone-src',
-          paint: { 'fill-color': '#E8611A', 'fill-opacity': 0.3 },
-        });
-        map.addLayer({
-          id: 'zone-border',
-          type: 'line',
-          source: 'zone-src',
-          paint: { 'line-color': '#E8611A', 'line-width': 2, 'line-opacity': 0.8 },
-        });
-
-        const bounds = new maplibregl.LngLatBounds();
-        const extendBounds = (coords) => {
-          if (Array.isArray(coords[0])) coords.forEach(extendBounds);
-          else bounds.extend(coords);
-        };
-        features.forEach((f) => f.geometry?.coordinates && extendBounds(f.geometry.coordinates));
-        if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 20 });
-      } catch {}
-    });
-
-    mapRef.current = map;
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
-  }, [data?.zone]);
 
   if (loading) {
     return (
@@ -238,36 +160,6 @@ export default function DashboardMairie() {
   const currentHistory = collecteHistory.find((h) => h.annee_scolaire === anneeScolaire) || collecteHistory[0];
   const prevIdx = collecteHistory.findIndex((h) => h.annee_scolaire === anneeScolaire) + 1;
   const prevHistory = collecteHistory[prevIdx] || collecteHistory[1] || null;
-
-  const evolution = [
-    {
-      label: 'Élèves',
-      value: stats.total_eleves.toLocaleString('fr-FR'),
-      delta: null,
-    },
-    {
-      label: 'Écoles',
-      value: stats.total_ecoles,
-      delta: null,
-    },
-    {
-      label: 'Enseignants',
-      value: stats.total_enseignants,
-      delta: null,
-    },
-    {
-      label: 'Taux collecte',
-      value: `${tauxCollecte}%`,
-      delta:
-        prevHistory && currentHistory
-          ? currentHistory.ecoles_visitees - prevHistory.ecoles_visitees
-          : null,
-      deltaLabel:
-        prevHistory && currentHistory
-          ? `${Math.round((prevHistory.ecoles_visitees / Math.max(1, stats.total_ecoles)) * 100)}%`
-          : null,
-    },
-  ];
 
   const chartData = collecteHistory.map((h) => ({
     name: h.annee_scolaire,
@@ -486,14 +378,6 @@ export default function DashboardMairie() {
           </div>
         )}
 
-        {/* 2. Mini-carte */}
-        <div className="bg-[#FAF8F3] rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] overflow-hidden">
-          <div className="px-4 pt-3 pb-1">
-            <h3 className="text-sm font-bold text-[#0D1B2A]">Carte de la zone</h3>
-          </div>
-          <div ref={mapContainer} className="w-full h-[200px]" />
-        </div>
-
         {/* 4. Comparaison vs national */}
         {indicators.length > 0 && (
           <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
@@ -516,57 +400,6 @@ export default function DashboardMairie() {
             </div>
           </div>
         )}
-
-        {/* 7. Évolution vs année dernière */}
-        <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-          <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Évolution vs année dernière</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {evolution.map((e) => (
-              <div key={e.label} className="bg-[#F4EFE6] rounded-lg p-2.5">
-                <p className="text-[9px] font-bold text-gray-400 uppercase">{e.label}</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-sm font-black text-[#0D1B2A]">{e.value}</span>
-                  {e.delta != null ? (
-                    <span
-                      className={`text-xs font-bold ${
-                        e.delta > 0 ? 'text-[#00796B]' : e.delta < 0 ? 'text-[#ba1a1a]' : 'text-gray-400'
-                      }`}
-                    >
-                      {e.delta > 0 ? '▲' : e.delta < 0 ? '▼' : '='}
-                    </span>
-                  ) : (
-                    <span className="text-xs font-bold text-gray-400">—</span>
-                  )}
-                </div>
-                {e.deltaLabel && (
-                  <p className="text-[10px] text-gray-400">vs {e.deltaLabel}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 6. Résumé rapide */}
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: 'Élèves', value: stats.total_eleves.toLocaleString('fr-FR'), icon: 'groups', color: '#E8611A', type: 'eleves' },
-            { label: 'Écoles', value: stats.total_ecoles, icon: 'school', color: '#00796B', type: 'ecoles' },
-            { label: 'Enseignants', value: stats.total_enseignants, icon: 'person', color: '#475569', type: 'enseignants' },
-          ].map((k) => (
-            <button
-              key={k.label}
-              onClick={() => api.getSchoolRanking(zone.level, zone.code, k.type).then(d => setRankingModal({ ...d, filterType: k.type })).catch(() => {})}
-              className="bg-[#FAF8F3] rounded-xl p-3 text-center shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-colors hover:bg-[#E8611A]/5 cursor-pointer group"
-            >
-              <span className="material-symbols-outlined text-[20px]" style={{ color: k.color }}>{k.icon}</span>
-              <p className="text-lg font-black text-[#0D1B2A] mt-0.5">{k.value}</p>
-              <p className="text-[9px] font-bold text-gray-400 uppercase">{k.label}</p>
-              <span className="material-symbols-outlined text-[10px] text-gray-300 group-hover:text-[#E8611A] transition-colors">
-                arrow_forward
-              </span>
-            </button>
-          ))}
-        </div>
 
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-3">
@@ -983,6 +816,8 @@ export default function DashboardMairie() {
                 <div className="flex flex-col gap-2">
                   {rankingModal.schools.map((e, i) => {
                     const val = e[rankingModal.sortKey];
+                    const isEleves = rankingModal.filterType === 'eleves';
+                    const isEcoles = rankingModal.filterType === 'ecoles';
                     return (
                       <div key={e.id} className="flex items-center gap-3 bg-[#F4EFE6] rounded-xl p-3">
                         <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0 ${i < 3 ? 'bg-[#E8611A] text-white' : 'bg-gray-200 text-gray-600'}`}>
@@ -990,15 +825,39 @@ export default function DashboardMairie() {
                         </span>
                         <div className="flex-1 min-w-0">
                           <p className="text-[12px] font-bold text-[#0D1B2A] truncate">{e.nom}</p>
-                          <p className="text-[10px] text-gray-400">
-                            {e.niveau} · {e.milieu} · {e.eleves} élèves
-                          </p>
+                          {isEleves ? (
+                            <p className="text-[10px] text-gray-400">
+                              <span className="text-[#E8611A] font-bold">{e.filles}</span> filles ({e.pct_filles}%) · <span className="text-[#0D1B2A] font-bold">{e.garcons}</span> garçons ({e.pct_garcons}%)
+                            </p>
+                          ) : isEcoles ? (
+                            <p className="text-[10px] text-gray-400">
+                              {e.nb_classes} classes · {e.nb_niveaux} niveaux · {e.eleves} élèves
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-gray-400">
+                              {e.niveau} · {e.milieu} · {e.eleves} élèves
+                            </p>
+                          )}
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-sm font-black text-[#7C3AED]">
-                            {typeof val === 'number' ? val.toLocaleString('fr-FR') : val}
-                          </p>
-                          <p className="text-[9px] text-gray-400">{rankingModal.title.toLowerCase()}</p>
+                          {isEleves ? (
+                            <>
+                              <p className="text-sm font-black text-[#7C3AED]">{e.eleves.toLocaleString('fr-FR')}</p>
+                              <p className="text-[9px] text-gray-400">élèves</p>
+                            </>
+                          ) : isEcoles ? (
+                            <>
+                              <p className="text-sm font-black text-[#7C3AED]">{e.nb_classes}</p>
+                              <p className="text-[9px] text-gray-400">classes</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm font-black text-[#7C3AED]">
+                                {typeof val === 'number' ? val.toLocaleString('fr-FR') : val}
+                              </p>
+                              <p className="text-[9px] text-gray-400">{rankingModal.title.toLowerCase()}</p>
+                            </>
+                          )}
                         </div>
                       </div>
                     );

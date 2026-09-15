@@ -285,6 +285,7 @@ router.get('/school-ranking/:level/:code?', async (req, res, next) => {
       const inv = e.inventaire_classes || [];
       const besoin_bancs = inv.reduce((s, c) => s + (c.besoin_bancs || 0), 0);
       const total_eleves = (e.nombre_filles || 0) + (e.nombre_garcons || 0);
+      const niveaux = [...new Set(inv.map(c => c.niveau).filter(Boolean))].length;
       return {
         id: e.id,
         code_mena: e.code_mena,
@@ -295,7 +296,11 @@ router.get('/school-ranking/:level/:code?', async (req, res, next) => {
         eleves: total_eleves,
         filles: e.nombre_filles || 0,
         garcons: e.nombre_garcons || 0,
+        pct_filles: total_eleves > 0 ? Math.round((e.nombre_filles || 0) / total_eleves * 100) : 0,
+        pct_garcons: total_eleves > 0 ? Math.round((e.nombre_garcons || 0) / total_eleves * 100) : 0,
         enseignants: e.enseignants_presents || 0,
+        nb_classes: inv.length,
+        nb_niveaux: niveaux,
         besoin_bancs,
         sans_eau: !e.eau_potable,
         sans_toilettes: !e.toilettes_filles_fonctionnelles,
@@ -310,11 +315,11 @@ router.get('/school-ranking/:level/:code?', async (req, res, next) => {
     switch (type) {
       case 'enseignants': sortKey = 'enseignants'; title = 'Enseignants'; filtered = schools.filter(e => e.enseignants > 0); break;
       case 'ecoles': sortKey = 'eleves'; title = 'Écoles'; break;
-      case 'besoin_bancs': sortKey = 'besoin_bancs'; title = 'Besoins en bancs'; filtered = schools.filter(e => e.besoin_bancs > 0); break;
+      case 'manque_bancs': sortKey = 'besoin_bancs'; title = 'Manque de bancs'; filtered = schools.filter(e => e.besoin_bancs > 0); break;
       case 'sans_eau': sortKey = 'eleves'; title = 'Sans eau potable'; filtered = schools.filter(e => e.sans_eau); break;
       case 'sans_toilettes': sortKey = 'eleves'; title = 'Sans toilettes'; filtered = schools.filter(e => e.sans_toilettes); break;
       case 'sans_electricite': sortKey = 'eleves'; title = 'Sans électricité'; filtered = schools.filter(e => e.sans_electricite); break;
-      case 'materiaux': sortKey = 'eleves'; title = 'Matériaux précaires'; filtered = schools.filter(e => e.materiaux_precaires); break;
+      case 'materiaux_precaires': sortKey = 'eleves'; title = 'Matériaux précaires'; filtered = schools.filter(e => e.materiaux_precaires); break;
       default: sortKey = 'eleves'; title = 'Élèves'; break;
     }
 
