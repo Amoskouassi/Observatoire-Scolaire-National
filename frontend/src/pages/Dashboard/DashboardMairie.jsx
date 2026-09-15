@@ -411,7 +411,7 @@ export default function DashboardMairie() {
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-3">
           <button
-            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'eleves').then(d => setRankingModal({ ...d, filterType: 'eleves' })).catch(() => {})}
+            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'ecoles').then(d => setRankingModal({ ...d, filterType: 'ecoles' })).catch(() => {})}
             className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
           >
             <div className="flex items-center justify-between mb-2">
@@ -427,7 +427,7 @@ export default function DashboardMairie() {
           </button>
 
           <button
-            onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?show_points=1`)}
+            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'eleves').then(d => setRankingModal({ ...d, filterType: 'eleves' })).catch(() => {})}
             className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
           >
             <div className="flex items-center justify-between mb-2">
