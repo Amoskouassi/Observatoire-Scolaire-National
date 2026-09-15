@@ -315,6 +315,7 @@ export default function Explorer() {
       setVis(['depts-fill', 'depts-outline'], 'none');
       setVis(['sp-fill', 'sp-outline'], 'none');
       setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
+      setVis(['clusters-layer'], showPointsFromDashboard.current ? 'none' : 'visible');
 
       nextLevel = 'region';
 
@@ -337,6 +338,7 @@ export default function Explorer() {
       setVis(['depts-fill', 'depts-outline'], 'visible');
       setVis(['sp-fill', 'sp-outline'], 'none');
       setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
+      setVis(['clusters-layer'], showPointsFromDashboard.current ? 'none' : 'visible');
       nextLevel = 'departement';
 
     } else if (level === 'departement') {
@@ -355,6 +357,7 @@ export default function Explorer() {
       setVis(['depts-outline'], 'visible');
       setVis(['sp-fill', 'sp-outline'], 'visible');
       setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
+      setVis(['clusters-layer'], showPointsFromDashboard.current ? 'none' : 'visible');
       nextLevel = 'sous-prefecture';
     } else if (level === 'sous-prefecture') {
       const spFeat = data.sp?.features?.find(f => f.properties.name === name);
@@ -370,6 +373,7 @@ export default function Explorer() {
       setCurrentLevel('sous-prefecture');
       currentLevelRef.current = 'sous-prefecture';
       setVis(['ecoles-points'], 'visible');
+      setVis(['clusters-layer'], 'none');
       showZoneDetail('sous-prefecture', spFeat?.properties || { name });
       return;
     } else {
@@ -418,6 +422,7 @@ export default function Explorer() {
       setVis(['depts-fill', 'depts-outline'], 'none');
       setVis(['sp-fill', 'sp-outline'], 'none');
       setVis(['ecoles-points'], 'none');
+      setVis(['clusters-layer'], 'visible');
       drillingRef.current = true;
       map.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 800 });
       setCurrentLevel('district');
@@ -443,6 +448,7 @@ export default function Explorer() {
       setVis(['depts-fill', 'depts-outline'], 'none');
       setVis(['sp-fill', 'sp-outline'], 'none');
       setVis(['ecoles-points'], 'none');
+      setVis(['clusters-layer'], 'visible');
       const distFeat = data.districts?.features?.find(f => f.properties.name === districtName);
       if (distFeat?.geometry) {
         drillingRef.current = true;
@@ -471,6 +477,7 @@ export default function Explorer() {
       setVis(['depts-fill', 'depts-outline'], 'visible');
       setVis(['sp-fill', 'sp-outline'], 'none');
       setVis(['ecoles-points'], 'none');
+      setVis(['clusters-layer'], 'visible');
       if (regionFeat?.geometry) {
         drillingRef.current = true;
         fitBBox(map, regionFeat.geometry, 0.15);
@@ -504,6 +511,7 @@ export default function Explorer() {
       setVis(['depts-fill', 'depts-outline'], 'visible');
       setVis(['sp-fill', 'sp-outline'], 'none');
       setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
+      setVis(['clusters-layer'], showPointsFromDashboard.current ? 'none' : 'visible');
       setCurrentLevel('departement');
       currentLevelRef.current = 'departement';
 
@@ -519,6 +527,7 @@ export default function Explorer() {
       setVis(['regions-fill', 'regions-outline'], 'visible');
       setVis(['depts-fill', 'depts-outline'], 'none');
       setVis(['ecoles-points'], showPointsFromDashboard.current ? 'visible' : 'none');
+      setVis(['clusters-layer'], showPointsFromDashboard.current ? 'none' : 'visible');
       setCurrentLevel('region');
       currentLevelRef.current = 'region';
 
@@ -537,6 +546,7 @@ export default function Explorer() {
       setVis(['depts-fill', 'depts-outline'], 'none');
       setVis(['sp-fill', 'sp-outline'], 'none');
       setVis(['ecoles-points'], 'none');
+      setVis(['clusters-layer'], 'visible');
       drillingRef.current = true;
       map.flyTo({ center: [-5.5, 7.0], zoom: 5.5, duration: 800 });
       setCurrentLevel('district');
@@ -783,6 +793,34 @@ export default function Explorer() {
         },
       });
 
+      map.addSource('clusters', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addLayer({
+        id: 'clusters-layer', type: 'symbol', source: 'clusters',
+        layout: {
+          'visibility': 'none',
+          'icon-image': [
+            'case',
+            ['==', ['get', 'school_count'], 1], 'cluster-single',
+            ['==', ['get', 'school_count'], 2], 'cluster-2',
+            ['==', ['get', 'school_count'], 3], 'cluster-3',
+            ['==', ['get', 'school_count'], 4], 'cluster-4',
+            ['==', ['get', 'school_count'], 5], 'cluster-5',
+            ['==', ['get', 'school_count'], 6], 'cluster-6',
+            ['==', ['get', 'school_count'], 7], 'cluster-7',
+            ['==', ['get', 'school_count'], 8], 'cluster-8',
+            ['==', ['get', 'school_count'], 9], 'cluster-9',
+            ['==', ['get', 'school_count'], 10], 'cluster-10',
+            ['==', ['get', 'school_count'], 15], 'cluster-15',
+            ['==', ['get', 'school_count'], 20], 'cluster-20',
+            ['==', ['get', 'school_count'], 25], 'cluster-25',
+            ['==', ['get', 'school_count'], 50], 'cluster-50',
+            'cluster-100',
+          ],
+          'icon-size': 1,
+          'icon-allow-overlap': true,
+        },
+      });
+
       const allFill = ['districts-fill', 'regions-fill', 'depts-fill', 'sp-fill'];
       let hId = null, hSrc = null;
       for (const lid of allFill) {
@@ -932,6 +970,7 @@ export default function Explorer() {
               showPointsFromDashboard.current = true;
               const ecolesLayer = map.getLayer('ecoles-points');
               if (ecolesLayer) map.setLayoutProperty('ecoles-points', 'visibility', 'visible');
+              if (map.getLayer('clusters-layer')) map.setLayoutProperty('clusters-layer', 'visibility', 'none');
               if (focusSchoolIdParam && schoolsData?.features) {
                 const feat = schoolsData.features.find(f => f.properties.id === focusSchoolIdParam);
                 if (feat) setSelectedSchool(feat.properties);
@@ -1089,6 +1128,39 @@ export default function Explorer() {
 
   const maxSchools = Math.max(...zones.map(z => (zoneSchoolStats[z.code]?.schools || 0)), 1);
   const sortedZones = zones.slice().sort((a, b) => (zoneSchoolStats[b.code]?.schools || 0) - (zoneSchoolStats[a.code]?.schools || 0));
+
+  useEffect(() => {
+    const map = mapInst.current;
+    if (!map || !map.getSource('clusters')) return;
+    const geoKey = { district: 'districts', region: 'regions', departement: 'depts', 'sous-prefecture': 'sp' }[currentLevel];
+    const geoData = geoDataRef.current[geoKey];
+    if (!geoData) return;
+    const features = [];
+    const parentFilter = { region: selDistRef.current, departement: selRegRef.current, 'sous-prefecture': selDeptRef.current }[currentLevel];
+    const filteredGeo = parentFilter
+      ? { type: 'FeatureCollection', features: geoData.features.filter(f => {
+          if (currentLevel === 'region') return f.properties.district === parentFilter;
+          if (currentLevel === 'departement') return f.properties.region === parentFilter;
+          if (currentLevel === 'sous-prefecture') return f.properties.departement === parentFilter;
+          return true;
+        }) }
+      : geoData;
+    for (const f of filteredGeo.features) {
+      const code = f.properties.code;
+      const count = zoneSchoolStats[code]?.schools || 0;
+      if (count <= 0) continue;
+      const centroid = getCentroid(f.geometry);
+      if (!centroid) continue;
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: centroid },
+        properties: { code, name: f.properties.name, school_count: count },
+      });
+    }
+    map.getSource('clusters')?.setData({ type: 'FeatureCollection', features });
+    const showClusters = !showPointsFromDashboard.current;
+    map.setLayoutProperty('clusters-layer', 'visibility', showClusters ? 'visible' : 'none');
+  }, [zones, zoneSchoolStats, currentLevel]);
 
   const levelLabel = { district: 'Districts', region: 'Régions', departement: 'Départements', 'sous-prefecture': 'Sous-préfectures' };
 

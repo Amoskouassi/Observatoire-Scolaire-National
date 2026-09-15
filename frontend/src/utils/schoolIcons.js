@@ -108,6 +108,79 @@ export function addCustomIcons(map) {
     const imageData = ctx.getImageData(0, 0, size, size);
     map.addImage(name, imageData);
   });
+
+  addClusterIcons(map);
+}
+
+function addClusterIcons(map) {
+  const clusterDefs = [
+    { name: 'cluster-single', bg: '#B71C1C', draw: 'people' },
+    { name: 'cluster-2', bg: '#C62828', draw: 'num', num: '2' },
+    { name: 'cluster-3', bg: '#C62828', draw: 'num', num: '3' },
+    { name: 'cluster-4', bg: '#D32F2F', draw: 'num', num: '4' },
+    { name: 'cluster-5', bg: '#D32F2F', draw: 'num', num: '5' },
+    { name: 'cluster-6', bg: '#E53935', draw: 'num', num: '6' },
+    { name: 'cluster-7', bg: '#E53935', draw: 'num', num: '7' },
+    { name: 'cluster-8', bg: '#E53935', draw: 'num', num: '8' },
+    { name: 'cluster-9', bg: '#EF5350', draw: 'num', num: '9' },
+    { name: 'cluster-10', bg: '#EF5350', draw: 'num', num: '10' },
+    { name: 'cluster-15', bg: '#EF9A9A', draw: 'num', num: '15' },
+    { name: 'cluster-20', bg: '#EF9A9A', draw: 'num', num: '20' },
+    { name: 'cluster-25', bg: '#FFCDD2', draw: 'num', num: '25' },
+    { name: 'cluster-50', bg: '#FFCDD2', draw: 'num', num: '50' },
+    { name: 'cluster-100', bg: '#FFCDD2', draw: 'num', num: '100' },
+  ];
+
+  clusterDefs.forEach(({ name, bg, draw, num }) => {
+    const size = 40;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const cx = size / 2, cy = size / 2, r = 17;
+
+    ctx.clearRect(0, 0, size, size);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = bg;
+    ctx.fill();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    if (draw === 'people') {
+      ctx.fillStyle = 'white';
+      const px = cx, py = cy - 3;
+      ctx.beginPath();
+      ctx.arc(px, py - 4, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(px, py + 5, 6, 4.5, 0, Math.PI, 0);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px - 6, py - 1, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px + 6, py - 1, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(px - 6, py + 6, 4, 3, -0.3, Math.PI, 0);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(px + 6, py + 6, 4, 3, 0.3, Math.PI, 0);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 14px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(num, cx, cy + 1);
+    }
+
+    const imageData = ctx.getImageData(0, 0, size, size);
+    map.addImage(name, imageData);
+  });
 }
 
 export function getIconForSchool(school) {
