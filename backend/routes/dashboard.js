@@ -379,7 +379,7 @@ router.get('/besoins-bancs/:level/:code?', async (req, res, next) => {
 });
 
 // Stats nationales pour comparaison
-router.get('/national-stats', requireRole('admin', 'ministre'), async (req, res, next) => {
+router.get('/national-stats', authMiddleware, requireRole('admin', 'ministre', 'president_region'), async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('ecoles')
@@ -417,7 +417,7 @@ router.get('/national-stats', requireRole('admin', 'ministre'), async (req, res,
 });
 
 // Historique: stats d'une année scolaire spécifique (snapshot)
-router.get('/historical', requireRole('admin', 'ministre'), async (req, res, next) => {
+router.get('/historical', authMiddleware, requireRole('admin', 'ministre', 'president_region'), async (req, res, next) => {
   try {
     const { annee_scolaire } = req.query;
     if (!annee_scolaire) return res.status(400).json({ error: 'annee_scolaire requise' });
@@ -438,7 +438,7 @@ const snapshotSchema = z.object({
   stats: z.object({}).passthrough(),
 });
 
-router.post('/snapshots', requireRole('admin', 'ministre'), validateRequest(snapshotSchema), async (req, res, next) => {
+router.post('/snapshots', authMiddleware, requireRole('admin', 'ministre', 'president_region'), validateRequest(snapshotSchema), async (req, res, next) => {
   try {
     const { zone_level, zone_code, annee_scolaire, stats } = req.body;
     const { data, error } = await supabaseAdmin
@@ -452,7 +452,7 @@ router.post('/snapshots', requireRole('admin', 'ministre'), validateRequest(snap
 });
 
 // Historique des collectes par année scolaire
-router.get('/collecte-history', requireRole('admin', 'ministre'), async (req, res, next) => {
+router.get('/collecte-history', authMiddleware, requireRole('admin', 'ministre', 'president_region'), async (req, res, next) => {
   try {
     let query = supabaseAdmin.from('collectes').select('id, created_at, date_collecte, enqueteur_id, ecole_id, ecoles(nom_etablissement, code_mena, commune_code, region_code, district_code)');
     const { data, error } = await query.order('date_collecte', { ascending: false }).limit(500);
@@ -481,7 +481,7 @@ router.get('/collecte-history', requireRole('admin', 'ministre'), async (req, re
 });
 
 // Classement des communes (admin only)
-router.get('/commune-ranking', requireRole('admin', 'ministre', 'president_region'), async (req, res, next) => {
+router.get('/commune-ranking', authMiddleware, requireRole('admin', 'ministre', 'president_region'), async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('ecoles')
@@ -516,7 +516,7 @@ router.get('/commune-ranking', requireRole('admin', 'ministre', 'president_regio
 });
 
 // Alertes critiques
-router.get('/alerts', requireRole('admin', 'ministre', 'president_region'), async (req, res, next) => {
+router.get('/alerts', authMiddleware, requireRole('admin', 'ministre', 'president_region'), async (req, res, next) => {
   try {
     const { zone_level, zone_code } = req.query;
     let query = supabaseAdmin.from('ecoles').select('id, nom_etablissement, code_mena, commune_code, departement_code, region_code, district_code, eau_potable, toilettes_filles_fonctionnelles, electricite, materiaux_precaires, inventaire_classes');
