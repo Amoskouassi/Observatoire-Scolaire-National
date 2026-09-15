@@ -19,7 +19,7 @@ export default function SidebarContent({ content }) {
       {/* Badge statut */}
       <div className="mb-4 pb-3 border-b border-gray-100">
         <span className={`badge-${st.color}`}>{st.label}</span>
-        <h2 className="text-lg font-black text-akwa-texte mt-1">{name}</h2>
+        <h2 className="text-lg font-black text-[#0D1B2A] mt-1">{name}</h2>
         <p className="text-xs text-gray-500 mt-0.5 capitalize">Niveau : {level}</p>
       </div>
 
@@ -52,8 +52,8 @@ function AdminZoneContent({ data, status }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <KPICard label="Écoles" value={data?.schools || 0} color="akwa-orange" />
-        <KPICard label="Élèves" value={data?.students?.toLocaleString() || '0'} color="akwa-texte" />
+        <KPICard label="Écoles" value={data?.schools || 0} color="#E8611A" />
+        <KPICard label="Élèves" value={data?.students?.toLocaleString() || '0'} color="#0D1B2A" />
       </div>
 
       <JaugeParite
@@ -79,7 +79,7 @@ function SchoolContent({ data }) {
         <img
           src={data.photo_url}
           alt={data.nom_etablissement}
-          className="w-full h-48 object-cover rounded-card"
+          className="w-full h-48 object-cover rounded-xl"
         />
       )}
 
@@ -93,15 +93,15 @@ function SchoolContent({ data }) {
       </div>
 
       {/* Nom */}
-      <h2 className="text-xl font-black text-akwa-texte">{data.nom_etablissement}</h2>
+      <h2 className="text-xl font-black text-[#0D1B2A]">{data.nom_etablissement}</h2>
       <p className="text-xs text-gray-500">Code : {data.code_mena} | Créée en {data.annee_creation}</p>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3">
-        <KPICard label="Filles" value={data.nombre_filles} color="akwa-rose" />
-        <KPICard label="Garçons" value={data.nombre_garcons} color="akwa-bleu" />
-        <KPICard label="Enseignants" value={data.enseignants_presents} color="akwa-texte" />
-        <KPICard label="Salles" value={data.salles_classe_total} color="akwa-texte" />
+        <KPICard label="Filles" value={data.nombre_filles} color="#E8611A" />
+        <KPICard label="Garçons" value={data.nombre_garcons} color="#00796B" />
+        <KPICard label="Enseignants" value={data.enseignants_presents} color="#0D1B2A" />
+        <KPICard label="Salles" value={data.salles_classe_total} color="#0D1B2A" />
       </div>
 
       {/* Jauge parité */}
@@ -118,8 +118,8 @@ function SchoolContent({ data }) {
           <div className="space-y-1">
             {data.inventaire_classes.map((classe, i) => (
               <div key={i} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded-lg">
-                <span className="font-bold text-akwa-texte">{classe.classe}</span>
-                <span className="text-gray-500">👧 {classe.filles} | 👦 {classe.garcons} | 🪑 {classe.bancs_actifs}</span>
+                <span className="font-bold text-[#0D1B2A]">{classe.classe}</span>
+                <span className="text-gray-500 truncate">👧 {classe.filles} | 👦 {classe.garcons} | 🪑 {classe.bancs_actifs}</span>
                 <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${
                   classe.besoin_bancs > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
                 }`}>

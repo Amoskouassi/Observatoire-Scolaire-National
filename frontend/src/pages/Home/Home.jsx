@@ -6,7 +6,7 @@ export default function Home() {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="text-center mb-10">
           <span className="text-5xl">🇨🇮</span>
-          <h1 className="text-[1.5rem] leading-[1.25] tracking-tight text-[#0D1B2A] mt-3 font-black">Observatoire Scolaire National</h1>
+          <h1 className="text-[1.25rem] md:text-[1.5rem] leading-[1.25] tracking-tight text-[#0D1B2A] mt-3 font-black">Observatoire Scolaire National</h1>
           <p className="text-[#6B7280] mt-2 max-w-xl mx-auto text-sm">Cartographie interactive des établissements scolaires de Côte d'Ivoire.</p>
           <div className="flex justify-center gap-3 mt-5">
             <Link to="/explorer" className="btn-primary no-underline inline-flex items-center gap-2">
@@ -25,7 +25,7 @@ export default function Home() {
           ].map((s) => (
             <div key={s.label} className="kpi-card">
               <span className="material-symbols-outlined text-[#E8611A] text-[20px]">{s.icon}</span>
-              <p className="text-[1.875rem] leading-[1.1] tracking-tight text-[#0D1B2A] mt-1 font-black tabular-nums">{s.value}</p>
+              <p className="text-[1.25rem] md:text-[1.875rem] leading-[1.1] tracking-tight text-[#0D1B2A] mt-1 font-black tabular-nums">{s.value}</p>
               <p className="text-xs font-bold text-[#6B7280]">{s.label}</p>
             </div>
           ))}

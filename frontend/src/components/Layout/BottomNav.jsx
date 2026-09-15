@@ -9,7 +9,7 @@ const NAV = [
 export default function BottomNav() {
   const { pathname } = useLocation();
   return (
-    <nav className="fixed bottom-0 w-full z-50 bg-[#FAF8F3]/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+    <nav className="fixed bottom-0 w-full z-50 bg-[#FAF8F3]/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden">
       <div className="flex justify-around items-center h-14 sm:h-16 px-1 sm:px-2 max-w-lg mx-auto">
         {NAV.map((item) => {
           const active = pathname.startsWith(item.path);

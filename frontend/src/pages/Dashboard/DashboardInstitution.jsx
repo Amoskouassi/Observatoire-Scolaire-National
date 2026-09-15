@@ -1,13 +1,13 @@
 export default function DashboardInstitution() {
   return (
     <div className="h-full overflow-auto bg-[#F4EFE6]">
-      <div className="max-w-lg mx-auto px-4 py-6 flex flex-col gap-5">
+      <div className="max-w-lg md:max-w-3xl mx-auto px-4 py-6 flex flex-col gap-5">
         <h1 className="text-lg font-bold text-[#0D1B2A]">Espace Institutions</h1>
         <div className="grid grid-cols-3 gap-3">
           {[{ icon: 'folder', label: 'Projets', val: '—' }, { icon: 'school', label: 'Écoles', val: '—' }, { icon: 'bar_chart', label: 'Exports', val: '—' }].map((k) => (
             <div key={k.label} className="kpi-card text-center">
               <span className="material-symbols-outlined text-[#E8611A] text-[20px]">{k.icon}</span>
-              <p className="text-[1.875rem] font-black text-[#0D1B2A] mt-1">{k.val}</p>
+              <p className="text-[1.25rem] md:text-[1.875rem] font-black text-[#0D1B2A] mt-1">{k.val}</p>
               <p className="text-xs text-[#6B7280]">{k.label}</p>
             </div>
           ))}

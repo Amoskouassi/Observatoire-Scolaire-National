@@ -38,7 +38,7 @@ export default function SchoolDetail() {
 
   return (
     <div className="h-full overflow-auto bg-[#F4EFE6]">
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg md:max-w-3xl mx-auto">
         {/* Breadcrumb */}
         <nav className="px-4 py-2.5 bg-[#f0f3ff] flex items-center gap-1.5 text-[11px] text-[#6B7280] overflow-x-auto no-scrollbar">
           <Link to="/explorer" className="hover:text-[#E8611A] shrink-0 no-underline text-[#6B7280]">Côte d'Ivoire</Link>
@@ -77,7 +77,7 @@ export default function SchoolDetail() {
           </div>
 
           {/* 4 KPIs */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
             <div className="p-3 rounded-xl bg-[#FAF8F3] shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
               <div className="flex items-center justify-between text-[#6B7280]">
                 <span className="text-[11px] font-bold uppercase">Effectif</span>

@@ -288,7 +288,7 @@ export default function DashboardMairie() {
 
   return (
     <div className="h-full overflow-auto bg-[#F4EFE6]">
-      <div className="max-w-lg mx-auto px-3 sm:px-4 py-4 sm:py-6 flex flex-col gap-4 sm:gap-5">
+      <div className="max-w-lg md:max-w-3xl xl:max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 flex flex-col gap-4 sm:gap-5">
 
         {/* 1. Header */}
         <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
@@ -389,7 +389,7 @@ export default function DashboardMairie() {
         {indicators.length > 0 && (
           <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
             <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Comparaison vs national</h3>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {indicators.map((ind) => (
                 <div key={ind.label} className="bg-[#F4EFE6] rounded-lg p-2.5">
                   <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">{ind.label}</p>
@@ -409,7 +409,7 @@ export default function DashboardMairie() {
         )}
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <button
             onClick={() => api.getSchoolRanking(zone.level, zone.code, 'ecoles').then(d => setRankingModal({ ...d, filterType: 'ecoles' })).catch(() => {})}
             className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
@@ -423,7 +423,7 @@ export default function DashboardMairie() {
               </span>
             </div>
             <p className="text-xs text-gray-500">Écoles</p>
-            <p className="text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">{stats.total_ecoles}</p>
+            <p className="text-[1.25rem] md:text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">{stats.total_ecoles}</p>
           </button>
 
           <button
@@ -439,7 +439,7 @@ export default function DashboardMairie() {
               </span>
             </div>
             <p className="text-xs text-gray-500">Élèves</p>
-            <p className="text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">
+            <p className="text-[1.25rem] md:text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">
               {stats.total_eleves.toLocaleString('fr-FR')}
             </p>
           </button>
@@ -470,7 +470,7 @@ export default function DashboardMairie() {
             </div>
             <p className="text-xs text-gray-500">Sans eau</p>
             <p
-              className={`text-[1.875rem] font-black tabular-nums ${
+              className={`text-[1.25rem] md:text-[1.875rem] font-black tabular-nums ${
                 stats.infrastructure.sans_eau > 0 ? 'text-[#ba1a1a]' : 'text-[#0D1B2A]'
               }`}
             >
@@ -491,7 +491,7 @@ export default function DashboardMairie() {
               </span>
             </div>
             <p className="text-xs text-gray-500">Enseignants</p>
-            <p className="text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">
+            <p className="text-[1.25rem] md:text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">
               {stats.total_enseignants.toLocaleString('fr-FR')}
             </p>
           </button>
