@@ -1583,6 +1583,11 @@ function ZoneDetail({ zone, level }) {
 }
 
 function SchoolFiche({ school, onBack, geoData }) {
+  const { token } = useAuthStore();
+  const [schoolPhoto, setSchoolPhoto] = useState(school.photo_url || null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoFileRef = useRef(null);
+
   const total = (school.nombre_filles || 0) + (school.nombre_garcons || 0);
   const pctFilles = total > 0 ? Math.round((school.nombre_filles || 0) / total * 100) : 0;
   const inventaire = (() => { try { return typeof school.inventaire_classes === 'string' ? JSON.parse(school.inventaire_classes) : (school.inventaire_classes || []); } catch { return []; } })();
@@ -1622,14 +1627,58 @@ function SchoolFiche({ school, onBack, geoData }) {
   const directorTitle = school.directeur_genre === 'Mme' ? 'Madame' : school.directeur_genre === 'Mlle' ? 'Mademoiselle' : 'Monsieur';
   const hasDirector = school.directeur_nom;
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append('photo', file);
+      const uploadRes = await fetch(`${api.baseUrl}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      }).then(r => r.json());
+      if (uploadRes.error) throw new Error(uploadRes.details || uploadRes.error);
+      const photoUrl = uploadRes.url;
+      if (photoUrl && school.id) {
+        const putRes = await fetch(`${api.baseUrl}/ecoles/${school.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ photo_url: photoUrl }),
+        });
+        if (putRes.ok) {
+          setSchoolPhoto(photoUrl);
+          school.photo_url = photoUrl;
+        }
+      }
+    } catch (err) {
+      console.error('Photo upload error:', err);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const description = `L'école ${school.nom_etablissement || 'inconnue'} est une école ${niveauLabel} ${statutLabel}${confessionText}. Elle se situe ${localisation}${deptName ? `, dans le département de ${deptName}` : ''}${regName ? `, dans la région de ${regName}` : ''}${school.annee_creation ? `. Créée en ${school.annee_creation}` : ''}${nbNiveaux > 0 ? `. Elle dispose de ${nbNiveaux} niveau${nbNiveaux > 1 ? 'x' : ''}` : ''}${school.enseignants_presents ? ` ainsi que de ${school.enseignants_presents} enseignant${school.enseignants_presents > 1 ? 's' : ''}` : ''}${hasDirector ? `. Et est dirigée par ${directorTitle} ${school.directeur_nom}` : ''}.`;
 
   return (
     <div className="flex flex-col gap-3 pb-4">
-      {school.photo_url && (
-        <div className="rounded-xl overflow-hidden shadow-sm border border-[#CBD5E1]/10">
-          <img src={school.photo_url} alt={school.nom_etablissement} className="w-full h-48 object-cover" />
+      {schoolPhoto ? (
+        <div className="rounded-xl overflow-hidden shadow-sm border border-[#CBD5E1]/10 relative group">
+          <img src={schoolPhoto} alt={school.nom_etablissement} className="w-full h-48 object-cover" />
+          <button onClick={() => photoFileRef.current?.click()}
+            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="material-symbols-outlined text-white text-[16px]">edit</span>
+          </button>
+          <input ref={photoFileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
         </div>
+      ) : (
+        <button onClick={() => photoFileRef.current?.click()}
+          className="rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white p-6 flex flex-col items-center gap-2 hover:border-[#E8611A]/40 hover:bg-[#E8611A]/5 transition-all">
+          <span className="material-symbols-outlined text-[#CBD5E1] text-[32px]">{uploadingPhoto ? 'hourglass_top' : 'add_a_photo'}</span>
+          <p className="text-[11px] text-[#94A3B8] font-medium">{uploadingPhoto ? 'Envoi en cours...' : 'Ajouter une photo de l\'établissement'}</p>
+          <input ref={photoFileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+        </button>
       )}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
         <div className="flex items-center justify-between mb-3">

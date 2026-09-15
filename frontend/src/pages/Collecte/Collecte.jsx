@@ -280,7 +280,12 @@ export default function Collecte() {
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
         }).then(r => r.json());
-        photoUrl = uploadRes.url || uploadRes.path;
+        if (uploadRes.error) {
+          console.error('Upload error:', uploadRes.error, uploadRes.details);
+          setError('Photo non envoyée: ' + (uploadRes.details || uploadRes.error) + '. Données enregistrées sans photo.');
+        } else {
+          photoUrl = uploadRes.url || uploadRes.path;
+        }
       }
 
       const s = (v) => v || null;
