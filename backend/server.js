@@ -53,8 +53,8 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? (process.env.CORS_ORIGINS?.split(',') || [])
-    : (process.env.CORS_ORIGINS?.split(',') || 'http://localhost:5173'),
+    ? (process.env.CORS_ORIGINS?.split(',').filter(Boolean) || ['https://observatoire-scolaire-national-fron.vercel.app'])
+    : (process.env.CORS_ORIGINS?.split(',').filter(Boolean) || ['http://localhost:5173']),
   credentials: true,
 }));
 app.use(compression());
