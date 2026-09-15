@@ -807,20 +807,24 @@ export default function Explorer() {
         if (sf?.length) {
           const props = sf[0].properties;
           setSelectedSchool(props);
-          if (props.photo_url) {
-            const centroid = sf[0].geometry?.coordinates || [props.longitude, props.latitude];
-            const popupHtml = `<div style="width:200px;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
-              <img src="${props.photo_url}" alt="${props.nom_etablissement}" style="width:100%;height:120px;object-fit:cover" />
-              <div style="padding:8px 10px;background:#FAF8F3">
-                <p style="margin:0;font-size:11px;font-weight:700;color:#0D1B2A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${props.nom_etablissement || ''}</p>
-                <p style="margin:2px 0 0;font-size:9px;color:#94A3B8">${props.niveau_enseignement || ''} · ${props.milieu_implantation || ''}</p>
-              </div>
-            </div>`;
-            new maplibregl.Popup({ offset: 15, closeButton: false, maxWidth: '220px' })
-              .setLngLat(centroid)
-              .setHTML(popupHtml)
-              .addTo(map);
-          }
+          document.querySelectorAll('.maplibregl-popup').forEach(p => p.remove());
+          const centroid = sf[0].geometry?.coordinates || [props.longitude, props.latitude];
+          const photoBlock = props.photo_url
+            ? `<img src="${props.photo_url}" alt="${props.nom_etablissement}" style="width:100%;height:120px;object-fit:cover" />`
+            : `<div style="width:100%;height:80px;display:flex;align-items:center;justify-content:center;background:#F4EFE6">
+                <span class="material-symbols-outlined" style="font-size:32px;color:#CBD5E1">school</span>
+              </div>`;
+          const popupHtml = `<div style="width:200px;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+            ${photoBlock}
+            <div style="padding:8px 10px;background:#FAF8F3">
+              <p style="margin:0;font-size:11px;font-weight:700;color:#0D1B2A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${props.nom_etablissement || ''}</p>
+              <p style="margin:2px 0 0;font-size:9px;color:#94A3B8">${props.niveau_enseignement || ''} · ${props.milieu_implantation || ''}</p>
+            </div>
+          </div>`;
+          new maplibregl.Popup({ offset: 15, closeButton: false, maxWidth: '220px' })
+            .setLngLat(centroid)
+            .setHTML(popupHtml)
+            .addTo(map);
           return;
         }
 
