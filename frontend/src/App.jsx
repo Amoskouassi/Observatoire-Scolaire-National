@@ -22,7 +22,6 @@ function ProtectedRoute({ children, allowedRoles }) {
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#F4EFE6]"><div className="w-10 h-10 rounded-full border-4 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>;
   if (!user) return <Navigate to="/login" replace />;
   if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/" replace />;
-  if (user.two_factor_enabled === false) return <Navigate to="/setup-2fa" replace />;
   return children;
 }
 
