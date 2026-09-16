@@ -1137,6 +1137,12 @@ export default function Explorer() {
     ? (geoDataRef.current[parentGeoKey].features.find(f => f.properties.name === parentName)?.properties.code || null)
     : null;
 
+  const zoneSchoolStats = {};
+  for (const z of zones) {
+    if (currentTable[z.code]) zoneSchoolStats[z.code] = currentTable[z.code];
+  }
+  zoneSchoolStatsRef.current = zoneSchoolStats;
+
   const scope = currentLevel === 'district'
     ? zc?.national
     : (parentCode && zc ? zc[parentCountKey]?.[parentCode] : null);
@@ -1153,12 +1159,6 @@ export default function Explorer() {
   const totalStudents = effectiveScope?.students || 0;
   const totalGirls = effectiveScope?.girls || 0;
   const totalBoys = effectiveScope?.boys || 0;
-
-  const zoneSchoolStats = {};
-  for (const z of zones) {
-    if (currentTable[z.code]) zoneSchoolStats[z.code] = currentTable[z.code];
-  }
-  zoneSchoolStatsRef.current = zoneSchoolStats;
 
   const maxSchools = Math.max(...zones.map(z => (zoneSchoolStats[z.code]?.schools || 0)), 1) || 1;
   const sortedZones = zones.slice().sort((a, b) => (zoneSchoolStats[b.code]?.schools || 0) - (zoneSchoolStats[a.code]?.schools || 0));
@@ -1497,9 +1497,9 @@ export default function Explorer() {
                     <p className="text-[13px] font-bold text-[#0D1B2A] truncate group-hover:text-[#E8611A] transition-colors">{z.name}</p>
                     <p className="text-[10px] text-[#94A3B8] font-medium">
                       {hasActiveFilters ? (
-                        <>{filteredCount} / {zs.schools.toLocaleString('fr-FR')} écoles</>
+                        <>{filteredCount} / {(zs.schools || 0).toLocaleString('fr-FR')} écoles</>
                       ) : (
-                        <>{zs.schools.toLocaleString('fr-FR')} écoles · {zs.students ? Math.round(zs.students / 1000) + 'k élèves' : '—'}</>
+                        <>{(zs.schools || 0).toLocaleString('fr-FR')} écoles · {zs.students ? Math.round(zs.students / 1000) + 'k élèves' : '—'}</>
                       )}
                     </p>
                   </div>
@@ -1568,7 +1568,7 @@ function ZoneDetail({ zone, level }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Écoles</p>
-            <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{schoolCount.toLocaleString('fr-FR')}</p>
+            <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{(schoolCount || 0).toLocaleString('fr-FR')}</p>
           </div>
           <div>
             <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Élèves</p>
@@ -1576,11 +1576,11 @@ function ZoneDetail({ zone, level }) {
           </div>
           <div>
             <p className="text-[10px] text-[#E8611A] font-bold uppercase tracking-wider">Filles</p>
-            <p className="text-2xl font-extrabold text-[#E8611A] tracking-tight mt-0.5">{girls.toLocaleString('fr-FR')}</p>
+            <p className="text-2xl font-extrabold text-[#E8611A] tracking-tight mt-0.5">{(girls || 0).toLocaleString('fr-FR')}</p>
           </div>
           <div>
             <p className="text-[10px] text-[#00796B] font-bold uppercase tracking-wider">Garçons</p>
-            <p className="text-2xl font-extrabold text-[#00796B] tracking-tight mt-0.5">{boys.toLocaleString('fr-FR')}</p>
+            <p className="text-2xl font-extrabold text-[#00796B] tracking-tight mt-0.5">{(boys || 0).toLocaleString('fr-FR')}</p>
           </div>
         </div>
         <div className="mt-3">
