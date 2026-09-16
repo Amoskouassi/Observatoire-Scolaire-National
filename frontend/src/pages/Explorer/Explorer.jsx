@@ -1764,10 +1764,13 @@ function SchoolFiche({ school, onBack, geoData }) {
   const directorTitle = school.directeur_genre === 'Mme' ? 'Madame' : school.directeur_genre === 'Mlle' ? 'Mademoiselle' : 'Monsieur';
   const hasDirector = school.directeur_nom;
 
+  const [photoError, setPhotoError] = useState(null);
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !school.id) return;
     setUploadingPhoto(true);
+    setPhotoError(null);
     try {
       const fd = new FormData();
       fd.append('photo', file);
@@ -1776,7 +1779,10 @@ function SchoolFiche({ school, onBack, geoData }) {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd,
-      }).then(r => r.json());
+      }).then(r => {
+        if (!r.ok) throw new Error(`Erreur HTTP ${r.status}`);
+        return r.json();
+      });
       if (res.error) throw new Error(res.details || res.error);
       if (res.photo_url) {
         setSchoolPhoto(res.photo_url);
@@ -1785,6 +1791,7 @@ function SchoolFiche({ school, onBack, geoData }) {
       }
     } catch (err) {
       console.error('Photo upload error:', err);
+      setPhotoError(err.message || 'Échec de l\'envoi');
     } finally {
       setUploadingPhoto(false);
     }
@@ -1808,6 +1815,7 @@ function SchoolFiche({ school, onBack, geoData }) {
           className="rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white p-6 flex flex-col items-center gap-2 hover:border-[#E8611A]/40 hover:bg-[#E8611A]/5 transition-all">
           <span className="material-symbols-outlined text-[#CBD5E1] text-[32px]">{uploadingPhoto ? 'hourglass_top' : 'add_a_photo'}</span>
           <p className="text-[11px] text-[#94A3B8] font-medium">{uploadingPhoto ? 'Envoi en cours...' : 'Ajouter une photo de l\'établissement'}</p>
+          {photoError && <p className="text-[11px] text-[#ba1a1a] font-medium">{photoError}</p>}
           <input ref={photoFileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
         </button>
       )}

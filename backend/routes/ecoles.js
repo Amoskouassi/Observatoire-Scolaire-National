@@ -160,9 +160,14 @@ const photoUpload = multer({
 
 router.post('/:id/photo', authMiddleware, requireRole('admin', 'enqueteur', 'president_region', 'mairie', 'institution', 'ministre'), photoUpload.single('photo'), async (req, res, next) => {
   try {
+    console.log(`[PHOTO] Upload request for school ${req.params.id}, user: ${req.user?.email} (${req.user?.role})`);
+    
     if (!req.file) {
+      console.warn(`[PHOTO] No file received for school ${req.params.id}`);
       return res.status(400).json({ error: 'Aucun fichier fourni' });
     }
+    
+    console.log(`[PHOTO] File received: ${req.file.originalname}, size: ${req.file.size} bytes, type: ${req.file.mimetype}`);
 
     const { data: ecole, error: fetchErr } = await supabase
       .from('ecoles')
@@ -171,6 +176,7 @@ router.post('/:id/photo', authMiddleware, requireRole('admin', 'enqueteur', 'pre
       .single();
 
     if (fetchErr || !ecole) {
+      console.error(`[PHOTO] School ${req.params.id} not found`);
       return res.status(404).json({ error: 'École non trouvée' });
     }
 
@@ -182,9 +188,11 @@ router.post('/:id/photo', authMiddleware, requireRole('admin', 'enqueteur', 'pre
       .upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
 
     if (uploadError) {
-      console.error('Photo upload error:', JSON.stringify(uploadError));
+      console.error('[PHOTO] Supabase storage error:', JSON.stringify(uploadError));
       return res.status(500).json({ error: 'Erreur upload', details: uploadError.message });
     }
+
+    console.log(`[PHOTO] File uploaded to storage: ${filename}`);
 
     const { data: urlData } = supabase.storage.from('photos').getPublicUrl(filename);
     const photoUrl = urlData.publicUrl;
@@ -195,12 +203,14 @@ router.post('/:id/photo', authMiddleware, requireRole('admin', 'enqueteur', 'pre
       .eq('id', req.params.id);
 
     if (updateErr) {
-      console.error('Photo update error:', JSON.stringify(updateErr));
+      console.error('[PHOTO] Database update error:', JSON.stringify(updateErr));
       return res.status(500).json({ error: 'Erreur mise à jour' });
     }
 
+    console.log(`[PHOTO] Success: photo_url=${photoUrl}`);
     res.json({ photo_url: photoUrl });
   } catch (err) {
+    console.error('[PHOTO] Unexpected error:', err);
     next(err);
   }
 });
