@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapStore } from '../../stores/mapStore';
@@ -221,11 +221,8 @@ export default function Explorer() {
   const mapRef = useRef(null);
   const mapInst = useRef(null);
   const [loading, setLoading] = useState(true);
-  const location = useLocation();
+  const { level: urlLevel, code: urlCode } = useParams();
   const [searchParams] = useSearchParams();
-  const urlMatch = location.pathname.match(/^\/explorer\/([^/]+)\/([^/]+)$/);
-  const urlLevel = urlMatch?.[1] || null;
-  const urlCode = urlMatch?.[2] || null;
   const { filters, setFilter, resetFilters, advancedFiltersOpen, toggleAdvancedFilters, schoolsData, setSchoolsData } = useMapStore();
   const { role, user } = useAuthStore();
   const [selected, setSelected] = useState(null);
