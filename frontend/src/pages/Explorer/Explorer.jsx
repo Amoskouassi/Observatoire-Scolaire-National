@@ -204,10 +204,16 @@ function fitBBox(map, geometry, pad) {
   const p = pad || 0.15;
   const dLng = (bbox[1][0] - bbox[0][0]) * p;
   const dLat = (bbox[1][1] - bbox[0][1]) * p;
-  const sw = [Math.max(bbox[0][0] - dLng, -9.5), Math.max(bbox[0][1] - dLat, 3)];
-  const ne = [Math.min(bbox[1][0] + dLng, -1.5), Math.min(bbox[1][1] + dLat, 12)];
+  const minLng = Math.max(bbox[0][0] - dLng, -9.5);
+  const minLat = Math.max(bbox[0][1] - dLat, 3);
+  const maxLng = Math.min(bbox[1][0] + dLng, -1.5);
+  const maxLat = Math.min(bbox[1][1] + dLat, 12);
+  if (maxLng - minLng < 0.001 || maxLat - minLat < 0.001) {
+    try { map.flyTo({ center: [(minLng + maxLng) / 2, (minLat + maxLat) / 2], zoom: 10, duration: 700 }); } catch (e) {}
+    return;
+  }
   try {
-    map.fitBounds([sw, ne], { padding: 40, duration: 700, maxZoom: 12 });
+    map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 40, duration: 700, maxZoom: 12 });
   } catch (e) {}
 }
 
@@ -288,6 +294,7 @@ export default function Explorer() {
   }, []);
 
   const drillDown = useCallback((level, name) => {
+    try {
     const map = mapInst.current;
     if (!map) return;
     const data = geoDataRef.current;
@@ -302,13 +309,13 @@ export default function Explorer() {
       selDeptRef.current = null;
       setBreadcrumb({ district: name, region: null, dept: null });
 
-      if (data.regions) {
+      if (data.regions?.features) {
         const filtered = { type: 'FeatureCollection', features: data.regions.features.filter(f => f.properties.district === name) };
         map.getSource('regions')?.setData(filtered);
         nextZones = filtered.features.map(f => f.properties);
       }
-      if (data.depts) map.getSource('depts')?.setData(data.depts);
-      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      if (data.depts?.features) map.getSource('depts')?.setData(data.depts);
+      if (data.sp?.features) map.getSource('sp')?.setData(data.sp);
 
       setVis(['districts-fill', 'districts-outline'], 'visible');
       setVis(['regions-fill', 'regions-outline'], 'visible');
@@ -326,12 +333,12 @@ export default function Explorer() {
       selDeptRef.current = null;
       setBreadcrumb(prev => ({ ...prev, region: name, dept: null }));
 
-      if (data.depts) {
+      if (data.depts?.features) {
         const filtered = { type: 'FeatureCollection', features: data.depts.features.filter(f => f.properties.region === name) };
         map.getSource('depts')?.setData(filtered);
         nextZones = filtered.features.map(f => f.properties);
       }
-      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      if (data.sp?.features) map.getSource('sp')?.setData(data.sp);
 
       setVis(['regions-fill'], 'none');
       setVis(['regions-outline'], 'visible');
@@ -347,7 +354,7 @@ export default function Explorer() {
       selDeptRef.current = name;
       setBreadcrumb(prev => ({ ...prev, dept: name }));
 
-      if (data.sp) {
+      if (data.sp?.features) {
         const filtered = { type: 'FeatureCollection', features: data.sp.features.filter(f => f.properties.departement === name) };
         map.getSource('sp')?.setData(filtered);
         nextZones = filtered.features.map(f => f.properties);
@@ -394,9 +401,11 @@ export default function Explorer() {
       fitBBox(map, feat.geometry, 0.15);
       setTimeout(() => { drillingRef.current = false; }, 800);
     }
+    } catch (e) { console.error('drillDown error:', e); }
   }, []);
 
   const navigateToBreadcrumb = useCallback((targetLevel) => {
+    try {
     const map = mapInst.current;
     if (!map) return;
     const data = geoDataRef.current;
@@ -410,13 +419,13 @@ export default function Explorer() {
       selRegRef.current = null;
       selDeptRef.current = null;
       setBreadcrumb({ district: null, region: null, dept: null });
-      if (data.districts) {
+      if (data.districts?.features) {
         map.getSource('districts')?.setData(data.districts);
         setZones(data.districts.features.map(f => f.properties));
       }
-      if (data.regions) map.getSource('regions')?.setData(data.regions);
-      if (data.depts) map.getSource('depts')?.setData(data.depts);
-      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      if (data.regions?.features) map.getSource('regions')?.setData(data.regions);
+      if (data.depts?.features) map.getSource('depts')?.setData(data.depts);
+      if (data.sp?.features) map.getSource('sp')?.setData(data.sp);
       setVis(['districts-fill', 'districts-outline'], 'visible');
       setVis(['regions-fill', 'regions-outline'], 'none');
       setVis(['depts-fill', 'depts-outline'], 'none');
@@ -436,13 +445,13 @@ export default function Explorer() {
       selRegRef.current = null;
       selDeptRef.current = null;
       setBreadcrumb({ district: districtName, region: null, dept: null });
-      if (data.regions) {
+      if (data.regions?.features) {
         const filtered = { type: 'FeatureCollection', features: data.regions.features.filter(f => f.properties.district === districtName) };
         map.getSource('regions')?.setData(filtered);
         setZones(filtered.features.map(f => f.properties));
       }
-      if (data.depts) map.getSource('depts')?.setData(data.depts);
-      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      if (data.depts?.features) map.getSource('depts')?.setData(data.depts);
+      if (data.sp?.features) map.getSource('sp')?.setData(data.sp);
       setVis(['districts-fill', 'districts-outline'], 'visible');
       setVis(['regions-fill', 'regions-outline'], 'visible');
       setVis(['depts-fill', 'depts-outline'], 'none');
@@ -466,12 +475,12 @@ export default function Explorer() {
       selRegRef.current = regionName;
       selDeptRef.current = null;
       setBreadcrumb(prev => ({ ...prev, region: regionName, dept: null }));
-      if (data.depts) {
+      if (data.depts?.features) {
         const filtered = { type: 'FeatureCollection', features: data.depts.features.filter(f => f.properties.region === regionName) };
         map.getSource('depts')?.setData(filtered);
         setZones(filtered.features.map(f => f.properties));
       }
-      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      if (data.sp?.features) map.getSource('sp')?.setData(data.sp);
       setVis(['regions-fill'], 'none');
       setVis(['regions-outline'], 'visible');
       setVis(['depts-fill', 'depts-outline'], 'visible');
@@ -488,9 +497,11 @@ export default function Explorer() {
     }
 
     syncViewRef.current?.();
+    } catch (e) { console.error('navigateToBreadcrumb error:', e); }
   }, [breadcrumb]);
 
   const handleBack = useCallback(() => {
+    try {
     setSelected(null);
     setSelectedSchool(null);
     const map = mapInst.current;
@@ -499,9 +510,9 @@ export default function Explorer() {
     const setVis = (ls, v) => ls.forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', v); });
 
     if (currentLevelRef.current === 'sous-prefecture') {
-      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      if (data.sp?.features) map.getSource('sp')?.setData(data.sp);
       const parentRegion = selRegRef.current;
-      if (parentRegion && data.depts) {
+      if (parentRegion && data.depts?.features) {
         const filtered = { type: 'FeatureCollection', features: data.depts.features.filter(f => f.properties.region === parentRegion) };
         map.getSource('depts')?.setData(filtered);
         setZones(filtered.features.map(f => f.properties));
@@ -517,7 +528,7 @@ export default function Explorer() {
 
     } else if (currentLevelRef.current === 'departement') {
       const parentDistrict = selDistRef.current;
-      if (parentDistrict && data.regions) {
+      if (parentDistrict && data.regions?.features) {
         const filtered = { type: 'FeatureCollection', features: data.regions.features.filter(f => f.properties.district === parentDistrict) };
         map.getSource('regions')?.setData(filtered);
         setZones(filtered.features.map(f => f.properties));
@@ -534,13 +545,13 @@ export default function Explorer() {
     } else if (currentLevelRef.current === 'region') {
       selDistRef.current = null;
       setBreadcrumb({ district: null, region: null, dept: null });
-      if (data.districts) {
+      if (data.districts?.features) {
         map.getSource('districts')?.setData(data.districts);
         setZones(data.districts.features.map(f => f.properties));
       }
-      if (data.regions) map.getSource('regions')?.setData(data.regions);
-      if (data.depts) map.getSource('depts')?.setData(data.depts);
-      if (data.sp) map.getSource('sp')?.setData(data.sp);
+      if (data.regions?.features) map.getSource('regions')?.setData(data.regions);
+      if (data.depts?.features) map.getSource('depts')?.setData(data.depts);
+      if (data.sp?.features) map.getSource('sp')?.setData(data.sp);
       setVis(['districts-fill', 'districts-outline'], 'visible');
       setVis(['regions-fill', 'regions-outline'], 'none');
       setVis(['depts-fill', 'depts-outline'], 'none');
@@ -555,6 +566,7 @@ export default function Explorer() {
     }
 
     syncViewRef.current?.();
+    } catch (e) { console.error('handleBack error:', e); }
   }, []);
 
   useEffect(() => {
@@ -841,6 +853,7 @@ export default function Explorer() {
       }
 
       map.on('click', (e) => {
+        try {
         const sf = map.queryRenderedFeatures(e.point, { layers: ['ecoles-points'] });
         if (sf?.length) {
           const props = sf[0].properties;
@@ -881,9 +894,11 @@ export default function Explorer() {
           const zf = map.queryRenderedFeatures(e.point, { layers: ['sp-fill', 'sp-outline'] });
           if (zf?.length) drillDown('sous-prefecture', zf[0].properties.name);
         }
+        } catch (e) { console.error('map click error:', e); }
       });
 
       map.on('zoomend', () => {
+        try {
         if (drillingRef.current || zoomingBackRef.current) return;
         const z = map.getZoom();
         const level = currentLevelRef.current;
@@ -901,6 +916,7 @@ export default function Explorer() {
           handleBack();
           setTimeout(() => { zoomingBackRef.current = false; }, 500);
         }
+        } catch (e) { console.error('zoomend error:', e); }
       });
 
       syncLabels();
@@ -1054,44 +1070,60 @@ export default function Explorer() {
   const hasActiveFilters = filters.collect_status.length > 0 || filters.milieu.length > 0 || filters.niveau.length > 0 || filters.statut.length > 0 || filters.sans_eau || filters.sans_toilettes || filters.sans_electricite || filters.manque_bancs || filters.manque_enseignants || filters.materiaux_precaires || filters.taux_filles_min != null || filters.taux_filles_max != null;
 
   useEffect(() => {
+    try {
     if (!mapInst.current?.getLayer('ecoles-points') || !schoolsData) return;
     mapInst.current.getSource('ecoles')?.setData({ type: 'FeatureCollection', features: filteredSchools });
     if (showPointsFromDashboard.current && currentLevelRef.current !== 'sous-prefecture') {
       mapInst.current.setLayoutProperty('ecoles-points', 'visibility', 'visible');
     }
+    } catch (e) { console.error('ecoles update error:', e); }
   }, [filteredSchools, schoolsData]);
 
   useEffect(() => {
+    try {
     const map = mapInst.current;
     if (!map || !schoolsData) return;
     const data = geoDataRef.current;
-    if (data.districts) {
-      data.districts = enrichWithStatus(data.districts, 'districts');
+    if (data.districts?.features) {
+      const enriched = enrichWithStatus(data.districts, 'districts');
+      if (enriched && enriched !== data.districts) {
+        data.districts = enriched;
+      }
       if (currentLevelRef.current === 'district') {
         map.getSource('districts')?.setData(data.districts);
       }
     }
-    if (data.regions) {
-      data.regions = enrichWithStatus(data.regions, 'regions');
+    if (data.regions?.features) {
+      const enriched = enrichWithStatus(data.regions, 'regions');
+      if (enriched && enriched !== data.regions) {
+        data.regions = enriched;
+      }
       if (currentLevelRef.current === 'region' && selDistRef.current) {
         const filtered = { type: 'FeatureCollection', features: data.regions.features.filter(f => f.properties.district === selDistRef.current) };
         map.getSource('regions')?.setData(filtered);
       }
     }
-    if (data.depts) {
-      data.depts = enrichWithStatus(data.depts, 'depts');
+    if (data.depts?.features) {
+      const enriched = enrichWithStatus(data.depts, 'depts');
+      if (enriched && enriched !== data.depts) {
+        data.depts = enriched;
+      }
       if (currentLevelRef.current === 'departement' && selRegRef.current) {
         const filtered = { type: 'FeatureCollection', features: data.depts.features.filter(f => f.properties.region === selRegRef.current) };
         map.getSource('depts')?.setData(filtered);
       }
     }
-    if (data.sp) {
-      data.sp = enrichWithStatus(data.sp, 'communes');
+    if (data.sp?.features) {
+      const enriched = enrichWithStatus(data.sp, 'communes');
+      if (enriched && enriched !== data.sp) {
+        data.sp = enriched;
+      }
       if (currentLevelRef.current === 'sous-prefecture' && selDeptRef.current) {
         const filtered = { type: 'FeatureCollection', features: data.sp.features.filter(f => f.properties.departement === selDeptRef.current) };
         map.getSource('sp')?.setData(filtered);
       }
     }
+    } catch (e) { console.error('enrichWithStatus effect error:', e); }
   }, [schoolsData, enrichWithStatus]);
 
   const zc = zoneCounts;
@@ -1101,7 +1133,7 @@ export default function Explorer() {
   const parentName = { region: breadcrumb.district, departement: breadcrumb.region, 'sous-prefecture': breadcrumb.dept }[currentLevel];
   const parentGeoKey = { region: 'districts', departement: 'regions', 'sous-prefecture': 'depts' }[currentLevel];
   const parentCountKey = { region: 'districts', departement: 'regions', 'sous-prefecture': 'departements' }[currentLevel];
-  const parentCode = parentName && geoDataRef.current[parentGeoKey]
+  const parentCode = parentName && geoDataRef.current[parentGeoKey]?.features
     ? (geoDataRef.current[parentGeoKey].features.find(f => f.properties.name === parentName)?.properties.code || null)
     : null;
 
@@ -1128,15 +1160,16 @@ export default function Explorer() {
   }
   zoneSchoolStatsRef.current = zoneSchoolStats;
 
-  const maxSchools = Math.max(...zones.map(z => (zoneSchoolStats[z.code]?.schools || 0)), 1);
+  const maxSchools = Math.max(...zones.map(z => (zoneSchoolStats[z.code]?.schools || 0)), 1) || 1;
   const sortedZones = zones.slice().sort((a, b) => (zoneSchoolStats[b.code]?.schools || 0) - (zoneSchoolStats[a.code]?.schools || 0));
 
   useEffect(() => {
+    try {
     const map = mapInst.current;
     if (!map || !map.getSource('clusters')) return;
     const geoKey = { district: 'districts', region: 'regions', departement: 'depts', 'sous-prefecture': 'sp' }[currentLevel];
     const geoData = geoDataRef.current[geoKey];
-    if (!geoData) return;
+    if (!geoData?.features) return;
     const features = [];
     const parentFilter = { region: selDistRef.current, departement: selRegRef.current, 'sous-prefecture': selDeptRef.current }[currentLevel];
     const filteredGeo = parentFilter
@@ -1163,6 +1196,7 @@ export default function Explorer() {
     const showClusters = !showPointsFromDashboard.current;
     map.setLayoutProperty('clusters-layer', 'visibility', showClusters ? 'visible' : 'none');
     syncViewRef.current?.();
+    } catch (e) { console.error('cluster update error:', e); }
   }, [zones, zoneSchoolStats, currentLevel]);
 
   const levelLabel = { district: 'Districts', region: 'Régions', departement: 'Départements', 'sous-prefecture': 'Sous-préfectures' };

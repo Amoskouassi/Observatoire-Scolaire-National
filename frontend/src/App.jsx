@@ -16,6 +16,7 @@ import CodeLoginPage from './pages/Auth/CodeLoginPage';
 import TwoFactorSetup from './pages/Auth/TwoFactorSetup';
 import TwoFactorVerify from './pages/Auth/TwoFactorVerify';
 import NotFound from './pages/NotFound/NotFound';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role, loading } = useAuthStore();
@@ -37,8 +38,8 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
-          <Route path="/explorer" element={<Explorer />} />
-          <Route path="/explorer/:level/:code" element={<Explorer />} />
+          <Route path="/explorer" element={<ErrorBoundary><Explorer /></ErrorBoundary>} />
+          <Route path="/explorer/:level/:code" element={<ErrorBoundary><Explorer /></ErrorBoundary>} />
           <Route path="/ecole/:id" element={<SchoolDetail />} />
 
           <Route path="/espace-decideur" element={
