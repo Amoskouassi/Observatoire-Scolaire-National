@@ -158,7 +158,7 @@ const photoUpload = multer({
   },
 });
 
-router.post('/:id/photo', authMiddleware, requireRole('admin', 'enqueteur'), photoUpload.single('photo'), async (req, res, next) => {
+router.post('/:id/photo', authMiddleware, requireRole('admin', 'enqueteur', 'president_region', 'mairie', 'institution', 'ministre'), photoUpload.single('photo'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Aucun fichier fourni' });
