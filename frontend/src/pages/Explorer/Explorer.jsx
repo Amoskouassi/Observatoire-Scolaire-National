@@ -204,10 +204,11 @@ function fitBBox(map, geometry, pad) {
   const p = pad || 0.15;
   const dLng = (bbox[1][0] - bbox[0][0]) * p;
   const dLat = (bbox[1][1] - bbox[0][1]) * p;
-  map.fitBounds(
-    [[bbox[0][0] - dLng, bbox[0][1] - dLat], [bbox[1][0] + dLng, bbox[1][1] + dLat]],
-    { padding: 40, duration: 700 }
-  );
+  const sw = [Math.max(bbox[0][0] - dLng, -9.5), Math.max(bbox[0][1] - dLat, 3)];
+  const ne = [Math.min(bbox[1][0] + dLng, -1.5), Math.min(bbox[1][1] + dLat, 12)];
+  try {
+    map.fitBounds([sw, ne], { padding: 40, duration: 700, maxZoom: 12 });
+  } catch (e) {}
 }
 
 export default function Explorer() {
