@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import Layout from './components/Layout/Layout';
 import Home from './pages/Home/Home';
@@ -18,12 +18,34 @@ import TwoFactorVerify from './pages/Auth/TwoFactorVerify';
 import NotFound from './pages/NotFound/NotFound';
 import ErrorBoundary from './components/ErrorBoundary';
 
+const CACHEABLE_ROUTES = ['/explorer', '/espace-decideur', '/collecte', '/espace-institutions'];
+
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role, loading } = useAuthStore();
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#F4EFE6]"><div className="w-10 h-10 rounded-full border-4 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>;
   if (!user) return <Navigate to="/login" replace />;
   if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/" replace />;
   return children;
+}
+
+function RouteTracker() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (CACHEABLE_ROUTES.some(r => pathname.startsWith(r))) {
+      localStorage.setItem('osn_last_screen', pathname);
+    }
+  }, [pathname]);
+  return null;
+}
+
+function RestoreLastScreen() {
+  const last = localStorage.getItem('osn_last_screen');
+  if (last && window.location.pathname === '/') {
+    localStorage.removeItem('osn_last_screen');
+    window.location.replace(last);
+    return <div className="h-screen flex items-center justify-center bg-[#F4EFE6]"><div className="w-10 h-10 rounded-full border-4 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>;
+  }
+  return null;
 }
 
 export default function App() {
@@ -35,9 +57,10 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <RouteTracker />
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<><RestoreLastScreen /><Home /></>} />
           <Route path="/explorer" element={<ErrorBoundary><Explorer /></ErrorBoundary>} />
           <Route path="/explorer/:level/:code" element={<ErrorBoundary><Explorer /></ErrorBoundary>} />
           <Route path="/ecole/:id" element={<SchoolDetail />} />
