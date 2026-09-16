@@ -231,8 +231,6 @@ export default function Collecte() {
     );
   }, [reverseGeocode]);
 
-  useEffect(() => { getGps(); }, [getGps]);
-
   const handlePhoto = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;

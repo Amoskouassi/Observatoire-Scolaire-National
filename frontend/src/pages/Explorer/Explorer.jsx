@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
+﻿import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -6,7 +6,10 @@ import { useMapStore } from '../../stores/mapStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useExplorerCacheStore } from '../../stores/explorerCacheStore';
 import { api } from '../../services/api';
-import { addCustomIcons, getIconForSchool } from '../../utils/schoolIcons';
+import { addCustomIcons } from '../../utils/schoolIcons';
+import StatCard from './StatCard';
+import ZoneDetail from './ZoneDetail';
+import SchoolFiche from './SchoolFiche';
 
 const COLORS = {
   collected: '#E8611A',
@@ -17,7 +20,7 @@ const COLORS = {
 const STATUS_LABEL = {
   collected: 'Collecte',
   waiting: 'En attente',
-  pending: 'Non programmé',
+  pending: 'Non programmÃ©',
 };
 
 const GEOJSON_PATHS = {
@@ -887,7 +890,7 @@ export default function Explorer() {
             ${photoBlock}
             <div style="padding:8px 10px;background:#FAF8F3">
               <p style="margin:0;font-size:11px;font-weight:700;color:#0D1B2A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${props.nom_etablissement || ''}</p>
-              <p style="margin:2px 0 0;font-size:9px;color:#94A3B8">${props.niveau_enseignement || ''} · ${props.milieu_implantation || ''}</p>
+              <p style="margin:2px 0 0;font-size:9px;color:#94A3B8">${props.niveau_enseignement || ''} Â· ${props.milieu_implantation || ''}</p>
             </div>
           </div>`;
           new maplibregl.Popup({ offset: 15, closeButton: false, maxWidth: '220px' })
@@ -1224,7 +1227,7 @@ export default function Explorer() {
     } catch (e) { console.error('cluster update error:', e); }
   }, [zones, zoneSchoolStats, currentLevel]);
 
-  const levelLabel = { district: 'Districts', region: 'Régions', departement: 'Départements', 'sous-prefecture': 'Sous-préfectures' };
+  const levelLabel = { district: 'Districts', region: 'RÃ©gions', departement: 'DÃ©partements', 'sous-prefecture': 'Sous-prÃ©fectures' };
 
   return (
     <div className="h-full flex flex-col lg:flex-row">
@@ -1272,8 +1275,8 @@ export default function Explorer() {
           {advancedFiltersOpen && (
             <div className="mt-2 bg-white/95 backdrop-blur-md rounded-xl p-4 shadow-lg border border-[#CBD5E1]/20">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider">Filtres avancés</span>
-                <button onClick={resetFilters} className="text-[10px] text-[#E8611A] font-bold hover:underline">Réinitialiser</button>
+                <span className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider">Filtres avancÃ©s</span>
+                <button onClick={resetFilters} className="text-[10px] text-[#E8611A] font-bold hover:underline">RÃ©initialiser</button>
               </div>
 
               <div className="flex flex-col gap-3">
@@ -1318,9 +1321,9 @@ export default function Explorer() {
                         { key: 'manque_bancs', label: 'Manque bancs', icon: 'chair' },
                         { key: 'sans_toilettes', label: 'Sans toilettes', icon: 'wc' },
                         { key: 'sans_eau', label: 'Sans eau', icon: 'water_drop' },
-                        { key: 'sans_electricite', label: 'Sans électricité', icon: 'bolt' },
+                        { key: 'sans_electricite', label: 'Sans Ã©lectricitÃ©', icon: 'bolt' },
                         { key: 'manque_enseignants', label: 'Manque enseignants', icon: 'person_off' },
-                        { key: 'materiaux_precaires', label: 'Matériaux précaires', icon: 'construction' },
+                        { key: 'materiaux_precaires', label: 'MatÃ©riaux prÃ©caires', icon: 'construction' },
                       ].map(f => {
                         const active = filters[f.key];
                         return (
@@ -1339,8 +1342,8 @@ export default function Explorer() {
                       <div className="flex flex-wrap gap-1.5">
                         {[
                           { value: 'public', label: 'Public' },
-                          { value: 'prive_laic', label: 'Privé laïc' },
-                          { value: 'prive_confessionnel', label: 'Privé confes.' },
+                          { value: 'prive_laic', label: 'PrivÃ© laÃ¯c' },
+                          { value: 'prive_confessionnel', label: 'PrivÃ© confes.' },
                           { value: 'communautaire_non_reconnue', label: 'Communautaire' },
                         ].map(s => {
                           const active = filters.statut.includes(s.value);
@@ -1362,7 +1365,7 @@ export default function Explorer() {
                           value={filters.taux_filles_min ?? ''}
                           onChange={e => setFilter('taux_filles_min', e.target.value ? Number(e.target.value) : null)}
                           className="w-16 px-2 py-1 rounded-lg bg-[#F1F5F9] text-[#0D1B2A] text-[11px] font-bold text-center focus:outline-none focus:ring-1 focus:ring-[#E8611A]" />
-                        <span className="text-[10px] text-[#94A3B8]">→</span>
+                        <span className="text-[10px] text-[#94A3B8]">â†’</span>
                         <input type="number" min="0" max="100" placeholder="Max"
                           value={filters.taux_filles_max ?? ''}
                           onChange={e => setFilter('taux_filles_max', e.target.value ? Number(e.target.value) : null)}
@@ -1376,8 +1379,8 @@ export default function Explorer() {
                       <span className="material-symbols-outlined text-[18px] text-[#E8611A]">lock</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-[#0D1B2A]">Filtres avancés</p>
-                      <p className="text-[10px] text-[#94A3B8]">Infrastructure, statut juridique, taux parité — connectez-vous en tant que décideur</p>
+                      <p className="text-[11px] font-bold text-[#0D1B2A]">Filtres avancÃ©s</p>
+                      <p className="text-[10px] text-[#94A3B8]">Infrastructure, statut juridique, taux paritÃ© â€” connectez-vous en tant que dÃ©cideur</p>
                     </div>
                   </div>
                 )}
@@ -1433,10 +1436,10 @@ export default function Explorer() {
           </div>
           <div className="flex items-center justify-between">
             <h2 className="font-extrabold text-[#0D1B2A] text-lg tracking-tight">
-              {selectedSchool ? 'Fiche École' :
-                selected ? `Sous-préfecture de ${selected.name}` :
-                breadcrumb.dept ? `Département de ${breadcrumb.dept}` :
-                breadcrumb.region ? `Région de ${breadcrumb.region}` :
+              {selectedSchool ? 'Fiche Ã‰cole' :
+                selected ? `Sous-prÃ©fecture de ${selected.name}` :
+                breadcrumb.dept ? `DÃ©partement de ${breadcrumb.dept}` :
+                breadcrumb.region ? `RÃ©gion de ${breadcrumb.region}` :
                 breadcrumb.district ? `District ${breadcrumb.district.includes('District') ? breadcrumb.district : 'des ' + breadcrumb.district}` :
                 'Districts'}
             </h2>
@@ -1447,11 +1450,11 @@ export default function Explorer() {
               </button>
             )}
           </div>
-          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'region' ? 'régions' : currentLevel === 'departement' ? 'départements' : 'sous-préfectures'} dans {breadcrumb.dept || breadcrumb.region || breadcrumb.district || 'Côte d\'Ivoire'}</p>
+          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'region' ? 'rÃ©gions' : currentLevel === 'departement' ? 'dÃ©partements' : 'sous-prÃ©fectures'} dans {breadcrumb.dept || breadcrumb.region || breadcrumb.district || 'CÃ´te d\'Ivoire'}</p>
           {hasActiveFilters && (
             <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full bg-[#E8611A]/10 text-[#E8611A] text-[10px] font-bold">
               <span className="material-symbols-outlined text-[10px]">filter_alt</span>
-              {filteredSchools.length} / {totalSchools} écoles
+              {filteredSchools.length} / {totalSchools} Ã©coles
             </span>
           )}
         </div>
@@ -1469,8 +1472,8 @@ export default function Explorer() {
             }
             const pctFilles = (s.girls + s.boys) > 0 ? Math.round(s.girls / (s.girls + s.boys) * 100) : 0;
             return (<>
-              <StatCard icon="school" label="Écoles" value={s.schools} />
-              <StatCard icon="groups" label="Élèves" value={s.students} format="k" />
+              <StatCard icon="school" label="Ã‰coles" value={s.schools} />
+              <StatCard icon="groups" label="Ã‰lÃ¨ves" value={s.students} format="k" />
               <StatCard icon="girl" label="Filles" value={pctFilles} suffix="%" />
             </>);
           })()}
@@ -1485,7 +1488,7 @@ export default function Explorer() {
           return (
             <div className="px-5 py-3 border-b border-[#CBD5E1]/20">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Parité filles/garçons</span>
+                <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">ParitÃ© filles/garÃ§ons</span>
               </div>
               <div className="w-full h-2 bg-white rounded-full overflow-hidden flex">
                 <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500" style={{ width: `${pct}%` }} />
@@ -1493,7 +1496,7 @@ export default function Explorer() {
               </div>
               <div className="flex justify-between text-[10px] font-bold mt-1.5">
                 <span className="text-[#E8611A]">{pct}% filles</span>
-                <span className="text-[#00796B]">{100 - pct}% garçons</span>
+                <span className="text-[#00796B]">{100 - pct}% garÃ§ons</span>
               </div>
             </div>
           );
@@ -1522,9 +1525,9 @@ export default function Explorer() {
                     <p className="text-[13px] font-bold text-[#0D1B2A] truncate group-hover:text-[#E8611A] transition-colors">{z.name}</p>
                     <p className="text-[10px] text-[#94A3B8] font-medium">
                       {hasActiveFilters ? (
-                        <>{filteredCount} / {(zs.schools || 0).toLocaleString('fr-FR')} écoles</>
+                        <>{filteredCount} / {(zs.schools || 0).toLocaleString('fr-FR')} Ã©coles</>
                       ) : (
-                        <>{(zs.schools || 0).toLocaleString('fr-FR')} écoles · {zs.students ? Math.round(zs.students / 1000) + 'k élèves' : '—'}</>
+                        <>{(zs.schools || 0).toLocaleString('fr-FR')} Ã©coles Â· {zs.students ? Math.round(zs.students / 1000) + 'k Ã©lÃ¨ves' : 'â€”'}</>
                       )}
                     </p>
                   </div>
@@ -1538,384 +1541,6 @@ export default function Explorer() {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function StatCard({ icon, label, value, format, suffix }) {
-  let display = value;
-  if (format === 'k' && value >= 1000) display = Math.round(value / 1000) + 'k';
-  if (suffix) display = value + suffix;
-  return (
-    <div className="bg-white p-3 rounded-xl flex flex-col shadow-sm border border-[#CBD5E1]/10">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="w-6 h-6 rounded-md bg-[#E8611A]/8 flex items-center justify-center">
-          <span className="material-symbols-outlined text-[13px] text-[#E8611A]">{icon}</span>
-        </span>
-        <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">{label}</span>
-      </div>
-      <span className="font-extrabold text-[#0D1B2A] text-xl tracking-tight">{typeof display === 'number' ? display.toLocaleString('fr-FR') : display}</span>
-    </div>
-  );
-}
-
-function ZoneDetail({ zone, level }) {
-  const [detail, setDetail] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const pct = zone.girls && zone.boys ? Math.round(zone.girls / (zone.girls + zone.boys) * 100) : 0;
-
-  useEffect(() => {
-    if (!zone.code) { setLoading(false); return; }
-    setLoading(true);
-    const apiLevel = level === 'sous-prefecture' ? 'commune' : level;
-    api.getDashboardStats(apiLevel, zone.code).then(d => { setDetail(d); setLoading(false); }).catch(() => setLoading(false));
-  }, [zone.code, level]);
-
-  const totalStudents = zone.students || detail?.total_eleves || 0;
-  const girls = zone.girls || detail?.total_filles || 0;
-  const boys = zone.boys || detail?.total_garcons || 0;
-  const schoolCount = zone.schools || detail?.total_ecoles || 0;
-
-  if (loading) {
-    return <div className="flex items-center justify-center py-8"><div className="w-6 h-6 rounded-full border-2 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>;
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-        <div className="flex items-center justify-between mb-3">
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-            style={{ backgroundColor: `${COLORS[zone.status] || COLORS.pending}10`, color: COLORS[zone.status] || COLORS.pending }}>
-            {STATUS_LABEL[zone.status] || zone.status}
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Écoles</p>
-            <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{(schoolCount || 0).toLocaleString('fr-FR')}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider">Élèves</p>
-            <p className="text-2xl font-extrabold text-[#0D1B2A] tracking-tight mt-0.5">{totalStudents ? totalStudents.toLocaleString('fr-FR') : '—'}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-[#E8611A] font-bold uppercase tracking-wider">Filles</p>
-            <p className="text-2xl font-extrabold text-[#E8611A] tracking-tight mt-0.5">{(girls || 0).toLocaleString('fr-FR')}</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-[#00796B] font-bold uppercase tracking-wider">Garçons</p>
-            <p className="text-2xl font-extrabold text-[#00796B] tracking-tight mt-0.5">{(boys || 0).toLocaleString('fr-FR')}</p>
-          </div>
-        </div>
-        <div className="mt-3">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Parité F/G</span>
-            <span className="text-[10px] font-bold text-[#0D1B2A]">{pct}%</span>
-          </div>
-          <div className="w-full h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex">
-            <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500" style={{ width: pct + '%' }} />
-            <div className="h-full bg-[#00796B] rounded-r-full flex-1" />
-          </div>
-          <div className="flex justify-between text-[9px] font-bold mt-1">
-            <span className="text-[#E8611A]">{pct}% filles</span>
-            <span className="text-[#00796B]">{100 - pct}% garçons</span>
-          </div>
-        </div>
-      </div>
-
-      {detail && (
-        <>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-            <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mb-3">Collecte</p>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: 'Collecté', value: detail.by_status?.collected || 0, color: COLORS.collected },
-                { label: 'En cours', value: detail.by_status?.waiting || 0, color: COLORS.waiting },
-                { label: 'En attente', value: detail.by_status?.pending || 0, color: COLORS.pending },
-              ].map(s => (
-                <div key={s.label} className="text-center">
-                  <p className="text-lg font-extrabold" style={{ color: s.color }}>{s.value}</p>
-                  <p className="text-[9px] text-[#94A3B8] font-semibold">{s.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {detail.infrastructure && (
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-              <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mb-3">Infrastructure</p>
-              <div className="flex flex-col gap-2">
-                {[
-                  { icon: 'wc', label: 'Sans toilettes', value: detail.infrastructure.sans_toilettes, color: '#ba1a1a' },
-                  { icon: 'water_drop', label: 'Sans eau', value: detail.infrastructure.sans_eau, color: '#1E88E5' },
-                  { icon: 'bolt', label: 'Sans électricité', value: detail.infrastructure.sans_electricite, color: '#F9A825' },
-                  { icon: 'construction', label: 'Matériaux précaires', value: detail.infrastructure.materiaux_precaires, color: '#E8611A' },
-                  { icon: 'chair', label: 'Bancs manquants', value: detail.infrastructure.besoin_bancs, color: '#00796B' },
-                ].map(i => (
-                  <div key={i.label} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[14px]" style={{ color: i.color }}>{i.icon}</span>
-                      <span className="text-[11px] text-[#475569] font-medium">{i.label}</span>
-                    </div>
-                    <span className="text-[12px] font-extrabold" style={{ color: i.color }}>{i.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {detail.parity_by_level && Object.keys(detail.parity_by_level).length > 0 && (
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-              <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mb-3">Parité par niveau</p>
-              <div className="flex flex-col gap-3">
-                {Object.entries(detail.parity_by_level).map(([niveau, data]) => {
-                  const total = (data.filles || 0) + (data.garcons || 0);
-                  const pctN = total > 0 ? Math.round(data.filles / total * 100) : 0;
-                  return (
-                    <div key={niveau}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] font-bold text-[#0D1B2A] capitalize">{niveau}</span>
-                        <span className="text-[10px] text-[#94A3B8] font-medium">{total.toLocaleString('fr-FR')} élèves</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden flex">
-                        <div className="h-full bg-[#E8611A] rounded-l-full" style={{ width: pctN + '%' }} />
-                        <div className="h-full bg-[#00796B] rounded-r-full flex-1" />
-                      </div>
-                      <div className="flex justify-between text-[9px] font-bold mt-0.5">
-                        <span className="text-[#E8611A]">{data.filles} F ({pctN}%)</span>
-                        <span className="text-[#00796B]">{data.garcons} G</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {detail.monthly && detail.monthly.some(m => m.count > 0) && (
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-              <p className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mb-3">Collecte mensuelle</p>
-              <div className="flex items-end gap-1 h-16">
-                {detail.monthly.map(m => {
-                  const max = Math.max(...detail.monthly.map(x => x.count), 1);
-                  const h = Math.round((m.count / max) * 100);
-                  return (
-                    <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5" title={`${m.label}: ${m.count}`}>
-                      <div className="w-full bg-[#E8611A] rounded-t transition-all" style={{ height: `${Math.max(h, 4)}%`, minHeight: m.count > 0 ? '4px' : '1px', opacity: m.count > 0 ? 1 : 0.2 }} />
-                      <span className="text-[7px] text-[#94A3B8] font-medium leading-none">{m.label.split('.')[0]}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function SchoolFiche({ school, onBack, geoData }) {
-  const [schoolPhoto, setSchoolPhoto] = useState(school.photo_url || null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const photoFileRef = useRef(null);
-
-  useEffect(() => {
-    setSchoolPhoto(school.photo_url || null);
-  }, [school.id]);
-
-  const total = (school.nombre_filles || 0) + (school.nombre_garcons || 0);
-  const pctFilles = total > 0 ? Math.round((school.nombre_filles || 0) / total * 100) : 0;
-  const inventaire = (() => { try { return typeof school.inventaire_classes === 'string' ? JSON.parse(school.inventaire_classes) : (school.inventaire_classes || []); } catch { return []; } })();
-  const nbNiveaux = inventaire.length > 0 ? new Set(inventaire.map(c => c.classe?.split(' ')[0])).size : 0;
-  const besoins = inventaire.reduce((s, c) => s + (c.besoin_bancs || 0), 0);
-
-  const STATUT_LABEL = { public: 'public', prive_laic: 'privé laïc', prive_confessionnel: 'privé confessionnel', communautaire_non_reconnue: 'communautaire non reconnu' };
-  const NIVEAU_LABEL = { primaire: 'primaire', secondaire: 'secondaire' };
-  const STATUS_COLORS = { collected: '#E8611A', waiting: '#00796B', pending: '#CBD5E1' };
-
-  const findZoneName = (geoKey, code) => {
-    if (!geoData || !geoData[geoKey] || !code) return null;
-    const f = geoData[geoKey].features.find(f => f.properties.code === code);
-    return f?.properties?.name || null;
-  };
-  const spName = findZoneName('sp', school.commune_code);
-  const deptName = findZoneName('depts', school.departement_code);
-  const regName = findZoneName('regions', school.region_code);
-
-  const isUrbain = school.milieu_implantation === 'urbain';
-  const statutLabel = STATUT_LABEL[school.statut] || school.statut || 'inconnu';
-  const niveauLabel = NIVEAU_LABEL[school.niveau_enseignement] || school.niveau_enseignement || '';
-
-  let confessionText = '';
-  if (school.statut === 'prive_confessionnel') {
-    const conf = school.type_genre || school.categorie || '';
-    confessionText = conf ? ` de confession ${conf}` : '';
-  }
-
-  let localisation = '';
-  if (isUrbain) {
-    localisation = `dans la commune de ${spName || school.commune_code || 'inconnue'}`;
-  } else {
-    localisation = `dans la communauté de ${spName || school.commune_code || 'inconnue'}`;
-  }
-
-  const directorTitle = school.directeur_genre === 'Mme' ? 'Madame' : school.directeur_genre === 'Mlle' ? 'Mademoiselle' : 'Monsieur';
-  const hasDirector = school.directeur_nom;
-
-  const [photoError, setPhotoError] = useState(null);
-
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !school.id) return;
-    setUploadingPhoto(true);
-    setPhotoError(null);
-    try {
-      const fd = new FormData();
-      fd.append('photo', file);
-      const token = useAuthStore.getState().token;
-      const res = await fetch(`${api.baseUrl}/ecoles/${school.id}/photo`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: fd,
-      }).then(async r => {
-        const body = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(body.details || body.error || `Erreur HTTP ${r.status}`);
-        return body;
-      });
-      if (res.error) throw new Error(res.details || res.error);
-      if (res.photo_url) {
-        setSchoolPhoto(res.photo_url);
-        school.photo_url = res.photo_url;
-        api.clearCache('/ecoles');
-      }
-    } catch (err) {
-      console.error('Photo upload error:', err);
-      setPhotoError(err.message || 'Échec de l\'envoi');
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
-
-  const description = `L'école ${school.nom_etablissement || 'inconnue'} est une école ${niveauLabel} ${statutLabel}${confessionText}. Elle se situe ${localisation}${deptName ? `, dans le département de ${deptName}` : ''}${regName ? `, dans la région de ${regName}` : ''}${school.annee_creation ? `. Créée en ${school.annee_creation}` : ''}${nbNiveaux > 0 ? `. Elle dispose de ${nbNiveaux} niveau${nbNiveaux > 1 ? 'x' : ''}` : ''}${school.enseignants_presents ? ` ainsi que de ${school.enseignants_presents} enseignant${school.enseignants_presents > 1 ? 's' : ''}` : ''}${hasDirector ? `. Et est dirigée par ${directorTitle} ${school.directeur_nom}` : ''}.`;
-
-  return (
-    <div className="flex flex-col gap-3 pb-4">
-      {schoolPhoto ? (
-        <div className="rounded-xl overflow-hidden shadow-sm border border-[#CBD5E1]/10 relative group">
-          <img src={schoolPhoto} alt={school.nom_etablissement} className="w-full h-48 object-cover" />
-          <button onClick={() => photoFileRef.current?.click()}
-            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <span className="material-symbols-outlined text-white text-[16px]">edit</span>
-          </button>
-          <input ref={photoFileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
-        </div>
-      ) : (
-        <button onClick={() => photoFileRef.current?.click()}
-          className="rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white p-6 flex flex-col items-center gap-2 hover:border-[#E8611A]/40 hover:bg-[#E8611A]/5 transition-all">
-          <span className="material-symbols-outlined text-[#CBD5E1] text-[32px]">{uploadingPhoto ? 'hourglass_top' : 'add_a_photo'}</span>
-          <p className="text-[11px] text-[#94A3B8] font-medium">{uploadingPhoto ? 'Envoi en cours...' : 'Ajouter une photo de l\'établissement'}</p>
-          {photoError && <p className="text-[11px] text-[#ba1a1a] font-medium">{photoError}</p>}
-          <input ref={photoFileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
-        </button>
-      )}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-        <div className="flex items-center justify-between mb-3">
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-            style={{ backgroundColor: `${STATUS_COLORS[school.collect_status] || '#CBD5E1'}10`, color: STATUS_COLORS[school.collect_status] || '#CBD5E1' }}>
-            {school.collect_status === 'collected' ? 'Collecté' : school.collect_status === 'waiting' ? 'En cours' : 'En attente'}
-          </span>
-          <span className="text-[10px] text-[#94A3B8] font-mono">{school.code_mena}</span>
-        </div>
-        <h3 className="text-[15px] font-extrabold text-[#0D1B2A] leading-tight mb-3">{school.nom_etablissement}</h3>
-        <p className="text-[12px] text-[#475569] leading-relaxed">{description}</p>
-      </div>
-
-      {total > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-          <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-3">Effectifs</h4>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center">
-              <p className="text-2xl font-extrabold text-[#0D1B2A]">{total.toLocaleString('fr-FR')}</p>
-              <p className="text-[9px] font-bold text-[#94A3B8] uppercase">Total</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-extrabold text-[#E8611A]">{(school.nombre_filles || 0).toLocaleString('fr-FR')}</p>
-              <p className="text-[9px] font-bold text-[#E8611A] uppercase">Filles {pctFilles}%</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-extrabold text-[#00796B]">{(school.nombre_garcons || 0).toLocaleString('fr-FR')}</p>
-              <p className="text-[9px] font-bold text-[#00796B] uppercase">Garçons {100 - pctFilles}%</p>
-            </div>
-          </div>
-          <div className="w-full h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex mt-3">
-            <div className="h-full bg-[#E8611A] rounded-l-full transition-all" style={{ width: `${pctFilles}%` }} />
-            <div className="h-full bg-[#00796B] rounded-r-full flex-1" />
-          </div>
-          <div className="flex items-center justify-between mt-2 text-[10px] font-bold">
-            <span className="text-[#94A3B8]">{school.enseignants_presents || 0} enseignants · {school.salles_classe_total || 0} salles</span>
-            {total > 0 && school.enseignants_presents > 0 && <span className="text-[#475569]">Ratio {Math.round(total / school.enseignants_presents)}:1</span>}
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-        <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-3">Infrastructure</h4>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { label: 'Eau potable', ok: school.eau_potable, icon: 'water_drop' },
-            { label: 'Électricité', ok: school.electricite, icon: 'bolt' },
-            { label: 'Toilettes filles', ok: school.toilettes_filles_fonctionnelles, icon: 'wc' },
-            { label: 'Bancs', ok: besoins === 0, icon: 'chair', extra: besoins > 0 ? `${besoins} besoins` : 'OK' },
-          ].map(item => (
-            <div key={item.label} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-bold ${item.ok ? 'bg-[#00796B]/8 text-[#00796B]' : 'bg-[#ba1a1a]/8 text-[#ba1a1a]'}`}>
-              <span className="material-symbols-outlined text-[14px]">{item.icon}</span>
-              <span>{item.label}</span>
-              {item.extra && <span className="ml-auto text-[9px]">{item.extra}</span>}
-            </div>
-          ))}
-        </div>
-        {school.materiaux_precaires && school.materiaux_precaires.length > 0 && (
-          <div className="mt-2 px-2.5 py-2 rounded-lg bg-[#d97706]/8 text-[#d97706] text-[11px] font-bold flex items-center gap-2">
-            <span className="material-symbols-outlined text-[14px]">construction</span>
-            <span>Matériaux précaires : {Array.isArray(school.materiaux_precaires) ? school.materiaux_precaires.join(', ') : school.materiaux_precaires}</span>
-          </div>
-        )}
-      </div>
-
-      {inventaire.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-          <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-3">Inventaire des classes</h4>
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center text-[10px] font-bold text-[#94A3B8] uppercase px-2">
-              <span className="flex-1">Classe</span>
-              <span className="w-10 text-center">F</span>
-              <span className="w-10 text-center">G</span>
-              <span className="w-10 text-center">Bancs</span>
-              <span className="w-14 text-center">Besoin</span>
-            </div>
-            {inventaire.map((cl, i) => (
-              <div key={i} className="flex items-center text-[11px] font-medium text-[#0D1B2A] px-2 py-1.5 rounded-lg bg-[#F8F6F1]">
-                <span className="flex-1 font-bold">{cl.classe}</span>
-                <span className="w-10 text-center text-[#E8611A]">{cl.filles || 0}</span>
-                <span className="w-10 text-center text-[#00796B]">{cl.garcons || 0}</span>
-                <span className="w-10 text-center">{cl.bancs_actifs || 0}</span>
-                <span className="w-14 text-center font-bold text-[#ba1a1a]">{cl.besoin_bancs || 0}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {school.last_collecte_at && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-[#CBD5E1]/10">
-          <h4 className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider mb-2">Dernière collecte</h4>
-          <p className="text-[12px] font-medium text-[#475569]">
-            {new Date(school.last_collecte_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
-        </div>
-      )}
     </div>
   );
 }

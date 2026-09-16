@@ -20,6 +20,11 @@ function generateCode() {
   return String(crypto.randomInt(100000, 999999));
 }
 
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function verificationCodeEmail(prenom, code) {
   return {
     subject: 'Code de confirmation — Observatoire Scolaire National',
@@ -29,7 +34,7 @@ function verificationCodeEmail(prenom, code) {
           <h1 style="margin:0;font-size:18px">🇨🇮 Observatoire Scolaire National</h1>
         </div>
         <div style="background:#FAF8F3;padding:24px;border-radius:0 0 12px 12px;border:1px solid #CBD5E1">
-          <h2 style="color:#0D1B2A;margin-top:0">Bonjour ${prenom},</h2>
+          <h2 style="color:#0D1B2A;margin-top:0">Bonjour ${esc(prenom)},</h2>
           <p style="color:#475569;font-size:14px;line-height:1.6">
             Voici votre code de confirmation :
           </p>
@@ -57,7 +62,6 @@ const registerSchema = z.object({
     .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre'),
   nom: z.string().min(2, 'Nom trop court'),
   prenom: z.string().min(2, 'Prénom trop court'),
-  role: z.enum(['enqueteur', 'mairie', 'president_region']),
   organisation: z.string().optional(),
   commune_code: z.string().optional(),
   region_code: z.string().optional(),
@@ -82,7 +86,8 @@ const resendCodeSchema = z.object({
 // Inscription — crée l'utilisateur + envoie le code
 router.post('/register', validateRequest(registerSchema), async (req, res, next) => {
   try {
-    const { email, password, nom, prenom, role, organisation, commune_code, region_code, district_code, departement_code } = req.body;
+    const { email, password, nom, prenom, organisation, commune_code, region_code, district_code, departement_code } = req.body;
+    const role = 'enqueteur';
 
     const { data: existing } = await supabaseAdmin
       .from('profiles')
@@ -172,13 +177,14 @@ router.post('/verify-code', validateRequest(verifyCodeSchema), async (req, res, 
       return res.status(400).json({ error: 'Code invalide ou expiré' });
     }
 
-    if (record.attempts >= record.max_attempts) {
+    const newAttempts = (record.attempts || 0) + 1;
+    if (newAttempts > record.max_attempts) {
       return res.status(429).json({ error: 'Trop de tentatives. Demandez un nouveau code.' });
     }
 
     await supabaseAdmin
       .from('verification_codes')
-      .update({ used: true })
+      .update({ used: true, attempts: newAttempts })
       .eq('id', record.id);
 
     const { data: profile } = await supabaseAdmin
@@ -333,7 +339,7 @@ router.get('/me', async (req, res) => {
 
     const { data: profile, error } = await supabaseAdmin
       .from('profiles')
-      .select('*')
+      .select('id, email, nom, prenom, role, organisation, commune_code, region_code, district_code, departement_code, two_factor_enabled')
       .eq('id', decoded.userId)
       .single();
 
@@ -509,13 +515,14 @@ router.post('/verify-login-code', validateRequest(verifyLoginCodeSchema), async 
       return res.status(400).json({ error: 'Code OTP invalide ou expiré' });
     }
 
-    if (record.attempts >= record.max_attempts) {
+    const newAttempts = (record.attempts || 0) + 1;
+    if (newAttempts > record.max_attempts) {
       return res.status(429).json({ error: 'Trop de tentatives. Demandez un nouveau code.' });
     }
 
     await supabaseAdmin
       .from('verification_codes')
-      .update({ used: true })
+      .update({ used: true, attempts: newAttempts })
       .eq('id', record.id);
 
     // Si 2FA activée, renvoyer un token partiel

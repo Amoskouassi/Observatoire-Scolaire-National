@@ -1,22 +1,23 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import Layout from './components/Layout/Layout';
 import Home from './pages/Home/Home';
-import Explorer from './pages/Explorer/Explorer';
-import SchoolDetail from './pages/SchoolDetail/SchoolDetail';
-import DashboardMairie from './pages/Dashboard/DashboardMairie';
-import DashboardInstitution from './pages/Dashboard/DashboardInstitution';
-import Collecte from './pages/Collecte/Collecte';
-import Pricing from './pages/Pricing/Pricing';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import VerifyEmail from './pages/Auth/VerifyEmail';
 import CodeLoginPage from './pages/Auth/CodeLoginPage';
-import TwoFactorSetup from './pages/Auth/TwoFactorSetup';
-import TwoFactorVerify from './pages/Auth/TwoFactorVerify';
 import NotFound from './pages/NotFound/NotFound';
 import ErrorBoundary from './components/ErrorBoundary';
+
+const Explorer = lazy(() => import('./pages/Explorer/Explorer'));
+const SchoolDetail = lazy(() => import('./pages/SchoolDetail/SchoolDetail'));
+const DashboardMairie = lazy(() => import('./pages/Dashboard/DashboardMairie'));
+const DashboardInstitution = lazy(() => import('./pages/Dashboard/DashboardInstitution'));
+const Collecte = lazy(() => import('./pages/Collecte/Collecte'));
+const Pricing = lazy(() => import('./pages/Pricing/Pricing'));
+const TwoFactorSetup = lazy(() => import('./pages/Auth/TwoFactorSetup'));
+const TwoFactorVerify = lazy(() => import('./pages/Auth/TwoFactorVerify'));
 
 const CACHEABLE_ROUTES = ['/explorer', '/espace-decideur', '/collecte', '/espace-institutions'];
 
@@ -58,6 +59,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <RouteTracker />
+      <Suspense fallback={<div className="h-screen flex items-center justify-center bg-[#F4EFE6]"><div className="w-10 h-10 rounded-full border-4 border-[#E8611A]/20 border-t-[#E8611A] animate-spin" /></div>}>
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<><RestoreLastScreen /><Home /></>} />
@@ -97,6 +99,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

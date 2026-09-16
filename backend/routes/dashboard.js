@@ -14,6 +14,15 @@ const supabaseAdmin = createClient(
 
 const router = Router();
 
+const _cache = new Map();
+const CACHE_TTL = 60_000;
+
+function cached(key, fetchFn) {
+  const hit = _cache.get(key);
+  if (hit && Date.now() - hit.ts < CACHE_TTL) return Promise.resolve(hit.data);
+  return fetchFn().then(data => { _cache.set(key, { data, ts: Date.now() }); return data; });
+}
+
 // Dashboard personalisé pour l'utilisateur connecté
 router.get('/my-zone', authMiddleware, async (req, res, next) => {
   try {
@@ -231,12 +240,15 @@ router.get('/stats/:level/:code?', async (req, res, next) => {
 
 router.get('/zone-counts', async (req, res, next) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('ecoles')
-      .select('district_code, region_code, departement_code, commune_code, nombre_filles, nombre_garcons, collect_status');
-    if (error) throw error;
+    const data = await cached('zone-counts', async () => {
+      const { data, error } = await supabaseAdmin
+        .from('ecoles')
+        .select('district_code, region_code, departement_code, commune_code, nombre_filles, nombre_garcons, collect_status');
+      if (error) throw error;
+      return data || [];
+    });
 
-    const schools = data || [];
+    const schools = data;
     const agg = (list) => ({
       schools: list.length,
       students: list.reduce((s, e) => s + (e.nombre_filles || 0) + (e.nombre_garcons || 0), 0),

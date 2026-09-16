@@ -27,7 +27,7 @@ export default function TwoFactorVerify() {
     try {
       const res = await api.request('/2fa/validate', {
         method: 'POST',
-        body: { partial_token: partialToken, code },
+        body: JSON.stringify({ partial_token: partialToken, code }),
       });
       login(res.user, res.token);
       navigate('/explorer');

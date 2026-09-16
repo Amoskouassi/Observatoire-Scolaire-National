@@ -89,6 +89,17 @@ app.use('/api/auth/forgot-password', authLimiter);
 app.use('/api/auth/code-login', authLimiter);
 app.use('/api/auth/verify-login-code', authLimiter);
 
+// Rate limiting strict pour 2FA (brute-force protection)
+const tfaLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Trop de tentatives 2FA. Réessayez plus tard.' },
+});
+app.use('/api/2fa/validate', tfaLimiter);
+app.use('/api/2fa/verify', tfaLimiter);
+app.use('/api/2fa/setup', tfaLimiter);
+app.use('/api/2fa/disable', tfaLimiter);
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/ecoles', ecoleRoutes);

@@ -145,7 +145,7 @@ router.post('/validate', async (req, res, next) => {
     }
 
     const fullToken = jwt.sign(
-      { userId: profile.id },
+      { userId: profile.id, role: profile.role },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn }
     );

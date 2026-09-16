@@ -214,7 +214,7 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
       for (const [role, col] of Object.entries(zoneCol)) {
         const zoneVal = req.body[col.replace('_code', '') === 'commune' ? 'sous_prefecture' : col.replace('_code', '')];
         if (zoneVal) {
-          const { data: decs } = await supabase.from('profiles').select('email').eq('role', role);
+          const { data: decs } = await supabase.from('profiles').select('email').eq('role', role).eq(col, zoneVal);
           if (decs?.length) {
             for (const dec of decs) {
               if (dec.email) sendMail({ to: dec.email, ...emailContent }).catch(() => {});

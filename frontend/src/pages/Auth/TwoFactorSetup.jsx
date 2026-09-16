@@ -41,7 +41,7 @@ export default function TwoFactorSetup() {
     try {
       await api.request('/2fa/verify', {
         method: 'POST',
-        body: { code },
+        body: JSON.stringify({ code }),
       });
       setStep('done');
       setTimeout(() => navigate('/explorer'), 1500);

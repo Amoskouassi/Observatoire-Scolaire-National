@@ -45,7 +45,13 @@ class ApiService {
     }
 
     const data = await response.json();
-    if (isGet) this._cache.set(endpoint, { data, ts: Date.now() });
+    if (isGet) {
+      this._cache.set(endpoint, { data, ts: Date.now() });
+      if (this._cache.size > 200) {
+        const oldest = this._cache.keys().next().value;
+        this._cache.delete(oldest);
+      }
+    }
     return data;
   }
 
