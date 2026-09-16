@@ -158,7 +158,18 @@ const photoUpload = multer({
   },
 });
 
-router.post('/:id/photo', authMiddleware, requireRole('admin', 'enqueteur', 'president_region', 'mairie', 'institution', 'ministre'), photoUpload.single('photo'), async (req, res, next) => {
+function handleMulterError(err, req, res, next) {
+  if (err instanceof multer.MulterError) {
+    console.error('[PHOTO] Multer error:', err.code, err.message);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'Fichier trop volumineux (max 5 Mo)' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+  next(err);
+}
+
+router.post('/:id/photo', authMiddleware, requireRole('admin', 'enqueteur', 'president_region', 'mairie', 'institution', 'ministre'), photoUpload.single('photo'), handleMulterError, async (req, res, next) => {
   try {
     console.log(`[PHOTO] Upload request for school ${req.params.id}, user: ${req.user?.email} (${req.user?.role})`);
     

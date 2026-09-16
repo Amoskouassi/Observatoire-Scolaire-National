@@ -1779,9 +1779,10 @@ function SchoolFiche({ school, onBack, geoData }) {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd,
-      }).then(r => {
-        if (!r.ok) throw new Error(`Erreur HTTP ${r.status}`);
-        return r.json();
+      }).then(async r => {
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(body.details || body.error || `Erreur HTTP ${r.status}`);
+        return body;
       });
       if (res.error) throw new Error(res.details || res.error);
       if (res.photo_url) {
