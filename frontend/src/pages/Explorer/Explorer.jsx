@@ -1721,6 +1721,10 @@ function SchoolFiche({ school, onBack, geoData }) {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoFileRef = useRef(null);
 
+  useEffect(() => {
+    setSchoolPhoto(school.photo_url || null);
+  }, [school.id]);
+
   const total = (school.nombre_filles || 0) + (school.nombre_garcons || 0);
   const pctFilles = total > 0 ? Math.round((school.nombre_filles || 0) / total * 100) : 0;
   const inventaire = (() => { try { return typeof school.inventaire_classes === 'string' ? JSON.parse(school.inventaire_classes) : (school.inventaire_classes || []); } catch { return []; } })();
@@ -1777,6 +1781,7 @@ function SchoolFiche({ school, onBack, geoData }) {
       if (res.photo_url) {
         setSchoolPhoto(res.photo_url);
         school.photo_url = res.photo_url;
+        api.clearCache('/ecoles');
       }
     } catch (err) {
       console.error('Photo upload error:', err);
