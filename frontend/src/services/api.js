@@ -1,8 +1,10 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'https://observatoirebackend-production.up.railway.app/api';
+const CACHE_TTL = 60_000;
 
 class ApiService {
   constructor() {
     this.baseUrl = API_BASE;
+    this._cache = new Map();
   }
 
   getHeaders() {
@@ -13,7 +15,22 @@ class ApiService {
     };
   }
 
+  clearCache(pattern) {
+    if (!pattern) { this._cache.clear(); return; }
+    for (const key of this._cache.keys()) {
+      if (key.includes(pattern)) this._cache.delete(key);
+    }
+  }
+
   async request(endpoint, options = {}) {
+    const method = options.method || 'GET';
+    const isGet = method === 'GET';
+
+    if (isGet) {
+      const hit = this._cache.get(endpoint);
+      if (hit && Date.now() - hit.ts < CACHE_TTL) return hit.data;
+    }
+
     const url = `${this.baseUrl}${endpoint}`;
     const response = await fetch(url, {
       ...options,
@@ -27,7 +44,9 @@ class ApiService {
       throw new Error(detail || error.error || error.message || `HTTP ${response.status}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    if (isGet) this._cache.set(endpoint, { data, ts: Date.now() });
+    return data;
   }
 
   // Auth
@@ -105,6 +124,7 @@ class ApiService {
   }
 
   createSchool(data) {
+    this.clearCache('/ecoles');
     return this.request('/ecoles', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -112,6 +132,8 @@ class ApiService {
   }
 
   updateSchool(id, data) {
+    this.clearCache('/ecoles');
+    this.clearCache('/dashboard');
     return this.request(`/ecoles/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -119,6 +141,8 @@ class ApiService {
   }
 
   deleteSchool(id) {
+    this.clearCache('/ecoles');
+    this.clearCache('/dashboard');
     return this.request(`/ecoles/${id}`, { method: 'DELETE' });
   }
 
@@ -133,6 +157,8 @@ class ApiService {
 
   // Collecte
   submitCollecte(data) {
+    this.clearCache('/ecoles');
+    this.clearCache('/dashboard');
     return this.request('/collecte', {
       method: 'POST',
       body: JSON.stringify(data),
