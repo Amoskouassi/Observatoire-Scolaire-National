@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useAuthStore } from './stores/authStore';
 import Layout from './components/Layout/Layout';
 import Home from './pages/Home/Home';
+import Explorer from './pages/Explorer/Explorer';
 import SchoolDetail from './pages/SchoolDetail/SchoolDetail';
 import DashboardMairie from './pages/Dashboard/DashboardMairie';
 import DashboardInstitution from './pages/Dashboard/DashboardInstitution';
@@ -60,6 +61,8 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<><RestoreLastScreen /><Home /></>} />
+          <Route path="/explorer" element={<ErrorBoundary><Explorer /></ErrorBoundary>} />
+          <Route path="/explorer/:level/:code" element={<ErrorBoundary><Explorer /></ErrorBoundary>} />
           <Route path="/ecole/:id" element={<SchoolDetail />} />
 
           <Route path="/espace-decideur" element={

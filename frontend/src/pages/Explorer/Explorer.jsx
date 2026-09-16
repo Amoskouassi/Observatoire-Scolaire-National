@@ -1,9 +1,10 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapStore } from '../../stores/mapStore';
 import { useAuthStore } from '../../stores/authStore';
+import { useExplorerCacheStore } from '../../stores/explorerCacheStore';
 import { api } from '../../services/api';
 import { addCustomIcons, getIconForSchool } from '../../utils/schoolIcons';
 
@@ -221,28 +222,42 @@ export default function Explorer() {
   const mapRef = useRef(null);
   const mapInst = useRef(null);
   const [loading, setLoading] = useState(true);
-  const location = useLocation();
+  const { level: urlLevel, code: urlCode } = useParams();
   const [searchParams] = useSearchParams();
-  const urlMatch = location.pathname.match(/^\/explorer\/([^/]+)\/([^/]+)$/);
-  const urlLevel = urlMatch?.[1] || null;
-  const urlCode = urlMatch?.[2] || null;
   const { filters, setFilter, resetFilters, advancedFiltersOpen, toggleAdvancedFilters, schoolsData, setSchoolsData } = useMapStore();
   const { role, user } = useAuthStore();
+  const cache = useExplorerCacheStore();
+  const cachedState = useMemo(() => cache.restore(), []);
   const [selected, setSelected] = useState(null);
-  const [currentLevel, setCurrentLevel] = useState('district');
+  const [currentLevel, setCurrentLevel] = useState(cachedState?.currentLevel || 'district');
   const [zones, setZones] = useState([]);
-  const [breadcrumb, setBreadcrumb] = useState({ district: null, region: null, dept: null });
+  const [breadcrumb, setBreadcrumb] = useState(cachedState?.breadcrumb || { district: null, region: null, dept: null });
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [zoneCounts, setZoneCounts] = useState(null);
 
-  const selDistRef = useRef(null);
-  const selRegRef = useRef(null);
-  const selDeptRef = useRef(null);
-  const currentLevelRef = useRef('district');
+  const selDistRef = useRef(cachedState?.selDist || null);
+  const selRegRef = useRef(cachedState?.selReg || null);
+  const selDeptRef = useRef(cachedState?.selDept || null);
+  const currentLevelRef = useRef(cachedState?.currentLevel || 'district');
   const geoDataRef = useRef({ districts: null, regions: null, depts: null, sp: null });
   const labelsRef = useRef({ districts: [], regions: [], depts: [], sp: [] });
   const showPointsFromDashboard = useRef(false);
   const zoomingBackRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      const map = mapInst.current;
+      cache.save({
+        currentLevel: currentLevelRef.current,
+        breadcrumb: { ...breadcrumb },
+        selDist: selDistRef.current,
+        selReg: selRegRef.current,
+        selDept: selDeptRef.current,
+        center: map?.getCenter()?.toArray() || null,
+        zoom: map?.getZoom() || null,
+      });
+    };
+  }, []);
 
   useEffect(() => {
     const statusParam = searchParams.get('status');
@@ -602,8 +617,8 @@ export default function Explorer() {
           paint: { 'raster-opacity': 0.85 },
         }],
       },
-      center: [-5.5, 7.0],
-      zoom: 5.5,
+      center: cachedState?.center || [-5.5, 7.0],
+      zoom: cachedState?.zoom || 5.5,
       minZoom: 5,
       maxZoom: 18,
       attributionControl: false,
@@ -999,6 +1014,13 @@ export default function Explorer() {
         }
       } else if (urlTargetLevel && urlTargetCode) {
         autoDrillToZone(urlTargetLevel, urlTargetCode);
+      } else if (cachedState && cachedState.selDist) {
+        const restoreDrill = async () => {
+          if (cachedState.selDist) { drillDown('district', cachedState.selDist); await new Promise(r => setTimeout(r, 900)); }
+          if (cachedState.selReg) { drillDown('region', cachedState.selReg); await new Promise(r => setTimeout(r, 900)); }
+          if (cachedState.selDept) { drillDown('departement', cachedState.selDept); }
+        };
+        restoreDrill();
       } else if (user?.commune_code || user?.departement_code || user?.region_code || user?.district_code) {
         const zoneLevel = user.commune_code ? 'commune' : user.departement_code ? 'departement' : user.region_code ? 'region' : 'district';
         const zoneCode = user.commune_code || user.departement_code || user.region_code || user.district_code;
