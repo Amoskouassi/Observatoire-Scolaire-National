@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useAuthStore } from './stores/authStore';
 import Layout from './components/Layout/Layout';
 import Home from './pages/Home/Home';
+import Explorer from './pages/Explorer/Explorer';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import VerifyEmail from './pages/Auth/VerifyEmail';
@@ -10,7 +11,6 @@ import CodeLoginPage from './pages/Auth/CodeLoginPage';
 import NotFound from './pages/NotFound/NotFound';
 import ErrorBoundary from './components/ErrorBoundary';
 
-const Explorer = lazy(() => import('./pages/Explorer/Explorer'));
 const SchoolDetail = lazy(() => import('./pages/SchoolDetail/SchoolDetail'));
 const DashboardMairie = lazy(() => import('./pages/Dashboard/DashboardMairie'));
 const DashboardInstitution = lazy(() => import('./pages/Dashboard/DashboardInstitution'));
