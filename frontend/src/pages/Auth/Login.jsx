@@ -20,14 +20,20 @@ export default function Login() {
     setLoading(true);
     try {
       const result = await api.login(email, password);
+      if (result.requires_otp) {
+        navigate('/verify-login-otp', {
+          state: { temp_token: result.temp_token, email_masked: result.email_masked },
+        });
+        return;
+      }
       if (result.requires_2fa) {
         navigate('/verify-2fa', { state: { partial_token: result.partial_token, email_masked: result.email_masked } });
         return;
       }
-      login(result.user, result.token);
+      login(result.user, result.token, result.session);
       navigate('/explorer');
     } catch (err) {
-      if (err.message?.includes('Email non confirmé')) {
+      if (err.message?.includes('Email non confirme')) {
         setNeedsVerification(true);
       } else {
         setError(err.message || 'Erreur');

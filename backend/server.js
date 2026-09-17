@@ -88,6 +88,7 @@ app.use('/api/auth/resend-code', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 app.use('/api/auth/code-login', authLimiter);
 app.use('/api/auth/verify-login-code', authLimiter);
+app.use('/api/auth/verify-login-otp', authLimiter);
 
 // Rate limiting strict pour 2FA (brute-force protection)
 const tfaLimiter = rateLimit({

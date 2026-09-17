@@ -150,8 +150,27 @@ router.post('/validate', async (req, res, next) => {
       { expiresIn: config.jwt.expiresIn }
     );
 
+    // Create session
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || '';
+    const ua = req.headers['user-agent'] || '';
+    const { data: session } = await supabaseAdmin
+      .from('sessions')
+      .insert({
+        user_id: profile.id,
+        ip_address: ip,
+        user_agent: ua,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      })
+      .select('id, created_at, expires_at')
+      .single();
+
+    const tokenWithSession = session
+      ? jwt.sign({ userId: profile.id, role: profile.role, sessionId: session.id }, config.jwt.secret, { expiresIn: config.jwt.expiresIn })
+      : fullToken;
+
     res.json({
-      token: fullToken,
+      token: tokenWithSession,
+      session: session ? { id: session.id, expires_at: session.expires_at } : null,
       user: {
         id: profile.id,
         email: profile.email,

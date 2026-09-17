@@ -120,8 +120,8 @@ export default function Register() {
     setVerifyError('');
     setVerifyLoading(true);
     try {
-      const { token, user } = await api.verifyCode(form.email, codeStr);
-      login(user, token);
+      const { token, user, session } = await api.verifyCode(form.email, codeStr);
+      login(user, token, session);
       window.location.href = '/explorer';
     } catch (err) { setVerifyError(err.message); } finally { setVerifyLoading(false); }
   };

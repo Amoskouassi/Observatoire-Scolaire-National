@@ -29,7 +29,7 @@ export default function TwoFactorVerify() {
         method: 'POST',
         body: JSON.stringify({ partial_token: partialToken, code }),
       });
-      login(res.user, res.token);
+      login(res.user, res.token, res.session);
       navigate('/explorer');
     } catch (err) {
       setError(err.message || 'Code invalide');

@@ -38,7 +38,7 @@ export default function CodeLoginPage() {
         navigate('/verify-2fa', { state: { partial_token: result.partial_token, email_masked: result.email_masked } });
         return;
       }
-      login(result.user, result.token);
+      login(result.user, result.token, result.session);
       navigate('/explorer');
     } catch (err) {
       setError(err.message || 'Code OTP invalide');

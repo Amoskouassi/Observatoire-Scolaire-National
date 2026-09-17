@@ -8,6 +8,7 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import VerifyEmail from './pages/Auth/VerifyEmail';
 import CodeLoginPage from './pages/Auth/CodeLoginPage';
+import VerifyLoginOtp from './pages/Auth/VerifyLoginOtp';
 import NotFound from './pages/NotFound/NotFound';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -88,6 +89,7 @@ export default function App() {
           <Route path="/tarifs" element={<Pricing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/code-login" element={<CodeLoginPage />} />
+          <Route path="/verify-login-otp" element={<VerifyLoginOtp />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/verify-2fa" element={<TwoFactorVerify />} />

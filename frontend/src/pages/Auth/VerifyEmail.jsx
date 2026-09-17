@@ -47,8 +47,8 @@ export default function VerifyEmail() {
     setError('');
     setLoading(true);
     try {
-      const { token, user } = await api.verifyCode(email, codeStr);
-      login(user, token);
+      const { token, user, session } = await api.verifyCode(email, codeStr);
+      login(user, token, session);
       navigate('/explorer');
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   };

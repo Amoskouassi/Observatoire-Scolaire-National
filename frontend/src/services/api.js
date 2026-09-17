@@ -112,6 +112,25 @@ class ApiService {
     });
   }
 
+  verifyLoginOtp(temp_token, code) {
+    return this.request('/auth/verify-login-otp', {
+      method: 'POST',
+      body: JSON.stringify({ temp_token, code }),
+    });
+  }
+
+  logout() {
+    return this.request('/auth/logout', { method: 'POST' });
+  }
+
+  getSessions() {
+    return this.request('/auth/sessions');
+  }
+
+  revokeSession(id) {
+    return this.request(`/auth/sessions/${id}`, { method: 'DELETE' });
+  }
+
   // Écoles
   getSchools(filters = {}) {
     const params = new URLSearchParams();

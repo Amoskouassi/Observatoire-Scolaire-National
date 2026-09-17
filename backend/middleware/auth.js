@@ -24,6 +24,27 @@ export async function authMiddleware(req, res, next) {
       return res.status(401).json({ error: 'Token invalide: userId manquant' });
     }
 
+    // If token has a sessionId, validate the session exists and is not expired
+    if (decoded.sessionId) {
+      const { data: session } = await supabaseAdmin
+        .from('sessions')
+        .select('id, expires_at')
+        .eq('id', decoded.sessionId)
+        .eq('user_id', decoded.userId)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+      if (!session) {
+        return res.status(401).json({ error: 'Session expiree ou invalide. Reconnectez-vous.' });
+      }
+
+      // Update last_active (throttled: only update if >5 min since last update)
+      await supabaseAdmin
+        .from('sessions')
+        .update({ last_active: new Date().toISOString() })
+        .eq('id', decoded.sessionId);
+    }
+
     let profile = null;
 
     try {
@@ -50,18 +71,19 @@ export async function authMiddleware(req, res, next) {
       regionCode: profile.region_code || null,
       districtCode: profile.district_code || null,
       departementCode: profile.departement_code || null,
+      sessionId: decoded.sessionId || null,
     };
 
     next();
   } catch (err) {
-    return res.status(401).json({ error: 'Token invalide ou expiré' });
+    return res.status(401).json({ error: 'Token invalide ou expire' });
   }
 }
 
 export function requireRole(...roles) {
   return (req, res, next) => {
     if (!roles.includes(req.user?.role)) {
-      return res.status(403).json({ error: 'Accès non autorisé' });
+      return res.status(403).json({ error: 'Acces non autorise' });
     }
     next();
   };
