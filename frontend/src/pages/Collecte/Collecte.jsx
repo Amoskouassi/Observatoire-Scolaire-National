@@ -671,8 +671,19 @@ export default function Collecte() {
               <Field label="Q21 — L'école a-t-elle accès à de l'eau potable ?">
                 <YesNon value={f.eau_potable} onChange={v => u('eau_potable', v)} />
               </Field>
+              {f.eau_potable === true && (
+                <Field label="Q21A — Quel type d'eau les élèves utilisent-ils ?">
+                  <RadioGroup value={f.source_eau_village} onChange={v => u('source_eau_village', v)} options={[
+                    { value: 'sodeci', label: 'SODECI' },
+                    { value: 'pompe_villageoise', label: 'Pompe villageoise' },
+                    { value: 'puits', label: 'Puits' },
+                    { value: 'forage', label: 'Forage' },
+                    { value: 'marigot', label: 'Marigot' },
+                  ]} />
+                </Field>
+              )}
               {f.eau_potable === false && (
-                <Field label="Q21A — Quelle est la principale source d'eau du village/ville ?">
+                <Field label="Q21B — Quelle est la principale source d'eau du village/ville ?">
                   <RadioGroup value={f.source_eau_village} onChange={v => u('source_eau_village', v)} options={[
                     { value: 'sodeci', label: 'SODECI' },
                     { value: 'pompe_villageoise', label: 'Pompe villageoise' },
