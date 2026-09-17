@@ -54,7 +54,7 @@ const collecteSchema = z.object({
   toilettes_separees_garcons_filles: z.boolean().nullish(),
   toilettes_separees_hommes_femmes: z.boolean().nullish(),
   eau_potable: z.boolean().nullish(),
-  source_eau_village: z.enum(['sodeci', 'forage_village', 'aucun']).nullish(),
+  source_eau_village: z.enum(['sodeci', 'pompe_villageoise', 'puits', 'forage', 'marigot']).nullish(),
   localite_raccordee_elec: z.boolean().nullish(),
   ecole_electrifiee: z.boolean().nullish(),
   source_energie: z.enum(['reseau_cie', 'panneaux_solaires', 'groupe_electrogene']).nullish(),
