@@ -439,36 +439,6 @@ export default function DashboardMairie() {
               </div>
             </div>
 
-            {/* Top 5 écoles à besoins */}
-            {stats.top_ecoles_besoin?.length > 0 && (
-              <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                <h3 className="text-xs font-bold text-[#0D1B2A] mb-2">Top écoles à besoins</h3>
-                <div className="space-y-1.5">
-                  {stats.top_ecoles_besoin.slice(0, 5).map((e, i) => (
-                    <div key={e.id} className="flex items-center gap-2 bg-[#F4EFE6] rounded-lg p-2">
-                      <span className="text-sm font-black text-[#E8611A] w-5 text-center">{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-bold text-[#0D1B2A] truncate">{e.nom}</p>
-                        <p className="text-[9px] text-gray-500">{e.eleves} élèves · {e.besoins} besoins</p>
-                      </div>
-                      <div className="flex gap-0.5">
-                        {e.sans_eau && (
-                          <span className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">water_drop</span>
-                          </span>
-                        )}
-                        {e.sans_toilettes && (
-                          <span className="w-4 h-4 rounded-full bg-[#E8611A]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[9px] text-[#E8611A]">wc</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Action buttons */}
             <div className="flex flex-col gap-2.5 pb-4">
               <button
