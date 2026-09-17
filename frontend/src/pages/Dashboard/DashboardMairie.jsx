@@ -23,7 +23,7 @@ const ROLE_LABELS = {
   chercheur: 'Chercheur',
 };
 
-const ANNEES_SCOLAIRES = ['2025-2026', '2024-2025', '2023-2024'];
+const ANNEES_SCOLAIRES = ['2026-2027', '2025-2026', '2024-2025', '2023-2024'];
 
 const GEO_MAP = {
   district: 'districts',
@@ -73,6 +73,7 @@ export default function DashboardMairie() {
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [categoryTab, setCategoryTab] = useState('statut');
   const [rankingModal, setRankingModal] = useState(null);
+  const [expandedAlert, setExpandedAlert] = useState(null);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('osn_dashboard_view') || 'overview');
 
   const toggleView = () => {
@@ -398,32 +399,48 @@ export default function DashboardMairie() {
                 </div>
                 <div className="space-y-1.5">
                   {visibleAlerts.slice(0, 3).map((s) => (
-                    <div key={s.id || s.code} className="flex items-center gap-2 bg-white/60 rounded-lg p-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-bold text-[#0D1B2A] truncate">{s.nom || s.code}</p>
+                    <div key={s.id || s.code}
+                      className="bg-white/60 rounded-lg overflow-hidden cursor-pointer"
+                      onClick={() => setExpandedAlert(expandedAlert === (s.id || s.code) ? null : (s.id || s.code))}>
+                      <div className="flex items-center gap-2 p-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-bold text-[#0D1B2A] truncate">{s.nom || s.code}</p>
+                        </div>
+                        <div className="flex gap-0.5 flex-shrink-0">
+                          {s.sans_eau && (
+                            <span title="Sans eau potable" className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">water_drop</span>
+                            </span>
+                          )}
+                          {s.sans_toilettes && (
+                            <span title="Sans toilettes" className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">wc</span>
+                            </span>
+                          )}
+                          {s.materiaux && (
+                            <span title="Matériaux précaires" className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">construction</span>
+                            </span>
+                          )}
+                          {s.bancs_manquants > 0 && (
+                            <span title={`${s.bancs_manquants} bancs manquants`} className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">chair</span>
+                            </span>
+                          )}
+                        </div>
+                        <span className="material-symbols-outlined text-[10px] text-gray-300">
+                          {expandedAlert === (s.id || s.code) ? 'expand_less' : 'expand_more'}
+                        </span>
                       </div>
-                      <div className="flex gap-0.5 flex-shrink-0">
-                        {s.sans_eau && (
-                          <span className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">water_drop</span>
-                          </span>
-                        )}
-                        {s.sans_toilettes && (
-                          <span className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">wc</span>
-                          </span>
-                        )}
-                        {s.materiaux && (
-                          <span className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">construction</span>
-                          </span>
-                        )}
-                        {s.bancs_manquants > 0 && (
-                          <span className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">chair</span>
-                          </span>
-                        )}
-                      </div>
+                      {expandedAlert === (s.id || s.code) && (
+                        <div className="px-2 pb-2 pt-0 space-y-1 border-t border-[#ba1a1a]/10">
+                          {s.sans_eau && <p className="text-[9px] text-[#ba1a1a] font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">water_drop</span> Sans eau potable</p>}
+                          {s.sans_toilettes && <p className="text-[9px] text-[#ba1a1a] font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">wc</span> Sans toilettes</p>}
+                          {s.materiaux && <p className="text-[9px] text-[#ba1a1a] font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">construction</span> Matériaux précaires</p>}
+                          {s.bancs_manquants > 0 && <p className="text-[9px] text-[#ba1a1a] font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">chair</span> {s.bancs_manquants} bancs manquants</p>}
+                          {s.commune && <p className="text-[9px] text-gray-400 mt-1">{s.commune}</p>}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -453,52 +470,25 @@ export default function DashboardMairie() {
               </div>
             )}
 
-            {/* Statut collecte + Parité side by side */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Statut collecte */}
-              <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2">Statut de collecte</h3>
-                <div className="space-y-1.5">
-                  {[
-                    { label: 'Collectées', count: stats.by_status.collected, color: '#00796B', filter: 'collected' },
-                    { label: 'En attente', count: stats.by_status.waiting, color: '#E8611A', filter: 'waiting' },
-                    { label: 'Non prog.', count: stats.by_status.pending, color: '#94A3B8', filter: 'pending' },
-                  ].map((s) => (
-                    <button
-                      key={s.label}
-                      onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?status=${s.filter}&show_points=1`)}
-                      className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-1 -m-1 transition-colors cursor-pointer"
-                    >
-                      <div className="flex justify-between text-[9px] mb-0.5">
-                        <span className="font-semibold text-gray-700">{s.label}</span>
-                        <span className="font-bold" style={{ color: s.color }}>{s.count}</span>
-                      </div>
-                      <Jauge value={s.count} max={stats.total_ecoles} color={s.color} />
-                    </button>
-                  ))}
-                </div>
+            {/* Parité */}
+            <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+              <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2">Parité filles/garçons</h3>
+              <div className="flex justify-between text-[9px] mb-1">
+                <span className="font-bold text-[#E8611A]">Filles {stats.taux_filles_pct}%</span>
+                <span className="font-bold text-[#0D1B2A]">{100 - stats.taux_filles_pct}% Garçons</span>
               </div>
-
-              {/* Parité */}
-              <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2">Parité filles/garçons</h3>
-                <div className="flex justify-between text-[9px] mb-1">
-                  <span className="font-bold text-[#E8611A]">Filles {stats.taux_filles_pct}%</span>
-                  <span className="font-bold text-[#0D1B2A]">{100 - stats.taux_filles_pct}% G.</span>
+              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden flex">
+                <div className="h-full bg-[#E8611A] rounded-l-full" style={{ width: `${stats.taux_filles_pct}%` }} />
+                <div className="h-full bg-[#0D1B2A] rounded-r-full" style={{ width: `${100 - stats.taux_filles_pct}%` }} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="text-center bg-[#F4EFE6] rounded-lg p-1.5">
+                  <p className="text-sm font-black text-[#E8611A]">{stats.total_filles.toLocaleString('fr-FR')}</p>
+                  <p className="text-[8px] font-bold text-gray-500 uppercase">Filles</p>
                 </div>
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden flex">
-                  <div className="h-full bg-[#E8611A] rounded-l-full" style={{ width: `${stats.taux_filles_pct}%` }} />
-                  <div className="h-full bg-[#0D1B2A] rounded-r-full" style={{ width: `${100 - stats.taux_filles_pct}%` }} />
-                </div>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <div className="text-center bg-[#F4EFE6] rounded-lg p-1.5">
-                    <p className="text-sm font-black text-[#E8611A]">{stats.total_filles.toLocaleString('fr-FR')}</p>
-                    <p className="text-[8px] font-bold text-gray-500 uppercase">Filles</p>
-                  </div>
-                  <div className="text-center bg-[#F4EFE6] rounded-lg p-1.5">
-                    <p className="text-sm font-black text-[#0D1B2A]">{stats.total_garcons.toLocaleString('fr-FR')}</p>
-                    <p className="text-[8px] font-bold text-gray-500 uppercase">Garçons</p>
-                  </div>
+                <div className="text-center bg-[#F4EFE6] rounded-lg p-1.5">
+                  <p className="text-sm font-black text-[#0D1B2A]">{stats.total_garcons.toLocaleString('fr-FR')}</p>
+                  <p className="text-[8px] font-bold text-gray-500 uppercase">Garçons</p>
                 </div>
               </div>
             </div>
