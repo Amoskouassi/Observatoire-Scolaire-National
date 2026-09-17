@@ -2,7 +2,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../services/api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const ZONE_LEVEL_LABELS = {
   district: 'District',
@@ -64,14 +63,12 @@ export default function DashboardMairie() {
   const [data, setData] = useState(null);
   const [nationalStats, setNationalStats] = useState(null);
   const [alerts, setAlerts] = useState(null);
-  const [collecteHistory, setCollecteHistory] = useState([]);
   const [communeRanking, setCommuneRanking] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [zoneName, setZoneName] = useState('');
   const [anneeScolaire, setAnneeScolaire] = useState('2025-2026');
   const [showAllAlerts, setShowAllAlerts] = useState(false);
-  const [categoryTab, setCategoryTab] = useState('statut');
   const [rankingModal, setRankingModal] = useState(null);
   const [expandedAlert, setExpandedAlert] = useState(null);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('osn_dashboard_view') || 'overview');
@@ -102,16 +99,14 @@ export default function DashboardMairie() {
               if (feat && !cancelled) setZoneName(feat.properties.name);
             } catch {}
           }
-          const [nat, al, hist, rank] = await Promise.all([
+          const [nat, al, rank] = await Promise.all([
             api.getNationalStats().catch(() => null),
             api.getAlerts(level, code).catch(() => null),
-            api.getCollecteHistory().catch(() => []),
             api.getCommuneRanking().catch(() => []),
           ]);
           if (!cancelled) {
             setNationalStats(nat);
             setAlerts(al);
-            setCollecteHistory(hist || []);
             setCommuneRanking(rank || []);
           }
         }
@@ -171,17 +166,6 @@ export default function DashboardMairie() {
   const pctPublic =
     stats.total_ecoles > 0 ? Math.round((stats.by_statut.public / stats.total_ecoles) * 100) : 0;
 
-  const currentHistory = collecteHistory.find((h) => h.annee_scolaire === anneeScolaire) || collecteHistory[0];
-  const prevIdx = collecteHistory.findIndex((h) => h.annee_scolaire === anneeScolaire) + 1;
-  const prevHistory = collecteHistory[prevIdx] || collecteHistory[1] || null;
-
-  const chartData = collecteHistory.map((h) => ({
-    name: h.annee_scolaire,
-    Collectes: h.collectes,
-    'Écoles visitées': h.ecoles_visitees,
-    Enquêteurs: h.enqueteurs_actifs,
-  }));
-
   const alertList = alerts?.schools || [];
   const visibleAlerts = showAllAlerts ? alertList : alertList.slice(0, 3);
 
@@ -221,24 +205,6 @@ export default function DashboardMairie() {
         },
       ]
     : [];
-
-  const categoryItems =
-    categoryTab === 'statut'
-      ? [
-          { label: 'Public', count: stats.by_statut.public, filter: 'statut=public', icon: 'account_balance' },
-          { label: 'Privé laïc', count: stats.by_statut.prive_laic, filter: 'statut=prive_laic', icon: 'church' },
-          { label: 'Privé confessionnel', count: stats.by_statut.prive_confessionnel, filter: 'statut=prive_confessionnel', icon: 'menu_book' },
-        ]
-      : categoryTab === 'niveau'
-      ? [
-          { label: 'Primaire', count: stats.by_niveau.primaire, filter: 'niveau=primaire', icon: 'child_care' },
-          { label: 'Secondaire', count: stats.by_niveau.secondaire, filter: 'niveau=secondaire', icon: 'science' },
-          { label: 'Maternelle', count: stats.by_niveau.maternelle, filter: 'niveau=maternelle', icon: 'palette' },
-        ]
-      : [
-          { label: 'Urbain', count: stats.by_milieu.urbain, filter: 'milieu=urbain', icon: 'location_city' },
-          { label: 'Rural', count: stats.by_milieu.rural, filter: 'milieu=rural', icon: 'landscape' },
-        ];
 
   const besoins = [
     { label: 'Sans eau potable', value: stats.infrastructure.sans_eau, color: '#ba1a1a', filter: 'sans_eau', icon: 'water_drop' },
@@ -676,69 +642,69 @@ export default function DashboardMairie() {
               </div>
             )}
 
-            {/* Écoles par catégorie */}
-            <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-              <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Écoles par catégorie</h3>
-              <div className="flex gap-1 mb-3 bg-[#F4EFE6] rounded-lg p-0.5">
-                {[
-                  { key: 'statut', label: 'Statut' },
-                  { key: 'niveau', label: 'Niveau' },
-                  { key: 'milieu', label: 'Milieu' },
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setCategoryTab(tab.key)}
-                    className={`flex-1 text-[10px] font-bold py-1.5 rounded-md transition-colors cursor-pointer ${
-                      categoryTab === tab.key
-                        ? 'bg-white text-[#0D1B2A] shadow-sm'
-                        : 'text-gray-400 hover:text-gray-600'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+            {/* Écoles par catégorie — 3 colonnes côte à côte */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Statut */}
+              <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+                <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2 uppercase">Statut</h3>
+                <div className="space-y-1.5">
+                  {[
+                    { label: 'Public', count: stats.by_statut.public, filter: 'statut=public', icon: 'account_balance' },
+                    { label: 'Privé laïc', count: stats.by_statut.prive_laic, filter: 'statut=prive_laic', icon: 'church' },
+                    { label: 'Pr. confessionnel', count: stats.by_statut.prive_confessionnel, filter: 'statut=prive_confessionnel', icon: 'menu_book' },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?${item.filter}&show_points=1`)}
+                      className="w-full flex items-center gap-1.5 bg-[#F4EFE6] rounded-lg p-2 text-left transition-colors hover:bg-[#E8611A]/5 cursor-pointer group"
+                    >
+                      <span className="material-symbols-outlined text-[12px] text-[#E8611A]">{item.icon}</span>
+                      <span className="flex-1 text-[10px] font-semibold text-[#0D1B2A] truncate">{item.label}</span>
+                      <span className="text-[11px] font-black text-[#0D1B2A]">{item.count}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1.5">
-                {categoryItems.map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?${item.filter}&show_points=1`)}
-                    className="w-full flex items-center gap-2.5 bg-[#F4EFE6] rounded-lg p-2.5 text-left transition-colors hover:bg-[#E8611A]/5 cursor-pointer group"
-                  >
-                    <span className="material-symbols-outlined text-[16px] text-[#E8611A]">{item.icon}</span>
-                    <span className="flex-1 text-xs font-semibold text-[#0D1B2A]">{item.label}</span>
-                    <span className="text-sm font-black text-[#0D1B2A]">{item.count}</span>
-                    <span className="material-symbols-outlined text-[12px] text-gray-300 group-hover:text-[#E8611A] transition-colors">
-                      arrow_forward
-                    </span>
-                  </button>
-                ))}
+              {/* Niveau */}
+              <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+                <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2 uppercase">Niveau</h3>
+                <div className="space-y-1.5">
+                  {[
+                    { label: 'Primaire', count: stats.by_niveau.primaire, filter: 'niveau=primaire', icon: 'child_care' },
+                    { label: 'Secondaire', count: stats.by_niveau.secondaire, filter: 'niveau=secondaire', icon: 'science' },
+                    { label: 'Maternelle', count: stats.by_niveau.maternelle, filter: 'niveau=maternelle', icon: 'palette' },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?${item.filter}&show_points=1`)}
+                      className="w-full flex items-center gap-1.5 bg-[#F4EFE6] rounded-lg p-2 text-left transition-colors hover:bg-[#E8611A]/5 cursor-pointer group"
+                    >
+                      <span className="material-symbols-outlined text-[12px] text-[#E8611A]">{item.icon}</span>
+                      <span className="flex-1 text-[10px] font-semibold text-[#0D1B2A] truncate">{item.label}</span>
+                      <span className="text-[11px] font-black text-[#0D1B2A]">{item.count}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-
-            {/* Statut collecte */}
-            <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-              <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Statut de collecte</h3>
-              <div className="space-y-2.5">
-                {[
-                  { label: 'Collectées', count: stats.by_status.collected, color: '#00796B', filter: 'collected' },
-                  { label: 'En attente', count: stats.by_status.waiting, color: '#E8611A', filter: 'waiting' },
-                  { label: 'Non programmées', count: stats.by_status.pending, color: '#94A3B8', filter: 'pending' },
-                ].map((s) => (
-                  <button
-                    key={s.label}
-                    onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?status=${s.filter}&show_points=1`)}
-                    className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-1.5 -m-1.5 transition-colors cursor-pointer"
-                  >
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="font-semibold text-gray-700">{s.label}</span>
-                      <span className="font-bold" style={{ color: s.color }}>
-                        {s.count} / {stats.total_ecoles}
-                      </span>
-                    </div>
-                    <Jauge value={s.count} max={stats.total_ecoles} color={s.color} />
-                  </button>
-                ))}
+              {/* Milieu */}
+              <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+                <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2 uppercase">Milieu</h3>
+                <div className="space-y-1.5">
+                  {[
+                    { label: 'Urbain', count: stats.by_milieu.urbain, filter: 'milieu=urbain', icon: 'location_city' },
+                    { label: 'Rural', count: stats.by_milieu.rural, filter: 'milieu=rural', icon: 'landscape' },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?${item.filter}&show_points=1`)}
+                      className="w-full flex items-center gap-1.5 bg-[#F4EFE6] rounded-lg p-2 text-left transition-colors hover:bg-[#E8611A]/5 cursor-pointer group"
+                    >
+                      <span className="material-symbols-outlined text-[12px] text-[#E8611A]">{item.icon}</span>
+                      <span className="flex-1 text-[10px] font-semibold text-[#0D1B2A] truncate">{item.label}</span>
+                      <span className="text-[11px] font-black text-[#0D1B2A]">{item.count}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -765,84 +731,33 @@ export default function DashboardMairie() {
               </div>
             </div>
 
-            {/* Infrastructure */}
-            <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-              <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Infrastructure</h3>
-              <div className="space-y-2.5">
+            {/* Infrastructure — compact */}
+            <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+              <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2 uppercase">Infrastructure</h3>
+              <div className="space-y-2">
                 {besoins.map((b) => (
                   <button
                     key={b.label}
                     onClick={() => api.getSchoolRanking(zone.level, zone.code, b.filter).then(d => setRankingModal({ ...d, filterType: b.filter })).catch(() => {})}
-                    className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-2 -m-2 transition-colors cursor-pointer group"
+                    className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-1.5 -m-1.5 transition-colors cursor-pointer group"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[14px] text-gray-400 group-hover:text-[#E8611A] transition-colors">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-[#E8611A] transition-colors">
                           {b.icon}
                         </span>
-                        <div>
-                          <span className="text-xs font-semibold text-gray-700">{b.label}</span>
-                          {b.subtitle && (
-                            <p className="text-[10px] text-gray-400">{b.subtitle}</p>
-                          )}
-                        </div>
+                        <span className="text-[10px] font-semibold text-gray-700">{b.label}</span>
+                        {b.subtitle && (
+                          <span className="text-[9px] text-gray-400">({b.subtitle})</span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs" style={{ color: b.color }}>{b.value}</span>
-                        <span className="material-symbols-outlined text-[12px] text-gray-300 group-hover:text-[#E8611A] transition-colors">
-                          arrow_forward
-                        </span>
-                      </div>
+                      <span className="text-[11px] font-black" style={{ color: b.color }}>{b.value}</span>
                     </div>
                     <Jauge value={b.value} max={stats.total_ecoles} color={b.color} />
                   </button>
                 ))}
               </div>
             </div>
-
-            {/* Historique collectes */}
-            {chartData.length > 0 && (
-              <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Historique des collectes</h3>
-                <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#94A3B8" />
-                      <YAxis tick={{ fontSize: 10 }} stroke="#94A3B8" />
-                      <Tooltip
-                        contentStyle={{
-                          fontSize: 11,
-                          borderRadius: 8,
-                          border: 'none',
-                          boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
-                        }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: 10 }} />
-                      <Bar dataKey="Collectes" fill="#E8611A" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Écoles visitées" fill="#00796B" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Enquêteurs" fill="#475569" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                {currentHistory && (
-                  <div className="grid grid-cols-3 gap-2 mt-3">
-                    <div className="text-center bg-[#F4EFE6] rounded-lg p-2">
-                      <p className="text-sm font-black text-[#E8611A]">{currentHistory.collectes}</p>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase">Collectes</p>
-                    </div>
-                    <div className="text-center bg-[#F4EFE6] rounded-lg p-2">
-                      <p className="text-sm font-black text-[#00796B]">{currentHistory.ecoles_visitees}</p>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase">Visitées</p>
-                    </div>
-                    <div className="text-center bg-[#F4EFE6] rounded-lg p-2">
-                      <p className="text-sm font-black text-[#475569]">{currentHistory.enqueteurs_actifs}</p>
-                      <p className="text-[10px] font-bold text-gray-500 uppercase">Enquêteurs</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Répartition par milieu */}
             <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
