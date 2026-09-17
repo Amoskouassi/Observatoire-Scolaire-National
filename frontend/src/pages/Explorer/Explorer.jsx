@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -20,7 +20,7 @@ const COLORS = {
 const STATUS_LABEL = {
   collected: 'Collecte',
   waiting: 'En attente',
-  pending: 'Non programmÃ©',
+  pending: 'Non programmé',
 };
 
 const GEOJSON_PATHS = {
@@ -890,7 +890,7 @@ export default function Explorer() {
             ${photoBlock}
             <div style="padding:8px 10px;background:#FAF8F3">
               <p style="margin:0;font-size:11px;font-weight:700;color:#0D1B2A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${props.nom_etablissement || ''}</p>
-              <p style="margin:2px 0 0;font-size:9px;color:#94A3B8">${props.niveau_enseignement || ''} Â· ${props.milieu_implantation || ''}</p>
+              <p style="margin:2px 0 0;font-size:9px;color:#94A3B8">${props.niveau_enseignement || ''} · ${props.milieu_implantation || ''}</p>
             </div>
           </div>`;
           new maplibregl.Popup({ offset: 15, closeButton: false, maxWidth: '220px' })
@@ -1227,7 +1227,7 @@ export default function Explorer() {
     } catch (e) { console.error('cluster update error:', e); }
   }, [zones, zoneSchoolStats, currentLevel]);
 
-  const levelLabel = { district: 'Districts', region: 'RÃ©gions', departement: 'DÃ©partements', 'sous-prefecture': 'Sous-prÃ©fectures' };
+  const levelLabel = { district: 'Districts', region: 'Régions', departement: 'Départements', 'sous-prefecture': 'Sous-préfectures' };
 
   return (
     <div className="h-full flex flex-col lg:flex-row">
@@ -1275,8 +1275,8 @@ export default function Explorer() {
           {advancedFiltersOpen && (
             <div className="mt-2 bg-white/95 backdrop-blur-md rounded-xl p-4 shadow-lg border border-[#CBD5E1]/20">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider">Filtres avancÃ©s</span>
-                <button onClick={resetFilters} className="text-[10px] text-[#E8611A] font-bold hover:underline">RÃ©initialiser</button>
+                <span className="text-[11px] font-bold text-[#0D1B2A] uppercase tracking-wider">Filtres avancés</span>
+                <button onClick={resetFilters} className="text-[10px] text-[#E8611A] font-bold hover:underline">Réinitialiser</button>
               </div>
 
               <div className="flex flex-col gap-3">
@@ -1321,9 +1321,9 @@ export default function Explorer() {
                         { key: 'manque_bancs', label: 'Manque bancs', icon: 'chair' },
                         { key: 'sans_toilettes', label: 'Sans toilettes', icon: 'wc' },
                         { key: 'sans_eau', label: 'Sans eau', icon: 'water_drop' },
-                        { key: 'sans_electricite', label: 'Sans Ã©lectricitÃ©', icon: 'bolt' },
+                        { key: 'sans_electricite', label: 'Sans électricité', icon: 'bolt' },
                         { key: 'manque_enseignants', label: 'Manque enseignants', icon: 'person_off' },
-                        { key: 'materiaux_precaires', label: 'MatÃ©riaux prÃ©caires', icon: 'construction' },
+                        { key: 'materiaux_precaires', label: 'Matériaux précaires', icon: 'construction' },
                       ].map(f => {
                         const active = filters[f.key];
                         return (
@@ -1342,8 +1342,8 @@ export default function Explorer() {
                       <div className="flex flex-wrap gap-1.5">
                         {[
                           { value: 'public', label: 'Public' },
-                          { value: 'prive_laic', label: 'PrivÃ© laÃ¯c' },
-                          { value: 'prive_confessionnel', label: 'PrivÃ© confes.' },
+                          { value: 'prive_laic', label: 'Privé laïc' },
+                          { value: 'prive_confessionnel', label: 'Privé confes.' },
                           { value: 'communautaire_non_reconnue', label: 'Communautaire' },
                         ].map(s => {
                           const active = filters.statut.includes(s.value);
@@ -1379,8 +1379,8 @@ export default function Explorer() {
                       <span className="material-symbols-outlined text-[18px] text-[#E8611A]">lock</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-[#0D1B2A]">Filtres avancÃ©s</p>
-                      <p className="text-[10px] text-[#94A3B8]">Infrastructure, statut juridique, taux paritÃ© â€” connectez-vous en tant que dÃ©cideur</p>
+                      <p className="text-[11px] font-bold text-[#0D1B2A]">Filtres avancés</p>
+                      <p className="text-[10px] text-[#94A3B8]">Infrastructure, statut juridique, taux parité â€” connectez-vous en tant que décideur</p>
                     </div>
                   </div>
                 )}
@@ -1436,10 +1436,10 @@ export default function Explorer() {
           </div>
           <div className="flex items-center justify-between">
             <h2 className="font-extrabold text-[#0D1B2A] text-lg tracking-tight">
-              {selectedSchool ? 'Fiche Ã‰cole' :
-                selected ? `Sous-prÃ©fecture de ${selected.name}` :
-                breadcrumb.dept ? `DÃ©partement de ${breadcrumb.dept}` :
-                breadcrumb.region ? `RÃ©gion de ${breadcrumb.region}` :
+              {selectedSchool ? 'Fiche École' :
+                selected ? `Sous-préfecture de ${selected.name}` :
+                breadcrumb.dept ? `Département de ${breadcrumb.dept}` :
+                breadcrumb.region ? `Région de ${breadcrumb.region}` :
                 breadcrumb.district ? `District ${breadcrumb.district.includes('District') ? breadcrumb.district : 'des ' + breadcrumb.district}` :
                 'Districts'}
             </h2>
@@ -1450,11 +1450,11 @@ export default function Explorer() {
               </button>
             )}
           </div>
-          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'region' ? 'rÃ©gions' : currentLevel === 'departement' ? 'dÃ©partements' : 'sous-prÃ©fectures'} dans {breadcrumb.dept || breadcrumb.region || breadcrumb.district || 'CÃ´te d\'Ivoire'}</p>
+          <p className="text-[11px] text-[#94A3B8] mt-1">{zones.length} {currentLevel === 'district' ? 'districts' : currentLevel === 'region' ? 'régions' : currentLevel === 'departement' ? 'départements' : 'sous-préfectures'} dans {breadcrumb.dept || breadcrumb.region || breadcrumb.district || 'Côte d\'Ivoire'}</p>
           {hasActiveFilters && (
             <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full bg-[#E8611A]/10 text-[#E8611A] text-[10px] font-bold">
               <span className="material-symbols-outlined text-[10px]">filter_alt</span>
-              {filteredSchools.length} / {totalSchools} Ã©coles
+              {filteredSchools.length} / {totalSchools} écoles
             </span>
           )}
         </div>
@@ -1472,8 +1472,8 @@ export default function Explorer() {
             }
             const pctFilles = (s.girls + s.boys) > 0 ? Math.round(s.girls / (s.girls + s.boys) * 100) : 0;
             return (<>
-              <StatCard icon="school" label="Ã‰coles" value={s.schools} />
-              <StatCard icon="groups" label="Ã‰lÃ¨ves" value={s.students} format="k" />
+              <StatCard icon="school" label="Écoles" value={s.schools} />
+              <StatCard icon="groups" label="Élèves" value={s.students} format="k" />
               <StatCard icon="girl" label="Filles" value={pctFilles} suffix="%" />
             </>);
           })()}
@@ -1488,7 +1488,7 @@ export default function Explorer() {
           return (
             <div className="px-5 py-3 border-b border-[#CBD5E1]/20">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">ParitÃ© filles/garÃ§ons</span>
+                <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Parité filles/garçons</span>
               </div>
               <div className="w-full h-2 bg-white rounded-full overflow-hidden flex">
                 <div className="h-full bg-[#E8611A] rounded-l-full transition-all duration-500" style={{ width: `${pct}%` }} />
@@ -1496,7 +1496,7 @@ export default function Explorer() {
               </div>
               <div className="flex justify-between text-[10px] font-bold mt-1.5">
                 <span className="text-[#E8611A]">{pct}% filles</span>
-                <span className="text-[#00796B]">{100 - pct}% garÃ§ons</span>
+                <span className="text-[#00796B]">{100 - pct}% garçons</span>
               </div>
             </div>
           );
@@ -1525,9 +1525,9 @@ export default function Explorer() {
                     <p className="text-[13px] font-bold text-[#0D1B2A] truncate group-hover:text-[#E8611A] transition-colors">{z.name}</p>
                     <p className="text-[10px] text-[#94A3B8] font-medium">
                       {hasActiveFilters ? (
-                        <>{filteredCount} / {(zs.schools || 0).toLocaleString('fr-FR')} Ã©coles</>
+                        <>{filteredCount} / {(zs.schools || 0).toLocaleString('fr-FR')} écoles</>
                       ) : (
-                        <>{(zs.schools || 0).toLocaleString('fr-FR')} Ã©coles Â· {zs.students ? Math.round(zs.students / 1000) + 'k Ã©lÃ¨ves' : 'â€”'}</>
+                        <>{(zs.schools || 0).toLocaleString('fr-FR')} écoles · {zs.students ? Math.round(zs.students / 1000) + 'k élèves' : 'â€”'}</>
                       )}
                     </p>
                   </div>
