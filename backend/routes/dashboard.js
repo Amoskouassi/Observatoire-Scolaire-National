@@ -63,7 +63,7 @@ router.get('/my-zone', authMiddleware, async (req, res, next) => {
 
     const { data: ecoles, error } = await supabaseAdmin
       .from('ecoles')
-      .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at')
+      .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at, cloturee')
       .eq(zoneColumn, zoneCode);
 
     if (error) throw error;
@@ -105,6 +105,7 @@ router.get('/my-zone', authMiddleware, async (req, res, next) => {
       },
 
       infrastructure: {
+        ecoles_cloturees: data.filter(e => e.cloturee).length,
         sans_toilettes: data.filter(e => !e.toilettes_filles_fonctionnelles).length,
         sans_eau: data.filter(e => !e.eau_potable).length,
         sans_electricite: data.filter(e => !e.electricite).length,
@@ -156,7 +157,7 @@ router.get('/stats/:level/:code?', async (req, res, next) => {
   try {
     const { level, code } = req.params;
 
-    let query = supabaseAdmin.from('ecoles').select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, eleves_total, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at');
+    let query = supabaseAdmin.from('ecoles').select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, eleves_total, enseignants_presents, salles_classe_total, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes, collect_status, last_collecte_at, cloturee');
 
     if (code) {
       const columnMap = {
@@ -284,7 +285,7 @@ router.get('/school-ranking/:level/:code?', async (req, res, next) => {
     const type = req.query.type || 'eleves';
     let query = supabaseAdmin
       .from('ecoles')
-      .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, enseignants_presents, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes');
+      .select('id, code_mena, nom_etablissement, statut, niveau_enseignement, milieu_implantation, commune_code, departement_code, region_code, district_code, nombre_filles, nombre_garcons, enseignants_presents, toilettes_filles_fonctionnelles, eau_potable, electricite, materiaux_precaires, inventaire_classes, cloturee');
 
     if (code) {
       const columnMap = { district: 'district_code', region: 'region_code', departement: 'departement_code', commune: 'commune_code' };
@@ -319,6 +320,7 @@ router.get('/school-ranking/:level/:code?', async (req, res, next) => {
         sans_toilettes: !e.toilettes_filles_fonctionnelles,
         sans_electricite: !e.electricite,
         materiaux_precaires: e.materiaux_precaires?.length > 0,
+        cloturee: e.cloturee || false,
       };
     });
 
@@ -333,6 +335,7 @@ router.get('/school-ranking/:level/:code?', async (req, res, next) => {
       case 'sans_toilettes': sortKey = 'eleves'; title = 'Sans toilettes'; filtered = schools.filter(e => e.sans_toilettes); break;
       case 'sans_electricite': sortKey = 'eleves'; title = 'Sans électricité'; filtered = schools.filter(e => e.sans_electricite); break;
       case 'materiaux_precaires': sortKey = 'eleves'; title = 'Matériaux précaires'; filtered = schools.filter(e => e.materiaux_precaires); break;
+      case 'cloturees': sortKey = 'eleves'; title = 'Écoles clôturées'; filtered = schools.filter(e => e.cloturee); break;
       default: sortKey = 'eleves'; title = 'Élèves'; break;
     }
 

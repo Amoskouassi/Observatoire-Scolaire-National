@@ -51,6 +51,8 @@ const collecteSchema = z.object({
   securite_routiere: z.boolean().nullish(),
 
   nb_latrines: z.number().int().min(0).nullish(),
+  toilettes_separees_garcons_filles: z.boolean().nullish(),
+  toilettes_separees_hommes_femmes: z.boolean().nullish(),
   eau_potable: z.boolean().nullish(),
   source_eau_village: z.enum(['sodeci', 'forage_village', 'aucun']).nullish(),
   localite_raccordee_elec: z.boolean().nullish(),
@@ -99,6 +101,8 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
       presence_cloture: req.body.presence_cloture,
       securite_routiere: req.body.securite_routiere,
       nb_latrines: req.body.nb_latrines,
+      toilettes_separees_garcons_filles: req.body.toilettes_separees_garcons_filles,
+      toilettes_separees_hommes_femmes: req.body.toilettes_separees_hommes_femmes,
       eau_potable: req.body.eau_potable,
       source_eau_village: req.body.source_eau_village,
       localite_raccordee_elec: req.body.localite_raccordee_elec,
@@ -144,6 +148,7 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
       if (req.body.eau_potable != null) updateData.eau_potable = req.body.eau_potable;
       if (req.body.ecole_electrifiee != null) updateData.electricite = req.body.ecole_electrifiee;
       if (req.body.nb_latrines != null) updateData.toilettes_filles_fonctionnelles = req.body.nb_latrines > 0;
+      if (req.body.presence_cloture != null) updateData.cloturee = req.body.presence_cloture;
       if (req.body.materiaux_batiment) updateData.materiaux_precaires = [req.body.materiaux_batiment];
       if (req.body.nb_enseignants_presents != null) updateData.enseignants_presents = req.body.nb_enseignants_presents;
       if (req.body.inventaire_classes && req.body.inventaire_classes.length > 0) {
@@ -178,6 +183,7 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
         eau_potable: req.body.eau_potable || false,
         electricite: req.body.ecole_electrifiee || false,
         toilettes_filles_fonctionnelles: (req.body.nb_latrines || 0) > 0,
+        cloturee: req.body.presence_cloture || false,
         materiaux_precaires: req.body.materiaux_batiment ? [req.body.materiaux_batiment] : [],
         besoin_bancs: req.body.inventaire_classes ? req.body.inventaire_classes.reduce((sum, c) => sum + (c.besoin_bancs || 0), 0) : 0,
         photo_url: req.body.photos?.[0]?.url || null,

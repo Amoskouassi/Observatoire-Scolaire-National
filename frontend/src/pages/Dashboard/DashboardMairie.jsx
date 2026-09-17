@@ -495,6 +495,24 @@ export default function DashboardMairie() {
               {stats.total_enseignants.toLocaleString('fr-FR')}
             </p>
           </button>
+
+          <button
+            onClick={() => api.getSchoolRanking(zone.level, zone.code, 'cloturees').then(d => setRankingModal({ ...d, filterType: 'cloturees' })).catch(() => {})}
+            className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="p-1.5 rounded-lg bg-[#e7eeff] text-[#0D1B2A]">
+                <span className="material-symbols-outlined text-[20px]">fence</span>
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#00796B]/10 text-[#00796B]">
+                {stats.total_ecoles > 0 ? Math.round((stats.infrastructure.ecoles_cloturees / stats.total_ecoles) * 100) : 0}%
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">Clôturées</p>
+            <p className="text-[1.25rem] md:text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">
+              {stats.infrastructure.ecoles_cloturees}
+            </p>
+          </button>
         </div>
 
         {/* 8. Liste écoles par statut/type */}

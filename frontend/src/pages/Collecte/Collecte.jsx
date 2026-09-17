@@ -30,6 +30,7 @@ const initialState = {
   localite_raccordee_elec: false, ecole_electrifiee: false,
   source_energie: '', poteau_100m: false,
   cantine_fonctionnelle: false, source_cantine: '',
+  toilettes_separees_garcons_filles: false, toilettes_separees_hommes_femmes: false,
   latitude: null, longitude: null, gps精度: null,
   photo: null, photoPreview: null,
   commentaires: '',
@@ -231,6 +232,8 @@ export default function Collecte() {
     );
   }, [reverseGeocode]);
 
+  useEffect(() => { getGps(); }, [getGps]);
+
   const handlePhoto = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -307,6 +310,8 @@ export default function Collecte() {
         presence_cloture: f.presence_cloture,
         securite_routiere: f.securite_routiere,
         nb_latrines: f.nb_latrines ? Number(f.nb_latrines) : null,
+        toilettes_separees_garcons_filles: f.toilettes_separees_garcons_filles,
+        toilettes_separees_hommes_femmes: f.toilettes_separees_hommes_femmes,
         eau_potable: f.eau_potable,
         source_eau_village: s(f.source_eau_village),
         localite_raccordee_elec: f.localite_raccordee_elec,
@@ -494,7 +499,7 @@ export default function Collecte() {
                 )}
               </Field>
               <Field label="Q11 — Niveau d'enseignement">
-                <RadioGroup value={f.niveau_enseignement} onChange={v => u('niveau_enseignement', v)} options={['primaire', 'secondaire', 'superieur']} />
+                <RadioGroup value={f.niveau_enseignement} onChange={v => u('niveau_enseignement', v)} options={['maternelle', 'primaire', 'secondaire', 'superieur']} />
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Q12 — Année création">
@@ -633,6 +638,16 @@ export default function Collecte() {
               <Field label="Q19 — Nombre de cabines de latrines fonctionnelles">
                 <input type="number" value={f.nb_latrines} onChange={e => u('nb_latrines', e.target.value)} className={inputCls} min="0" />
               </Field>
+              {f.niveau_enseignement === 'maternelle' && (
+                <>
+                  <Field label="Q19A — Toilettes séparées garçons / filles ?">
+                    <YesNon value={f.toilettes_separees_garcons_filles} onChange={v => u('toilettes_separees_garcons_filles', v)} />
+                  </Field>
+                  <Field label="Q19B — Toilettes séparées hommes / femmes (personnel) ?">
+                    <YesNon value={f.toilettes_separees_hommes_femmes} onChange={v => u('toilettes_separees_hommes_femmes', v)} />
+                  </Field>
+                </>
+              )}
               <Field label="Q20 — Accès à l'eau potable ?">
                 <YesNon value={f.eau_potable} onChange={v => u('eau_potable', v)} />
               </Field>
