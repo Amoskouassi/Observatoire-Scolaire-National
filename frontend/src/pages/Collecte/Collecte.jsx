@@ -535,11 +535,14 @@ export default function Collecte() {
                   <Field label="Niveau">
                     <select value={cl.niveau} onChange={e => updateClasse(idx, 'niveau', e.target.value)} className={selectCls} style={selectStyle}>
                       <option value="">Choisir...</option>
-                      {f.niveau_enseignement === 'secondaire' ? (
-                        ['6ème','5ème','4ème','3ème','Seconde','Première','Terminale'].map(n => <option key={n} value={n}>{n}</option>)
-                      ) : (
-                        ['CP1','CP2','CE1','CE2','CM1','CM2'].map(n => <option key={n} value={n}>{n}</option>)
-                      )}
+                      {f.niveau_enseignement === 'maternelle'
+                        ? ['Petite Section','Moyenne Section','Grande Section'].map(n => <option key={n} value={n}>{n}</option>)
+                        : f.niveau_enseignement === 'secondaire'
+                        ? ['6ème','5ème','4ème','3ème','Seconde','Première','Terminale'].map(n => <option key={n} value={n}>{n}</option>)
+                        : f.niveau_enseignement === 'superieur'
+                        ? ['Prépa','1ère année','2ème année','3ème année'].map(n => <option key={n} value={n}>{n}</option>)
+                        : ['CP1','CP2','CE1','CE2','CM1','CM2'].map(n => <option key={n} value={n}>{n}</option>)
+                      }
                     </select>
                   </Field>
                   <div className="grid grid-cols-3 gap-2">

@@ -731,32 +731,65 @@ export default function DashboardMairie() {
               </div>
             </div>
 
-            {/* Infrastructure — compact */}
-            <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-              <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2 uppercase">Infrastructure</h3>
-              <div className="space-y-2">
-                {besoins.map((b) => (
-                  <button
-                    key={b.label}
-                    onClick={() => api.getSchoolRanking(zone.level, zone.code, b.filter).then(d => setRankingModal({ ...d, filterType: b.filter })).catch(() => {})}
-                    className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-1.5 -m-1.5 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center justify-between mb-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-[#E8611A] transition-colors">
-                          {b.icon}
-                        </span>
-                        <span className="text-[10px] font-semibold text-gray-700">{b.label}</span>
-                        {b.subtitle && (
-                          <span className="text-[9px] text-gray-400">({b.subtitle})</span>
-                        )}
+            {/* Infrastructure + Top écoles côte à côte */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Infrastructure — compact */}
+              <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+                <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2 uppercase">Infrastructure</h3>
+                <div className="space-y-2">
+                  {besoins.map((b) => (
+                    <button
+                      key={b.label}
+                      onClick={() => api.getSchoolRanking(zone.level, zone.code, b.filter).then(d => setRankingModal({ ...d, filterType: b.filter })).catch(() => {})}
+                      className="w-full text-left hover:bg-[#F4EFE6] rounded-lg p-1.5 -m-1.5 transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center justify-between mb-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[12px] text-gray-400 group-hover:text-[#E8611A] transition-colors">
+                            {b.icon}
+                          </span>
+                          <span className="text-[10px] font-semibold text-gray-700">{b.label}</span>
+                          {b.subtitle && (
+                            <span className="text-[9px] text-gray-400">({b.subtitle})</span>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-black" style={{ color: b.color }}>{b.value}</span>
                       </div>
-                      <span className="text-[11px] font-black" style={{ color: b.color }}>{b.value}</span>
-                    </div>
-                    <Jauge value={b.value} max={stats.total_ecoles} color={b.color} />
-                  </button>
-                ))}
+                      <Jauge value={b.value} max={stats.total_ecoles} color={b.color} />
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {/* Top écoles à besoins — compact */}
+              {stats.top_ecoles_besoin?.length > 0 && (
+                <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+                  <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2 uppercase">Top écoles à besoins</h3>
+                  <div className="space-y-1.5">
+                    {stats.top_ecoles_besoin.slice(0, 5).map((e, i) => (
+                      <div key={e.id} className="flex items-center gap-1.5 bg-[#F4EFE6] rounded-lg p-1.5">
+                        <span className="text-[11px] font-black text-[#E8611A] w-4 text-center">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-bold text-[#0D1B2A] truncate">{e.nom}</p>
+                          <p className="text-[9px] text-gray-500">{e.eleves} élèves · {e.besoins} besoins</p>
+                        </div>
+                        <div className="flex gap-0.5">
+                          {e.sans_eau && (
+                            <span className="w-3.5 h-3.5 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[8px] text-[#ba1a1a]">water_drop</span>
+                            </span>
+                          )}
+                          {e.sans_toilettes && (
+                            <span className="w-3.5 h-3.5 rounded-full bg-[#E8611A]/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[8px] text-[#E8611A]">wc</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Répartition par milieu */}
@@ -787,36 +820,6 @@ export default function DashboardMairie() {
                 </button>
               </div>
             </div>
-
-            {/* Top écoles à besoins */}
-            {stats.top_ecoles_besoin?.length > 0 && (
-              <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                <h3 className="text-xs font-bold text-[#0D1B2A] mb-2">Top écoles à besoins</h3>
-                <div className="space-y-1.5">
-                  {stats.top_ecoles_besoin.slice(0, 5).map((e, i) => (
-                    <div key={e.id} className="flex items-center gap-2 bg-[#F4EFE6] rounded-lg p-2">
-                      <span className="text-sm font-black text-[#E8611A] w-5 text-center">{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-bold text-[#0D1B2A] truncate">{e.nom}</p>
-                        <p className="text-[9px] text-gray-500">{e.eleves} élèves · {e.besoins} besoins</p>
-                      </div>
-                      <div className="flex gap-0.5">
-                        {e.sans_eau && (
-                          <span className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">water_drop</span>
-                          </span>
-                        )}
-                        {e.sans_toilettes && (
-                          <span className="w-4 h-4 rounded-full bg-[#E8611A]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[9px] text-[#E8611A]">wc</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Classement communes (admin only) */}
             {isAdmin && communeRanking.length > 0 && (
