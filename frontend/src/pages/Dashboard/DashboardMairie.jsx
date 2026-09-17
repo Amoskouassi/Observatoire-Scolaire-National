@@ -71,13 +71,6 @@ export default function DashboardMairie() {
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [rankingModal, setRankingModal] = useState(null);
   const [expandedAlert, setExpandedAlert] = useState(null);
-  const [viewMode, setViewMode] = useState(() => localStorage.getItem('osn_dashboard_view') || 'overview');
-
-  const toggleView = () => {
-    const next = viewMode === 'overview' ? 'analytical' : 'overview';
-    setViewMode(next);
-    localStorage.setItem('osn_dashboard_view', next);
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -281,16 +274,6 @@ export default function DashboardMairie() {
                   <option key={a} value={a}>{a}</option>
                 ))}
               </select>
-              <div className="flex bg-[#F4EFE6] rounded-lg p-0.5 border border-gray-200">
-                <button onClick={() => viewMode !== 'overview' && toggleView()}
-                  className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${viewMode === 'overview' ? 'bg-[#E8611A] text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                  Vue d'ensemble
-                </button>
-                <button onClick={() => viewMode !== 'analytical' && toggleView()}
-                  className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${viewMode === 'analytical' ? 'bg-[#E8611A] text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                  Analytique
-                </button>
-              </div>
             </div>
           </div>
           <h2 className="text-lg font-bold text-[#0D1B2A]">
@@ -301,10 +284,7 @@ export default function DashboardMairie() {
           )}
         </div>
 
-        {/* ====== VUE D'ENSEMBLE ====== */}
-        {viewMode === 'overview' && (
-          <>
-            {/* 5 compact KPI cards */}
+        {/* 5 compact KPI cards */}
             <div className="grid grid-cols-5 gap-2">
               <button
                 onClick={() => api.getSchoolRanking(zone.level, zone.code, 'ecoles').then(d => setRankingModal({ ...d, filterType: 'ecoles' })).catch(() => {})}
@@ -504,13 +484,8 @@ export default function DashboardMairie() {
                 <span className="material-symbols-outlined text-[20px]">description</span> Générer un rapport PDF
               </button>
             </div>
-          </>
-        )}
 
-        {/* ====== VUE ANALYTIQUE ====== */}
-        {viewMode === 'analytical' && (
-          <>
-            {/* 5 compact KPI cards — same layout as Vue d'ensemble */}
+        {/* 5 compact KPI cards — analytiques */}
             <div className="grid grid-cols-5 gap-2">
               <button
                 onClick={() => api.getSchoolRanking(zone.level, zone.code, 'ecoles').then(d => setRankingModal({ ...d, filterType: 'ecoles' })).catch(() => {})}
@@ -886,8 +861,6 @@ export default function DashboardMairie() {
                 <span className="material-symbols-outlined text-[20px]">description</span> Générer un rapport PDF
               </button>
             </div>
-          </>
-        )}
 
       </div>
 
