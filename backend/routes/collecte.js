@@ -148,6 +148,8 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
       if (req.body.eau_potable != null) updateData.eau_potable = req.body.eau_potable;
       if (req.body.ecole_electrifiee != null) updateData.electricite = req.body.ecole_electrifiee;
       if (req.body.nb_latrines != null) updateData.toilettes_filles_fonctionnelles = req.body.nb_latrines > 0;
+      if (req.body.toilettes_separees_garcons_filles != null) updateData.toilettes_separees_garcons_filles = req.body.toilettes_separees_garcons_filles;
+      if (req.body.toilettes_separees_hommes_femmes != null) updateData.toilettes_separees_hommes_femmes = req.body.toilettes_separees_hommes_femmes;
       if (req.body.presence_cloture != null) updateData.cloturee = req.body.presence_cloture;
       if (req.body.materiaux_batiment) updateData.materiaux_precaires = [req.body.materiaux_batiment];
       if (req.body.nb_enseignants_presents != null) updateData.enseignants_presents = req.body.nb_enseignants_presents;
@@ -183,6 +185,8 @@ router.post('/', validateRequest(collecteSchema), async (req, res, next) => {
         eau_potable: req.body.eau_potable || false,
         electricite: req.body.ecole_electrifiee || false,
         toilettes_filles_fonctionnelles: (req.body.nb_latrines || 0) > 0,
+        toilettes_separees_garcons_filles: req.body.toilettes_separees_garcons_filles || false,
+        toilettes_separees_hommes_femmes: req.body.toilettes_separees_hommes_femmes || false,
         cloturee: req.body.presence_cloture || false,
         materiaux_precaires: req.body.materiaux_batiment ? [req.body.materiaux_batiment] : [],
         besoin_bancs: req.body.inventaire_classes ? req.body.inventaire_classes.reduce((sum, c) => sum + (c.besoin_bancs || 0), 0) : 0,

@@ -26,11 +26,12 @@ const initialState = {
   nb_enseignants_presents: '', deficit_enseignants: false,
   nb_enseignants_manquants: '', classes_jumelees: false, matieres_penurie: [],
   materiaux_batiment: '', presence_cloture: false, securite_routiere: false,
-  nb_latrines: '', eau_potable: false, source_eau_village: '',
+  toilettes_eleves: false, nb_toilettes_eleves: '', toilettes_eleves_separees: false,
+  toilettes_enseignants: false, nb_toilettes_enseignants: '', toilettes_enseignants_separees: false,
+  eau_potable: false, source_eau_village: '',
   localite_raccordee_elec: false, ecole_electrifiee: false,
   source_energie: '', poteau_100m: false,
   cantine_fonctionnelle: false, source_cantine: '',
-  toilettes_separees_garcons_filles: false, toilettes_separees_hommes_femmes: false,
   latitude: null, longitude: null, gps精度: null,
   photo: null, photoPreview: null,
   commentaires: '',
@@ -309,9 +310,9 @@ export default function Collecte() {
         materiaux_batiment: s(f.materiaux_batiment),
         presence_cloture: f.presence_cloture,
         securite_routiere: f.securite_routiere,
-        nb_latrines: f.nb_latrines ? Number(f.nb_latrines) : null,
-        toilettes_separees_garcons_filles: f.toilettes_separees_garcons_filles,
-        toilettes_separees_hommes_femmes: f.toilettes_separees_hommes_femmes,
+        nb_latrines: (f.toilettes_eleves ? Number(f.nb_toilettes_eleves) || 0 : 0) + (f.toilettes_enseignants ? Number(f.nb_toilettes_enseignants) || 0 : 0),
+        toilettes_separees_garcons_filles: f.toilettes_eleves_separees,
+        toilettes_separees_hommes_femmes: f.toilettes_enseignants_separees,
         eau_potable: f.eau_potable,
         source_eau_village: s(f.source_eau_village),
         localite_raccordee_elec: f.localite_raccordee_elec,
@@ -635,24 +636,43 @@ export default function Collecte() {
         {step === 4 && (
           <div className="space-y-4 animate-fade-in-up">
             <Section title="Hygiène & Eau" color="#E8611A">
-              <Field label="Q19 — Nombre de cabines de latrines fonctionnelles">
-                <input type="number" value={f.nb_latrines} onChange={e => u('nb_latrines', e.target.value)} className={inputCls} min="0" />
+              <Field label="Q19 — Existe-t-il des toilettes pour élèves ?">
+                <YesNon value={f.toilettes_eleves} onChange={v => u('toilettes_eleves', v)} />
               </Field>
-              {f.niveau_enseignement === 'maternelle' && (
+              {f.toilettes_eleves === true && (
                 <>
-                  <Field label="Q19A — Toilettes séparées garçons / filles ?">
-                    <YesNon value={f.toilettes_separees_garcons_filles} onChange={v => u('toilettes_separees_garcons_filles', v)} />
+                  <Field label="Q19A — Combien de cabines ?">
+                    <input type="number" value={f.nb_toilettes_eleves} onChange={e => u('nb_toilettes_eleves', e.target.value)} className={inputCls} min="0" />
                   </Field>
-                  <Field label="Q19B — Toilettes séparées hommes / femmes (personnel) ?">
-                    <YesNon value={f.toilettes_separees_hommes_femmes} onChange={v => u('toilettes_separees_hommes_femmes', v)} />
-                  </Field>
+                  {Number(f.nb_toilettes_eleves) >= 2 && (
+                    <Field label="Q19B — Sont-elles séparées (garçons / filles) ?">
+                      <YesNon value={f.toilettes_eleves_separees} onChange={v => u('toilettes_eleves_separees', v)} />
+                    </Field>
+                  )}
                 </>
               )}
-              <Field label="Q20 — Accès à l'eau potable ?">
+
+              <Field label="Q20 — Existe-t-il des toilettes pour enseignants ?">
+                <YesNon value={f.toilettes_enseignants} onChange={v => u('toilettes_enseignants', v)} />
+              </Field>
+              {f.toilettes_enseignants === true && (
+                <>
+                  <Field label="Q20A — Combien de cabines ?">
+                    <input type="number" value={f.nb_toilettes_enseignants} onChange={e => u('nb_toilettes_enseignants', e.target.value)} className={inputCls} min="0" />
+                  </Field>
+                  {Number(f.nb_toilettes_enseignants) >= 2 && (
+                    <Field label="Q20B — Sont-elles séparées (hommes / femmes) ?">
+                      <YesNon value={f.toilettes_enseignants_separees} onChange={v => u('toilettes_enseignants_separees', v)} />
+                    </Field>
+                  )}
+                </>
+              )}
+
+              <Field label="Q21 — Accès à l'eau potable ?">
                 <YesNon value={f.eau_potable} onChange={v => u('eau_potable', v)} />
               </Field>
               {f.eau_potable === false && (
-                <Field label="Q20A — Source d'eau du village">
+                <Field label="Q21A — Source d'eau du village">
                   <RadioGroup value={f.source_eau_village} onChange={v => u('source_eau_village', v)} options={[
                     { value: 'sodeci', label: 'SODECI' },
                     { value: 'forage_village', label: 'Forage village' },
@@ -663,14 +683,14 @@ export default function Collecte() {
             </Section>
 
             <Section title="Électricité" color="#E8611A">
-              <Field label="Q21 — Localité raccordée au réseau CIE ?">
+              <Field label="Q22 — Localité raccordée au réseau CIE ?">
                 <YesNon value={f.localite_raccordee_elec} onChange={v => u('localite_raccordee_elec', v)} />
               </Field>
-              <Field label="Q22 — L'école est-elle électrifiée ?">
+              <Field label="Q23 — L'école est-elle électrifiée ?">
                 <YesNon value={f.ecole_electrifiee} onChange={v => u('ecole_electrifiee', v)} />
               </Field>
               {f.ecole_electrifiee === true && (
-                <Field label="Q22A — Source d'énergie">
+                <Field label="Q23A — Source d'énergie">
                   <RadioGroup value={f.source_energie} onChange={v => u('source_energie', v)} options={[
                     { value: 'reseau_cie', label: 'Réseau CIE' },
                     { value: 'panneaux_solaires', label: 'Panneaux solaires' },
@@ -679,18 +699,18 @@ export default function Collecte() {
                 </Field>
               )}
               {f.ecole_electrifiee === false && (
-                <Field label="Q22B — Poteau électrique à moins de 100m ?">
+                <Field label="Q23B — Poteau électrique à moins de 100m ?">
                   <YesNon value={f.poteau_100m} onChange={v => u('poteau_100m', v)} />
                 </Field>
               )}
             </Section>
 
             <Section title="Cantine" color="#E8611A">
-              <Field label="Q23 — Cantine scolaire fonctionnelle ?">
+              <Field label="Q24 — Cantine scolaire fonctionnelle ?">
                 <YesNon value={f.cantine_fonctionnelle} onChange={v => u('cantine_fonctionnelle', v)} />
               </Field>
               {f.cantine_fonctionnelle === true && (
-                <Field label="Q23A — Source d'approvisionnement">
+                <Field label="Q24A — Source d'approvisionnement">
                   <RadioGroup value={f.source_cantine} onChange={v => u('source_cantine', v)} options={[
                     { value: 'unicef_pam', label: 'UNICEF/PAM' },
                     { value: 'parents', label: 'Parents' },
@@ -703,7 +723,7 @@ export default function Collecte() {
             <Section title="Géolocalisation & Photo" color="#E8611A">
               <div className="bg-white border border-[#CBD5E1]/30 rounded-xl p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold text-[#0D1B2A]">Q24 — Point GPS</span>
+                  <span className="text-[11px] font-bold text-[#0D1B2A]">Q25 — Point GPS</span>
                   <button onClick={getGps} className="text-[10px] text-[#E8611A] font-bold flex items-center gap-1">
                     <span className="material-symbols-outlined text-[12px]">my_location</span>
                     {gpsLoading ? 'Acquisition...' : 'Actualiser'}
@@ -740,7 +760,7 @@ export default function Collecte() {
                 )}
               </div>
 
-              <Field label="Q25 — Photo de la façade">
+              <Field label="Q26 — Photo de la façade">
                 <input ref={photoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
                 {f.photoPreview ? (
                   <div className="relative">
