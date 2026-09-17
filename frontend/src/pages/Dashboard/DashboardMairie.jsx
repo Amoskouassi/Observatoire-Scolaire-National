@@ -544,84 +544,125 @@ export default function DashboardMairie() {
         {/* ====== VUE ANALYTIQUE ====== */}
         {viewMode === 'analytical' && (
           <>
-            {/* Alertes critiques */}
+            {/* 5 compact KPI cards — same layout as Vue d'ensemble */}
+            <div className="grid grid-cols-5 gap-2">
+              <button
+                onClick={() => api.getSchoolRanking(zone.level, zone.code, 'ecoles').then(d => setRankingModal({ ...d, filterType: 'ecoles' })).catch(() => {})}
+                className="p-2 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
+              >
+                <span className="material-symbols-outlined text-[#0D1B2A] text-[16px]">school</span>
+                <p className="text-[9px] text-gray-500 mt-1">Écoles</p>
+                <p className="text-sm font-black tabular-nums text-[#0D1B2A]">{stats.total_ecoles}</p>
+              </button>
+              <button
+                onClick={() => api.getSchoolRanking(zone.level, zone.code, 'eleves').then(d => setRankingModal({ ...d, filterType: 'eleves' })).catch(() => {})}
+                className="p-2 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
+              >
+                <span className="material-symbols-outlined text-[#E8611A] text-[16px]">groups</span>
+                <p className="text-[9px] text-gray-500 mt-1">Élèves</p>
+                <p className="text-sm font-black tabular-nums text-[#0D1B2A]">{stats.total_eleves.toLocaleString('fr-FR')}</p>
+              </button>
+              <button
+                onClick={() => api.getSchoolRanking(zone.level, zone.code, 'enseignants').then(d => setRankingModal({ ...d, filterType: 'enseignants' })).catch(() => {})}
+                className="p-2 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
+              >
+                <span className="material-symbols-outlined text-[#00796B] text-[16px]">person</span>
+                <p className="text-[9px] text-gray-500 mt-1">Enseignants</p>
+                <p className="text-sm font-black tabular-nums text-[#0D1B2A]">{stats.total_enseignants.toLocaleString('fr-FR')}</p>
+              </button>
+              <button
+                onClick={() => api.getSchoolRanking(zone.level, zone.code, 'cloturees').then(d => setRankingModal({ ...d, filterType: 'cloturees' })).catch(() => {})}
+                className="p-2 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
+              >
+                <span className="material-symbols-outlined text-[#00796B] text-[16px]">fence</span>
+                <p className="text-[9px] text-gray-500 mt-1">Clôturées</p>
+                <p className="text-sm font-black tabular-nums text-[#0D1B2A]">{stats.infrastructure.ecoles_cloturees}</p>
+              </button>
+              <button
+                onClick={() => api.getSchoolRanking(zone.level, zone.code, 'sans_eau').then(d => setRankingModal({ ...d, filterType: 'sans_eau' })).catch(() => {})}
+                className={`p-2 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer ${stats.infrastructure.sans_eau > 0 ? 'bg-[#ffdad6]/40' : 'bg-[#FAF8F3]'}`}
+              >
+                <span className={`material-symbols-outlined text-[16px] ${stats.infrastructure.sans_eau > 0 ? 'text-[#ba1a1a]' : 'text-[#0D1B2A]'}`}>water_drop</span>
+                <p className="text-[9px] text-gray-500 mt-1">Sans eau</p>
+                <p className={`text-sm font-black tabular-nums ${stats.infrastructure.sans_eau > 0 ? 'text-[#ba1a1a]' : 'text-[#0D1B2A]'}`}>{stats.infrastructure.sans_eau}</p>
+              </button>
+            </div>
+
+            {/* Alertes critiques — compact with expand/collapse, matching Vue d'ensemble */}
             {alertList.length > 0 && (
-              <div className="bg-[#ffdad6] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="material-symbols-outlined text-[#ba1a1a] text-[20px]">warning</span>
-                  <h3 className="text-sm font-bold text-[#ba1a1a]">
-                    Alertes critiques ({alerts.total})
-                  </h3>
+              <div className="bg-[#ffdad6] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[#ba1a1a] text-[16px]">warning</span>
+                    <h3 className="text-xs font-bold text-[#ba1a1a]">Alertes critiques ({alerts.total})</h3>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?filter=critical&show_points=1`)}
+                    className="text-[9px] font-bold text-white bg-[#ba1a1a] rounded-lg px-2.5 py-1 hover:bg-[#ba1a1a]/90 transition-colors cursor-pointer"
+                  >
+                    Explorer
+                  </button>
                 </div>
-                <div className="space-y-2">
-                  {visibleAlerts.map((s) => (
-                    <div key={s.id || s.code} className="flex items-start gap-2 bg-white/60 rounded-lg p-2.5">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-[#0D1B2A] truncate">{s.nom || s.code}</p>
-                        <p className="text-[10px] text-gray-500">{s.commune}</p>
+                <div className="space-y-1.5">
+                  {visibleAlerts.slice(0, 3).map((s) => (
+                    <div key={s.id || s.code}
+                      className="bg-white/60 rounded-lg overflow-hidden cursor-pointer"
+                      onClick={() => setExpandedAlert(expandedAlert === (s.id || s.code) ? null : (s.id || s.code))}>
+                      <div className="flex items-center gap-2 p-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-bold text-[#0D1B2A] truncate">{s.nom || s.code}</p>
+                        </div>
+                        <div className="flex gap-0.5 flex-shrink-0">
+                          {s.sans_eau && (
+                            <span title="Sans eau potable" className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">water_drop</span>
+                            </span>
+                          )}
+                          {s.sans_toilettes && (
+                            <span title="Sans toilettes" className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">wc</span>
+                            </span>
+                          )}
+                          {s.materiaux && (
+                            <span title="Matériaux précaires" className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">construction</span>
+                            </span>
+                          )}
+                          {s.bancs_manquants > 0 && (
+                            <span title={`${s.bancs_manquants} bancs manquants`} className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">chair</span>
+                            </span>
+                          )}
+                        </div>
+                        <span className="material-symbols-outlined text-[10px] text-gray-300">
+                          {expandedAlert === (s.id || s.code) ? 'expand_less' : 'expand_more'}
+                        </span>
                       </div>
-                      <div className="flex gap-1 flex-shrink-0">
-                        {s.sans_eau && (
-                          <span className="w-5 h-5 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[11px] text-[#ba1a1a]">water_drop</span>
-                          </span>
-                        )}
-                        {s.sans_toilettes && (
-                          <span className="w-5 h-5 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[11px] text-[#ba1a1a]">wc</span>
-                          </span>
-                        )}
-                        {s.materiaux && (
-                          <span className="w-5 h-5 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[11px] text-[#ba1a1a]">construction</span>
-                          </span>
-                        )}
-                        {s.bancs_manquants > 0 && (
-                          <span className="w-5 h-5 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[11px] text-[#ba1a1a]">chair</span>
-                          </span>
-                        )}
-                      </div>
+                      {expandedAlert === (s.id || s.code) && (
+                        <div className="px-2 pb-2 pt-0 space-y-1 border-t border-[#ba1a1a]/10">
+                          {s.sans_eau && <p className="text-[9px] text-[#ba1a1a] font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">water_drop</span> Sans eau potable</p>}
+                          {s.sans_toilettes && <p className="text-[9px] text-[#ba1a1a] font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">wc</span> Sans toilettes</p>}
+                          {s.materiaux && <p className="text-[9px] text-[#ba1a1a] font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">construction</span> Matériaux précaires</p>}
+                          {s.bancs_manquants > 0 && <p className="text-[9px] text-[#ba1a1a] font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[10px]">chair</span> {s.bancs_manquants} bancs manquants</p>}
+                          {s.commune && <p className="text-[9px] text-gray-400 mt-1">{s.commune}</p>}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
-                {alertList.length > 3 && (
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => setShowAllAlerts(!showAllAlerts)}
-                      className="flex-1 text-[10px] font-bold text-[#ba1a1a] bg-white/60 rounded-lg py-1.5 hover:bg-white transition-colors cursor-pointer"
-                    >
-                      {showAllAlerts ? 'Voir moins' : `Voir toutes les alertes (${alerts.total})`}
-                    </button>
-                    <button
-                      onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?filter=critical&show_points=1`)}
-                      className="flex-1 text-[10px] font-bold text-white bg-[#ba1a1a] rounded-lg py-1.5 hover:bg-[#ba1a1a]/90 transition-colors cursor-pointer"
-                    >
-                      Explorer
-                    </button>
-                  </div>
-                )}
-                {alertList.length <= 3 && (
-                  <button
-                    onClick={() => navigate(`/explorer/${zone.level}/${zone.code}?filter=critical&show_points=1`)}
-                    className="w-full mt-3 text-[10px] font-bold text-[#ba1a1a] bg-white/60 rounded-lg py-1.5 hover:bg-white transition-colors cursor-pointer"
-                  >
-                    Explorer les alertes
-                  </button>
-                )}
               </div>
             )}
 
             {/* Comparaison vs national */}
             {indicators.length > 0 && (
-              <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Comparaison vs national</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+                <h3 className="text-xs font-bold text-[#0D1B2A] mb-2">Comparaison vs national</h3>
+                <div className="grid grid-cols-2 gap-3">
                   {indicators.map((ind) => (
                     <div key={ind.label} className="bg-[#F4EFE6] rounded-lg p-2.5">
                       <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">{ind.label}</p>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-black text-[#0D1B2A]">{ind.zoneVal}</span>
+                        <span className="text-base font-black text-[#0D1B2A]">{ind.zoneVal}</span>
                         {ind.higherBetter !== null ? (
                           <Delta zone={ind.zone} national={ind.nat} higherBetter={ind.higherBetter} />
                         ) : (
@@ -634,113 +675,6 @@ export default function DashboardMairie() {
                 </div>
               </div>
             )}
-
-            {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <button
-                onClick={() => api.getSchoolRanking(zone.level, zone.code, 'ecoles').then(d => setRankingModal({ ...d, filterType: 'ecoles' })).catch(() => {})}
-                className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="p-1.5 rounded-lg bg-[#e7eeff] text-[#0D1B2A]">
-                    <span className="material-symbols-outlined text-[20px]">school</span>
-                  </span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#00796B]/10 text-[#00796B]">
-                    {tauxCollecte}% collecté
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">Écoles</p>
-                <p className="text-[1.25rem] md:text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">{stats.total_ecoles}</p>
-              </button>
-
-              <button
-                onClick={() => api.getSchoolRanking(zone.level, zone.code, 'eleves').then(d => setRankingModal({ ...d, filterType: 'eleves' })).catch(() => {})}
-                className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="p-1.5 rounded-lg bg-[#e7eeff] text-[#0D1B2A]">
-                    <span className="material-symbols-outlined text-[20px]">groups</span>
-                  </span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#E8611A]/10 text-[#E8611A]">
-                    {stats.taux_filles_pct}% filles
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">Élèves</p>
-                <p className="text-[1.25rem] md:text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">
-                  {stats.total_eleves.toLocaleString('fr-FR')}
-                </p>
-              </button>
-
-              <button
-                onClick={() => api.getSchoolRanking(zone.level, zone.code, 'sans_eau').then(d => setRankingModal({ ...d, filterType: 'sans_eau' })).catch(() => {})}
-                className={`p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer ${
-                  stats.infrastructure.sans_eau > 0 ? 'bg-[#ffdad6]/40' : 'bg-[#FAF8F3]'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span
-                    className={`p-1.5 rounded-lg ${
-                      stats.infrastructure.sans_eau > 0 ? 'bg-[#ffdad6] text-[#ba1a1a]' : 'bg-[#e7eeff] text-[#0D1B2A]'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[20px]">water_drop</span>
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                      stats.infrastructure.sans_eau > 0
-                        ? 'bg-[#ba1a1a]/10 text-[#ba1a1a]'
-                        : 'bg-[#00796B]/10 text-[#00796B]'
-                    }`}
-                  >
-                    {stats.infrastructure.sans_eau > 0 ? 'Urgence' : 'OK'}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">Sans eau</p>
-                <p
-                  className={`text-[1.25rem] md:text-[1.875rem] font-black tabular-nums ${
-                    stats.infrastructure.sans_eau > 0 ? 'text-[#ba1a1a]' : 'text-[#0D1B2A]'
-                  }`}
-                >
-                  {stats.infrastructure.sans_eau}
-                </p>
-              </button>
-
-              <button
-                onClick={() => api.getSchoolRanking(zone.level, zone.code, 'enseignants').then(d => setRankingModal({ ...d, filterType: 'enseignants' })).catch(() => {})}
-                className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="p-1.5 rounded-lg bg-[#e7eeff] text-[#0D1B2A]">
-                    <span className="material-symbols-outlined text-[20px]">person</span>
-                  </span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600">
-                    {ratioElevesEnseignant}:1
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">Enseignants</p>
-                <p className="text-[1.25rem] md:text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">
-                  {stats.total_enseignants.toLocaleString('fr-FR')}
-                </p>
-              </button>
-
-              <button
-                onClick={() => api.getSchoolRanking(zone.level, zone.code, 'cloturees').then(d => setRankingModal({ ...d, filterType: 'cloturees' })).catch(() => {})}
-                className="p-3.5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] text-left w-full transition-all hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] cursor-pointer bg-[#FAF8F3]"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="p-1.5 rounded-lg bg-[#e7eeff] text-[#0D1B2A]">
-                    <span className="material-symbols-outlined text-[20px]">fence</span>
-                  </span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#00796B]/10 text-[#00796B]">
-                    {stats.total_ecoles > 0 ? Math.round((stats.infrastructure.ecoles_cloturees / stats.total_ecoles) * 100) : 0}%
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">Clôturées</p>
-                <p className="text-[1.25rem] md:text-[1.875rem] font-black tabular-nums text-[#0D1B2A]">
-                  {stats.infrastructure.ecoles_cloturees}
-                </p>
-              </button>
-            </div>
 
             {/* Écoles par catégorie */}
             <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
@@ -809,34 +743,24 @@ export default function DashboardMairie() {
             </div>
 
             {/* Parité */}
-            <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-              <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Parité filles/garçons</h3>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-bold text-[#E8611A]">Filles {stats.taux_filles_pct}%</span>
-                    <span className="font-bold text-[#0D1B2A]">{100 - stats.taux_filles_pct}% Garçons</span>
-                  </div>
-                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden flex">
-                    <div
-                      className="h-full bg-[#E8611A] rounded-l-full"
-                      style={{ width: `${stats.taux_filles_pct}%` }}
-                    />
-                    <div
-                      className="h-full bg-[#0D1B2A] rounded-r-full"
-                      style={{ width: `${100 - stats.taux_filles_pct}%` }}
-                    />
-                  </div>
-                </div>
+            <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+              <h3 className="text-[10px] font-bold text-[#0D1B2A] mb-2">Parité filles/garçons</h3>
+              <div className="flex justify-between text-[9px] mb-1">
+                <span className="font-bold text-[#E8611A]">Filles {stats.taux_filles_pct}%</span>
+                <span className="font-bold text-[#0D1B2A]">{100 - stats.taux_filles_pct}% Garçons</span>
               </div>
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <div className="text-center bg-[#F4EFE6] rounded-lg p-2">
-                  <p className="text-lg font-black text-[#E8611A]">{stats.total_filles.toLocaleString('fr-FR')}</p>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase">Filles</p>
+              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden flex">
+                <div className="h-full bg-[#E8611A] rounded-l-full" style={{ width: `${stats.taux_filles_pct}%` }} />
+                <div className="h-full bg-[#0D1B2A] rounded-r-full" style={{ width: `${100 - stats.taux_filles_pct}%` }} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="text-center bg-[#F4EFE6] rounded-lg p-1.5">
+                  <p className="text-sm font-black text-[#E8611A]">{stats.total_filles.toLocaleString('fr-FR')}</p>
+                  <p className="text-[8px] font-bold text-gray-500 uppercase">Filles</p>
                 </div>
-                <div className="text-center bg-[#F4EFE6] rounded-lg p-2">
-                  <p className="text-lg font-black text-[#0D1B2A]">{stats.total_garcons.toLocaleString('fr-FR')}</p>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase">Garçons</p>
+                <div className="text-center bg-[#F4EFE6] rounded-lg p-1.5">
+                  <p className="text-sm font-black text-[#0D1B2A]">{stats.total_garcons.toLocaleString('fr-FR')}</p>
+                  <p className="text-[8px] font-bold text-gray-500 uppercase">Garçons</p>
                 </div>
               </div>
             </div>
@@ -951,27 +875,25 @@ export default function DashboardMairie() {
 
             {/* Top écoles à besoins */}
             {stats.top_ecoles_besoin?.length > 0 && (
-              <div className="bg-[#FAF8F3] rounded-xl p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-                <h3 className="text-sm font-bold text-[#0D1B2A] mb-3">Top écoles à besoins</h3>
-                <div className="space-y-2">
+              <div className="bg-[#FAF8F3] rounded-xl p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+                <h3 className="text-xs font-bold text-[#0D1B2A] mb-2">Top écoles à besoins</h3>
+                <div className="space-y-1.5">
                   {stats.top_ecoles_besoin.slice(0, 5).map((e, i) => (
-                    <div key={e.id} className="flex items-center gap-3 bg-[#F4EFE6] rounded-lg p-2.5">
-                      <span className="text-lg font-black text-[#E8611A] w-6 text-center">{i + 1}</span>
+                    <div key={e.id} className="flex items-center gap-2 bg-[#F4EFE6] rounded-lg p-2">
+                      <span className="text-sm font-black text-[#E8611A] w-5 text-center">{i + 1}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-[#0D1B2A] truncate">{e.nom}</p>
-                        <p className="text-[10px] text-gray-500">
-                          {e.eleves} élèves &middot; {e.besoins} besoins
-                        </p>
+                        <p className="text-[10px] font-bold text-[#0D1B2A] truncate">{e.nom}</p>
+                        <p className="text-[9px] text-gray-500">{e.eleves} élèves · {e.besoins} besoins</p>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-0.5">
                         {e.sans_eau && (
-                          <span className="w-5 h-5 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[12px] text-[#ba1a1a]">water_drop</span>
+                          <span className="w-4 h-4 rounded-full bg-[#ba1a1a]/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[9px] text-[#ba1a1a]">water_drop</span>
                           </span>
                         )}
                         {e.sans_toilettes && (
-                          <span className="w-5 h-5 rounded-full bg-[#E8611A]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[12px] text-[#E8611A]">wc</span>
+                          <span className="w-4 h-4 rounded-full bg-[#E8611A]/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[9px] text-[#E8611A]">wc</span>
                           </span>
                         )}
                       </div>
@@ -1004,7 +926,7 @@ export default function DashboardMairie() {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-[#0D1B2A] truncate">{c.commune}</p>
                           <p className="text-[10px] text-gray-400">
-                            {c.ecoles} écoles &middot; {c.eleves?.toLocaleString('fr-FR') || 0} élèves
+                            {c.ecoles} écoles · {c.eleves?.toLocaleString('fr-FR') || 0} élèves
                           </p>
                         </div>
                         <div className="text-right flex-shrink-0">
